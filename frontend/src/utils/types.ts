@@ -9,20 +9,31 @@ export interface LearningObjective {
   text: string;
 }
 
+export type DifficultyLevel = 'basic' | 'intermediate' | 'advanced';
+
 export interface Subtopic {
   id: string;
-  name: string;
-  level: LearningLevel;
-  objectives: LearningObjective[];
+  title: string;
+  description: string;
+  difficultyLevel: DifficultyLevel;
+  orderIndex: number;
   progress: number; // 0-100
-  completed?: boolean; // derived from progress === 100, may be persisted
+  completed?: boolean; // derived from progress === 100
 }
 
 export interface Topic {
   id: string;
+  masterTopicId: number;
   name: string;
+  description: string;
+  iconUrl: string;
+  category: string;
+  enrolledAt: string; // ISO string from API
+  lastAccessedAt: string; // ISO string from API
+  progress: number; // overall topic progress
   subtopics: Subtopic[];
 }
+
 
 export interface SelectionState {
   topicId: string | null;

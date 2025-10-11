@@ -36,6 +36,8 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 14px; /* ChatGPT-like base font size */
+  line-height: 1.5; /* Comfortable reading */
 }
 
 /* Utility classes bridging older custom names to tokens */

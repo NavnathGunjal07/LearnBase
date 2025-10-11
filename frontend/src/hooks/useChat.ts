@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ChatMessageType } from '../utils/types';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
@@ -6,18 +6,46 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
 export const useChat = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
-  // We stream into the last assistant message to avoid duplicates
+  const reconnectTimeoutRef = useRef<number | undefined>(undefined);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
-  useEffect(() => {
-    const socket = new WebSocket(WS_URL);
+  const connectWebSocket = () => {
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    const wsUrl = token ? `${WS_URL}?token=${token}` : WS_URL;
+    
+    const socket = new WebSocket(wsUrl);
     
     socket.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('✅ WebSocket connected');
+      setIsConnected(true);
+      reconnectAttemptsRef.current = 0;
     };
     
     socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error('❌ WebSocket error:', error);
+      setIsConnected(false);
+    };
+
+    socket.onclose = () => {
+      console.log('👋 WebSocket disconnected');
+      setIsConnected(false);
+      
+      // Attempt to reconnect
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        reconnectAttemptsRef.current++;
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        console.log(`🔄 Reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current})`);
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectWebSocket();
+        }, delay);
+      } else {
+        console.error('❌ Max reconnection attempts reached');
+      }
     };
     
     socket.onmessage = (event) => {
@@ -58,7 +86,19 @@ export const useChat = () => {
     };
     
     setWs(socket);
-    return () => socket.close();
+  };
+
+  useEffect(() => {
+    connectWebSocket();
+    
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (ws) {
+        ws.close();
+      }
+    };
   }, []);
 
   const sendMessage = (content: string) => {
@@ -71,5 +111,5 @@ export const useChat = () => {
     }
   };
 
-  return { messages, sendMessage, isTyping };
+  return { messages, sendMessage, isTyping, isConnected };
 };

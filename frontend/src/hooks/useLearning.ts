@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import type { Breadcrumb, LearningState, LearningLevel, Subtopic, Topic } from '../utils/types';
+import { useMemo, useState, useEffect } from 'react';
+import axiosInstance from '../api/axiosInstance';
+import type { Breadcrumb, LearningState, Subtopic, Topic } from '../utils/types';
 
 function calculateTopicProgress(topic: Topic): number {
   if (topic.subtopics.length === 0) return 0;
@@ -7,38 +8,68 @@ function calculateTopicProgress(topic: Topic): number {
   return Math.round(sum / topic.subtopics.length);
 }
 
-function makeId(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-const seedTopics: Topic[] = [
-  {
-    id: 't-js-fundamentals',
-    name: 'JavaScript Fundamentals',
-    subtopics: [
-      { id: 'st-vars', name: 'Variables', level: 'basic', progress: 60, objectives: [{ text: 'Understand let/const/var' }, { text: 'Know scope basics' }] },
-      { id: 'st-funcs', name: 'Functions', level: 'basic', progress: 40, objectives: [{ text: 'Function declarations vs expressions' }] },
-      { id: 'st-closures', name: 'Closures', level: 'intermediate', progress: 10, objectives: [{ text: 'Explain closure mechanics' }] },
-      { id: 'st-promises', name: 'Promises', level: 'intermediate', progress: 0, objectives: [{ text: 'Create and consume promises' }] },
-      { id: 'st-event-loop', name: 'Event Loop', level: 'advanced', progress: 0, objectives: [{ text: 'Trace micro/macro tasks' }] },
-    ],
-  },
-  {
-    id: 't-react-basics',
-    name: 'React Basics',
-    subtopics: [
-      { id: 'st-components', name: 'Components', level: 'basic', progress: 80, objectives: [{ text: 'Build functional components' }] },
-      { id: 'st-state', name: 'State & Props', level: 'basic', progress: 30, objectives: [{ text: 'Prop drilling vs lifting state' }] },
-      { id: 'st-hooks', name: 'Hooks', level: 'intermediate', progress: 20, objectives: [{ text: 'useEffect/useMemo basics' }] },
-    ],
-  },
-];
-
 export function useLearning() {
   const [state, setState] = useState<LearningState>({
-    topics: seedTopics,
-    selection: { topicId: seedTopics[0]?.id ?? null, subtopicId: seedTopics[0]?.subtopics[0]?.id ?? null },
+    topics: [],
+    selection: { topicId: null, subtopicId: null },
   });
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user's enrolled topics on mount
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadTopics = async () => {
+      if (isMounted) {
+        await fetchTopics();
+      }
+    };
+    
+    loadTopics();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const fetchTopics = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/topics');
+      const topics: Topic[] = response.data.map((ut: any) => ({
+        id: ut.id.toString(),
+        masterTopicId: ut.masterTopicId,
+        name: ut.name,
+        description: ut.description || '',
+        iconUrl: ut.iconUrl || '',
+        category: ut.category || '',
+        enrolledAt: ut.enrolledAt || new Date().toISOString(),
+        lastAccessedAt: ut.lastAccessedAt || new Date().toISOString(),
+        progress: ut.progress || 0,
+        subtopics: ut.subtopics.map((s: any) => ({
+          id: s.id.toString(),
+          title: s.title,
+          description: s.description || '',
+          difficultyLevel: s.difficultyLevel,
+          orderIndex: s.orderIndex,
+          progress: s.progress || 0,
+          completed: s.progress >= 100,
+        })),
+      }));
+
+      setState({
+        topics,
+        selection: {
+          topicId: topics[0]?.id ?? null,
+          subtopicId: topics[0]?.subtopics[0]?.id ?? null,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to fetch topics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const topicProgressMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -48,19 +79,19 @@ export function useLearning() {
     return map;
   }, [state.topics]);
 
-  const selectedTopic = useMemo(
+  const selectedTopic: Topic | null = useMemo(
     () => state.topics.find((t) => t.id === state.selection.topicId) ?? null,
     [state.topics, state.selection.topicId]
   );
-  const selectedSubtopic = useMemo(
+  const selectedSubtopic: Subtopic | null = useMemo(
     () => selectedTopic?.subtopics.find((s) => s.id === state.selection.subtopicId) ?? null,
     [selectedTopic, state.selection.subtopicId]
   );
 
   const breadcrumb: Breadcrumb = useMemo(() => ({
     topicName: selectedTopic?.name,
-    subtopicName: selectedSubtopic?.name,
-  }), [selectedTopic?.name, selectedSubtopic?.name]);
+    subtopicName: selectedSubtopic?.title,
+  }), [selectedTopic?.name, selectedSubtopic?.title]);
 
   function selectTopic(topicId: string) {
     setState((prev) => {
@@ -74,31 +105,32 @@ export function useLearning() {
     setState((prev) => ({ ...prev, selection: { topicId, subtopicId } }));
   }
 
-  function updateSubtopicProgress(topicId: string, subtopicId: string, progress: number) {
-    setState((prev) => ({
-      ...prev,
-      topics: prev.topics.map((t) =>
-        t.id !== topicId
-          ? t
-          : {
-              ...t,
-              subtopics: t.subtopics.map((s) => (s.id === subtopicId ? { ...s, progress, completed: progress >= 100 } : s)),
-            }
-      ),
-    }));
+  async function updateSubtopicProgress(topicId: string, subtopicId: string, progress: number) {
+    try {
+      await axiosInstance.patch(`/topics/${topicId}/subtopics/${subtopicId}/progress`, {
+        completedPercent: progress,
+      });
+
+      // Update local state
+      setState((prev) => ({
+        ...prev,
+        topics: prev.topics.map((t) =>
+          t.id !== topicId
+            ? t
+            : {
+                ...t,
+                subtopics: t.subtopics.map((s) => (s.id === subtopicId ? { ...s, progress, completed: progress >= 100 } : s)),
+              }
+        ),
+      }));
+    } catch (error) {
+      console.error('Failed to update progress:', error);
+    }
   }
 
-  function addTopic(name: string) {
-    const newTopic: Topic = { id: makeId('topic'), name, subtopics: [] };
-    setState((prev) => ({ ...prev, topics: [newTopic, ...prev.topics] }));
-  }
-
-  function addSubtopic(topicId: string, name: string, level: LearningLevel) {
-    const newSub: Subtopic = { id: makeId('sub'), name, level, progress: 0, objectives: [] };
-    setState((prev) => ({
-      ...prev,
-      topics: prev.topics.map((t) => (t.id === topicId ? { ...t, subtopics: [...t.subtopics, newSub] } : t)),
-    }));
+  // Refresh topics after adding a new one
+  function addTopic() {
+    fetchTopics();
   }
 
   return {
@@ -111,7 +143,7 @@ export function useLearning() {
     selectSubtopic,
     updateSubtopicProgress,
     addTopic,
-    addSubtopic,
+    loading,
   };
 }
 

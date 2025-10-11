@@ -1,36 +1,36 @@
-import ChatContainer from "./components/Chat/ChatContainer"
-import Sidebar from "./components/Sidebar"
-import Navbar from "./components/Navbar"
-import { useLearning } from "./hooks/useLearning"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import LoginPage from "./components/Auth/Login";
+import RegisterPage from "./components/Auth/Register";
+import Home from "./pages/Home"
+import { Toaster } from "./components/ui/toaster";
 
 function App() {
-  const learning = useLearning();
   return (
-     <div className="min-h-screen bg-[var(--bg-default)] text-[var(--fg-default)]">
-      <div className="flex h-dvh max-h-dvh">
-        <Sidebar
-          collapsedInitially={false}
-          topics={learning.state.topics}
-          topicProgressMap={learning.topicProgressMap}
-          selection={learning.state.selection}
-          onSelectTopic={learning.selectTopic}
-          onSelectSubtopic={learning.selectSubtopic}
-          onAddTopic={learning.addTopic}
-        />
-        <div className="flex flex-1 flex-col">
-          <Navbar breadcrumb={learning.breadcrumb} />
-          <ChatContainer
-            selectedSubtopic={learning.selectedSubtopic}
-            onComplete={(progress) => {
-              if (learning.selectedTopic && learning.selectedSubtopic) {
-                learning.updateSubtopicProgress(learning.selectedTopic.id, learning.selectedSubtopic.id, progress);
-              }
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  )
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/" element={<Navigate to="/home" replace />} />
+        </Routes>
+        <Toaster />
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
 
-export default App
+// Protected route wrapper - redirects to login if not authenticated
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  return user ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+// Public route wrapper - redirects to home if already authenticated
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  return !user ? <>{children}</> : <Navigate to="/home" replace />;
+};
+
+export default App;

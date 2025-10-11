@@ -1,58 +1,84 @@
+import { useState } from 'react';
 import { useChat } from '../../hooks/useChat';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
-import type { Subtopic } from '../../utils/types';
+import CodeEditor from '../CodeEditor/CodeEditor';
+import { Code, MessageSquare } from 'lucide-react';
 
-export default function ChatContainer({ selectedSubtopic, onComplete }: { selectedSubtopic: Subtopic | null; onComplete: (progress: number) => void; }) {
-  const { messages, sendMessage, isTyping } = useChat();
+
+export default function ChatContainer() {
+  const { messages, sendMessage, isTyping, isConnected } = useChat();
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+  const [executionResults, setExecutionResults] = useState<string[]>([]);
+
+  const handleRunCode = async (code: string) => {
+    try {
+      // Here you would integrate with your backend API
+      // For now, let's simulate code execution
+      const result = `Executed: ${code.length} characters of code`;
+      setExecutionResults(prev => [...prev, result]);
+
+      // Send the result back to chat
+      sendMessage(`Code execution result: ${result}`);
+    } catch (error) {
+      const errorMessage = `Error executing code: ${error}`;
+      setExecutionResults(prev => [...prev, errorMessage]);
+      sendMessage(errorMessage);
+    }
+  };
+
+  const toggleCodeEditor = () => {
+    setShowCodeEditor(!showCodeEditor);
+  };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white">
-        {selectedSubtopic && (
-          <div className="w-full max-w-3xl mx-auto mb-4">
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <div className="text-xs uppercase text-gray-500 mb-1">Goal</div>
-              <div className="text-sm text-gray-700">
-                {selectedSubtopic.objectives.length > 0 ? selectedSubtopic.objectives.map((o) => o.text).join(' • ') : 'Explore this subtopic interactively.'}
-              </div>
+    <div className="flex flex-col flex-1 overflow-hidden bg-gray-50">
+      {/* Header with toggle button */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+        <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
+        <button
+          onClick={toggleCodeEditor}
+          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition ${
+            showCodeEditor
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          {showCodeEditor ? <MessageSquare className="w-4 h-4" /> : <Code className="w-4 h-4" />}
+          {showCodeEditor ? 'Hide Editor' : 'Show Editor'}
+        </button>
+      </div>
+
+      {/* Connection Status */}
+      {!isConnected && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-center">
+          <span className="text-xs text-yellow-800">🔄 Connecting to chat server...</span>
+        </div>
+      )}
+
+      {/* Code Editor or Chat Messages */}
+      {showCodeEditor ? (
+        <div className="flex-1 overflow-hidden">
+          <CodeEditor onRunCode={handleRunCode} />
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
+            <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
+              {messages.map((msg, i) => (
+                <ChatMessage key={i} message={msg} />
+              ))}
+              {isTyping && <TypingIndicator />}
             </div>
           </div>
-        )}
-        <div className="w-full max-w-3xl mx-auto space-y-3 sm:space-y-4">
-          {messages.map((msg, i) => (
-            <ChatMessage key={i} message={msg} />
-          ))}
-          {isTyping && <TypingIndicator />}
-        </div>
-      </div>
-      <div className="w-full flex justify-center px-4 sm:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <div className="w-full max-w-3xl">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-xs text-gray-500">
-              {selectedSubtopic ? `${selectedSubtopic.name} • ${selectedSubtopic.progress}%` : 'Select a subtopic to start'}
+          <div className="w-full flex justify-center px-4 sm:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gray-50">
+            <div className="w-full max-w-3xl">
+              <ChatInput onSend={sendMessage} />
             </div>
-            {selectedSubtopic && (
-              <div className="flex items-center gap-2">
-                <button
-                  className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                  onClick={() => onComplete(Math.min(100, (selectedSubtopic.progress ?? 0) + 10))}
-                >
-                  Mark +10%
-                </button>
-                <button
-                  className="text-xs px-2 py-1 rounded bg-teal-500 text-white hover:bg-teal-600"
-                  onClick={() => onComplete(100)}
-                >
-                  Mark Complete
-                </button>
-              </div>
-            )}
           </div>
-          <ChatInput onSend={sendMessage} />
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

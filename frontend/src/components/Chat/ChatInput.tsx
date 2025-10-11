@@ -11,17 +11,22 @@ export default function ChatInput({ onSend }: { onSend: (msg: string) => void })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="sticky bottom-0 inset-x-0 flex items-center gap-2 sm:gap-3 p-2 sm:p-3 border border-default bg-gray-50 rounded-xl shadow-subtle">
+    <form onSubmit={handleSubmit} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
       <input
         type="text"
-        className="flex-1 bg-gray-50 text-gray-900 px-3 sm:px-4 py-2 rounded-md placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 border border-gray-200"
-        placeholder="Type your message..."
+        className="flex-1 bg-transparent text-gray-900 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md"
+        placeholder="Message LearnBase..."
         value={input}
         onChange={(e) => setInput(e.target.value)}
       />
       <button
         type="submit"
-        className="ml-0 px-3 sm:px-4 py-2 rounded-xl bg-white text-gray-900 border border-gray-200 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+        disabled={!input.trim()}
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          input.trim()
+            ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
+            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+        }`}
       >
         Send
       </button>
