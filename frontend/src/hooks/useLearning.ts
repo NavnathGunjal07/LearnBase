@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import type { Breadcrumb, LearningState, Subtopic, Topic } from '../utils/types';
 
@@ -14,19 +14,21 @@ export function useLearning() {
     selection: { topicId: null, subtopicId: null },
   });
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   // Fetch user's enrolled topics on mount
   useEffect(() => {
     let isMounted = true;
-    
+    if (hasFetched.current) return;
+    hasFetched.current = true;
     const loadTopics = async () => {
       if (isMounted) {
         await fetchTopics();
       }
     };
-    
+
     loadTopics();
-    
+
     return () => {
       isMounted = false;
     };
@@ -118,9 +120,9 @@ export function useLearning() {
           t.id !== topicId
             ? t
             : {
-                ...t,
-                subtopics: t.subtopics.map((s) => (s.id === subtopicId ? { ...s, progress, completed: progress >= 100 } : s)),
-              }
+              ...t,
+              subtopics: t.subtopics.map((s) => (s.id === subtopicId ? { ...s, progress, completed: progress >= 100 } : s)),
+            }
         ),
       }));
     } catch (error) {

@@ -11,20 +11,21 @@ export const useChat = () => {
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  const hasConnected = useRef(false)
 
   const connectWebSocket = () => {
     // Get token from localStorage
     const token = localStorage.getItem('token');
     const wsUrl = token ? `${WS_URL}?token=${token}` : WS_URL;
-    
+
     const socket = new WebSocket(wsUrl);
-    
+
     socket.onopen = () => {
       console.log('✅ WebSocket connected');
       setIsConnected(true);
       reconnectAttemptsRef.current = 0;
     };
-    
+
     socket.onerror = (error) => {
       console.error('❌ WebSocket error:', error);
       setIsConnected(false);
@@ -33,13 +34,13 @@ export const useChat = () => {
     socket.onclose = () => {
       console.log('👋 WebSocket disconnected');
       setIsConnected(false);
-      
+
       // Attempt to reconnect
       if (reconnectAttemptsRef.current < maxReconnectAttempts) {
         reconnectAttemptsRef.current++;
         const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
         console.log(`🔄 Reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current})`);
-        
+
         reconnectTimeoutRef.current = setTimeout(() => {
           connectWebSocket();
         }, delay);
@@ -47,12 +48,12 @@ export const useChat = () => {
         console.error('❌ Max reconnection attempts reached');
       }
     };
-    
+
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         console.log('Received WebSocket message:', data);
-        
+
         if (data.type === 'typing') {
           setIsTyping(true);
           // Start a new assistant message placeholder
@@ -84,13 +85,15 @@ export const useChat = () => {
         console.error('Error parsing WebSocket message:', error);
       }
     };
-    
+
     setWs(socket);
   };
 
   useEffect(() => {
+    if (hasConnected.current) return;
+    hasConnected.current = true;
     connectWebSocket();
-    
+
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);

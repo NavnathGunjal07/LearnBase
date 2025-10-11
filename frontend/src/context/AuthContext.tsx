@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService, User } from '@/services/auth';
 import { useToast } from '@/components/ui/use-toast';
@@ -19,9 +19,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const hasCheckedAuth = useRef(false);
 
   // Check for existing session on initial load
   useEffect(() => {
+
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
+
     const checkAuth = async () => {
       try {
         const currentUser = await authService.getCurrentUser();

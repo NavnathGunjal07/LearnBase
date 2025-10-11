@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, Palette, PlusCircle, Settings, LogOut, User 
 import { useAuth } from '../context/AuthContext';
 import TopicSelectionModal from './TopicSelectionModal';
 import TopicSkeleton from './TopicSkeleton';
-import type { SelectionState, Topic } from '../utils/types';
+import type { SelectionState, Subtopic, Topic } from '../utils/types';
+import { useLearning } from '@/hooks/useLearning';
 
 // Helper function to get icon for topic
 function getTopicIcon(topicName: string): string {
@@ -106,36 +107,19 @@ function ProgressRing({
   );
 }
 
-export default function Sidebar({
-  collapsedInitially = false,
-  topics,
-  topicProgressMap,
-  selection,
-  onSelectTopic,
-  onSelectSubtopic,
-  onAddTopic,
-  loading = false,
-}: {
-  collapsedInitially?: boolean;
-  topics: Topic[];
-  topicProgressMap: Record<string, number>;
-  selection: SelectionState;
-  onSelectTopic: (topicId: string) => void;
-  onSelectSubtopic: (topicId: string, subtopicId: string) => void;
-  onAddTopic: () => void;
-  loading?: boolean;
-}) {
+export default function Sidebar() {
   const { logout } = useAuth();
-  const [collapsed, setCollapsed] = useState(collapsedInitially);
+  const learning = useLearning();
+  const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const groupedSubtopicsByLevel = useMemo(() => {
-    const map: Record<string, { basic: typeof topics[number]['subtopics']; intermediate: typeof topics[number]['subtopics']; advanced: typeof topics[number]['subtopics'] }> = {};
-    topics.forEach((t) => {
+    const map: Record<string, { basic: typeof learning.state.topics[number]['subtopics']; intermediate: typeof learning.state.topics[number]['subtopics']; advanced: typeof learning.state.topics[number]['subtopics'] }> = {};
+    learning.state.topics.forEach((t: Topic) => {
       map[t.id] = { basic: [], intermediate: [], advanced: [] } as any;
-      t.subtopics.forEach((s) => {
+      t.subtopics.forEach((s: Subtopic) => {
         if (s.difficultyLevel === 'basic') {
           map[t.id].basic.push(s);
         } else if (s.difficultyLevel === 'intermediate') {
@@ -146,7 +130,7 @@ export default function Sidebar({
       });
     });
     return map;
-  }, [topics]);
+  }, [learning.state.topics]);
 
   return (
     <aside className={`hidden md:flex ${collapsed ? 'w-16' : 'md:w-64 lg:w-72 xl:w-80'} flex-col bg-gray-100 border-r border-default text-[var(--fg-default)]`}>
@@ -165,7 +149,7 @@ export default function Sidebar({
         <div className="p-2">
           <button
             onClick={() => setIsModalOpen(true)}
-            disabled={loading}
+            disabled={learning.loading}
             className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${collapsed ? 'px-0' : ''}`}
           >
             <PlusCircle className="w-4 h-4" />
@@ -173,32 +157,32 @@ export default function Sidebar({
           </button>
         </div>
 
-        {loading && !collapsed ? (
+        {learning.loading && !collapsed ? (
           <TopicSkeleton />
-        ) : topics.length === 0 && !collapsed ? (
+        ) : learning.state.topics.length === 0 && !collapsed ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="text-4xl mb-3">📚</div>
             <p className="text-sm text-gray-600 mb-2">No topics yet</p>
             <p className="text-xs text-gray-500">Click "New Topic" to get started</p>
           </div>
         ) : (
-          <>
-            {topics.map((t) => {
+          < >
+            {learning.state.topics.map((t: Topic) => {
               const isExpanded = expanded[t.id] ?? true;
-              const isSelected = selection.topicId === t.id;
+              const isSelected = learning.state.selection.topicId === t.id;
               const grouped = groupedSubtopicsByLevel[t.id] || { basic: [], intermediate: [], advanced: [] };
               return (
                 <div key={t.id} className="">
                   <button
                     onClick={() => {
-                      onSelectTopic(t.id);
+                      learning.selectTopic(t.id);
                       setExpanded((prev) => ({ ...prev, [t.id]: !(prev[t.id] ?? true) }));
                     }}
                     className={`group relative w-full flex items-center ${collapsed ? 'justify-center px-0' : 'px-3'} py-2 text-sm hover:bg-gray-200 transition`}
                   >
                     <div className="flex items-center gap-3">
                       <ProgressRing
-                        value={topicProgressMap[t.id] ?? 0}
+                        value={learning.topicProgressMap[t.id] ?? 0}
                         icon={t.iconUrl || getTopicIcon(t.name)}
                         size={40}
                         stroke={3}
@@ -218,8 +202,8 @@ export default function Sidebar({
                             {grouped[lvl].map((s) => (
                               <button
                                 key={s.id}
-                                onClick={() => onSelectSubtopic(t.id, s.id)}
-                                className={`w-full flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition ${isSelected && selection.subtopicId === s.id ? 'bg-white' : ''
+                                onClick={() => learning.selectSubtopic(t.id, s.id)}
+                                className={`w-full flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition ${isSelected && learning.state.selection.subtopicId === s.id ? 'bg-white' : ''
                                   }`}
                               >
                                 <span className="text-gray-600">{s.title}</span>
@@ -292,7 +276,7 @@ export default function Sidebar({
         onClose={() => setIsModalOpen(false)}
         onTopicAdded={() => {
           setIsModalOpen(false);
-          onAddTopic();
+          learning.addTopic();
         }}
       />
     </aside>
