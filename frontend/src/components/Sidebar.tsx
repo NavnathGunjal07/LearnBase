@@ -135,7 +135,16 @@ export default function Sidebar() {
   return (
     <aside className={`hidden md:flex ${collapsed ? 'w-16' : 'md:w-64 lg:w-72 xl:w-80'} flex-col bg-gray-100 border-r border-default text-[var(--fg-default)]`}>
       <div className="flex items-center justify-between p-3 border-b border-default">
-        <div className={`text-sm font-semibold transition ${collapsed ? 'sr-only' : ''}`}>LearnBase</div>
+        <div className={`flex items-center transition ${collapsed ? 'justify-center' : ''}`}>
+          {!collapsed && (
+            <img
+              src="/src/assets/learnbase_logo.jpg"
+              alt="LearnBase Logo"
+              className="w-8 h-8 mr-3 rounded"
+            />
+          )}
+          <div className={`text-sm font-semibold ${collapsed ? 'sr-only' : ''}`}>LearnBase</div>
+        </div>
         <button
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           onClick={() => setCollapsed(!collapsed)}
