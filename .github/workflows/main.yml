@@ -1,0 +1,54 @@
+name: Node.js CI/CD
+
+# Trigger on push to main or manual dispatch
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Use self-hosted runner
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    env:
+      # Define environment variables here (can also be set in Windows environment permanently)
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+      PORT: ${{ secrets.PORT }}
+      NODE_ENV: ${{ secrets.NODE_ENV }}
+      CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20' # use your desired Node version
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: |
+          npm run build
+          npm run postbuild
+
+      - name: Set environment variables on Windows (PowerShell)
+        if: runner.os == 'Windows'
+        run: |
+          [System.Environment]::SetEnvironmentVariable("DATABASE_URL", "${{ secrets.DATABASE_URL }}", "Machine")
+          [System.Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "${{ secrets.OPENAI_API_KEY }}", "Machine")
+          [System.Environment]::SetEnvironmentVariable("JWT_SECRET", "${{ secrets.JWT_SECRET }}", "Machine")
+          [System.Environment]::SetEnvironmentVariable("JWT_EXPIRES_IN", "${{ secrets.JWT_EXPIRES_IN }}", "Machine")
+          [System.Environment]::SetEnvironmentVariable("PORT", "${{ secrets.PORT }}", "Machine")
+          [System.Environment]::SetEnvironmentVariable("NODE_ENV", "${{ secrets.NODE_ENV }}", "Machine")
+          [System.Environment]::SetEnvironmentVariable("CORS_ORIGINS", "${{ secrets.CORS_ORIGINS }}", "Machine")
+
+      - name: Start app
+        run: |
+          npm start
