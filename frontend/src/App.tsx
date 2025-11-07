@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./components/Auth/Login";
 import RegisterPage from "./components/Auth/Register";
-import Home from "./pages/Home"
+import Home from "./pages/Home";
+import LandingPage from "./pages/LandingPage";
 import { Toaster } from "./components/ui/toaster";
 
 function App() {
@@ -10,10 +11,10 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/" element={<Navigate to="/home" replace />} />
         </Routes>
         <Toaster />
       </AuthProvider>

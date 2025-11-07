@@ -6,10 +6,26 @@ import 'highlight.js/styles/github-dark.css';
 
 export default function ChatMessage({ message }: { message: ChatMessageType }) {
   const isUser = message.sender === 'user';
+  const content = message.content?.trim() || '';
+   if (!content) {
+    return (
+      <div
+        className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full opacity-60`}
+      >
+        <div
+          className={`max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 ${
+            isUser ? 'bg-white border border-gray-200' : 'bg-gray-50'
+          }`}
+        >
+          {isUser ? '...' : 'Thinking...'}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
       <div
-        className={`max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl ${
+        className={`${isUser ? 'max-w-[90%] md:max-w-[75%]' : 'w-[90%] max-w-[90%]'} px-4 py-2 rounded-xl ${
           isUser
             ? 'bg-white border border-gray-200 text-gray-800'
             : 'bg-gray-50 text-gray-900'

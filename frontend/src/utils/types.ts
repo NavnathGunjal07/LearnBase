@@ -1,6 +1,7 @@
 export interface ChatMessageType {
   sender: 'user' | 'assistant';
   content: string;
+  timestamp?: string;
 }
 
 export type LearningLevel = 'basic' | 'intermediate' | 'advanced';

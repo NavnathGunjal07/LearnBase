@@ -8,13 +8,28 @@ interface AuthenticatedWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Groq client configuration
+const groqClient = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1',
 });
 
+// System prompt for the AI
+const SYSTEM_PROMPT = `You are a helpful programming tutor. Explain concepts clearly and provide examples when helpful.
+
+IMPORTANT: Format your responses using Markdown:
+- Use **bold** for emphasis
+- Use \`code\` for inline code
+- Use \`\`\`language for code blocks
+- Use # for headings
+- Use - or * for bullet points
+- Use > for blockquotes
+- Use tables when comparing concepts
+
+Keep responses concise, educational, and well-formatted.`;
+
 export function setupWebSocketServer(server: Server) {
-  const wss = new WebSocketServer({ 
+  const wss = new WebSocketServer({
     server,
     path: '/ws'
   });
@@ -38,7 +53,7 @@ export function setupWebSocketServer(server: Server) {
 
   wss.on('connection', (ws: AuthenticatedWebSocket, req) => {
     ws.isAlive = true;
-    
+
     ws.on('pong', () => {
       ws.isAlive = true;
     });
@@ -64,28 +79,56 @@ export function setupWebSocketServer(server: Server) {
     }
 
     // Send welcome message
-    ws.send(JSON.stringify({ 
-      type: 'connected', 
-      message: 'Connected to LearnBase chat server' 
+    ws.send(JSON.stringify({
+      type: 'connected',
+      message: 'Connected to LearnBase chat server'
     }));
 
     // Handle incoming messages
     ws.on('message', async (data: Buffer) => {
       try {
-        const message = data.toString();
+        const messageText = data.toString();
+        let message;
+        
+        // Try to parse as JSON, fallback to raw text
+        try {
+          message = JSON.parse(messageText);
+        } catch (e) {
+          // If not valid JSON, treat as raw text message
+          message = {
+            type: 'message',
+            content: messageText
+          };
+        }
+        
         console.log(`📨 Received message from user ${ws.userId}:`, message);
 
-        // Send typing indicator
-        ws.send(JSON.stringify({ type: 'typing' }));
-
-        // Get AI response with streaming
-        await getOpenAIResponse(ws, message);
+        // Process the message
+        if (message.type === 'message' && message.content) {
+          await getGroqResponse(ws, message.content);
+        } else if (message.type === 'topic_selected' && message.topic) {
+          // Handle topic and subtopic selection
+          const { name: topicName, subtopic: subtopicName } = message.topic;
+          
+          // Send a confirmation message
+          const responseContent = subtopicName 
+            ? `Great choice! You've selected **${topicName} - ${subtopicName}**. I can help you learn about this specific subtopic. What would you like to know?`
+            : `Great choice! You've selected **${topicName}**. I can help you learn about this topic. What specific aspect of ${topicName} would you like to explore first?`;
+          
+          ws.send(JSON.stringify({
+            type: 'delta',
+            sender: 'assistant',
+            content: responseContent,
+            timestamp: new Date().toISOString()
+          }));
+           ws.send(JSON.stringify({ type: 'done' }));
+        }
 
       } catch (error) {
         console.error('Error handling message:', error);
-        ws.send(JSON.stringify({ 
-          type: 'error', 
-          message: 'Failed to process message' 
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Failed to process message'
         }));
       }
     });
@@ -102,53 +145,23 @@ export function setupWebSocketServer(server: Server) {
   return wss;
 }
 
-// Get OpenAI response with streaming
-async function getOpenAIResponse(ws: AuthenticatedWebSocket, userMessage: string) {
+// Get Groq API response with streaming
+async function getGroqResponse(ws: AuthenticatedWebSocket, userMessage: string) {
   try {
-    // Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ OPENAI_API_KEY not configured');
-      ws.send(JSON.stringify({
-        type: 'delta',
-        content: 'OpenAI API key is not configured. Please add OPENAI_API_KEY to your .env file.'
-      }));
-      ws.send(JSON.stringify({ type: 'done' }));
-      return;
-    }
-
-    // Create streaming completion
-    const stream = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // or 'gpt-4' for better quality
+    const stream = await groqClient.chat.completions.create({
+      model: 'openai/gpt-oss-20b',
       messages: [
-        {
-          role: 'system',
-          content: `You are a helpful programming tutor. Explain concepts clearly and provide examples when helpful.
-
-IMPORTANT: Format your responses using Markdown:
-- Use **bold** for emphasis
-- Use \`code\` for inline code
-- Use \`\`\`language for code blocks
-- Use # for headings
-- Use - or * for bullet points
-- Use > for blockquotes
-- Use tables when comparing concepts
-
-Keep responses concise, educational, and well-formatted.`
-        },
-        {
-          role: 'user',
-          content: userMessage
-        }
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage }
       ],
-      stream: true,
       temperature: 0.7,
       max_tokens: 1500,
+      stream: true,
     });
 
-    // Stream the response
+    // Handle the streaming response
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
-      
       if (content) {
         ws.send(JSON.stringify({
           type: 'delta',
@@ -159,10 +172,10 @@ Keep responses concise, educational, and well-formatted.`
 
     // Send done signal
     ws.send(JSON.stringify({ type: 'done' }));
-    
+
   } catch (error: any) {
-    console.error('OpenAI API error:', error);
-    
+    console.error('Groq API error:', error);
+
     // Send error message to user
     const errorMessage = error.message || 'Failed to get AI response';
     ws.send(JSON.stringify({

@@ -15,15 +15,14 @@ import { setupWebSocketServer } from './websocket/chatServer';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8080;
 
 // Create HTTP server (needed for WebSocket)
 const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGINS?.split(',') || '*',
-  credentials: true,
+  origin: process.env.CORS_ORIGINS?.split(',') || '*'
 }));
 app.use(json());
 app.use(urlencoded({ extended: true }));

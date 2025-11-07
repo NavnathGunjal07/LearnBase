@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  db: 
+    image: postgres:18-alpine
+    container_name: learnbase-db
+    environment:
+      POSTGRES_USER: ${DB_USER:learnbaseDev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:Test@123}
+      POSTGRES_DB: ${DB_NAME:learnbaseDev}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-learnbase}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      target: production
+    container_name: learnbase-app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '${PORT:-3000}:3000'
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-learnbase}?schema=public
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

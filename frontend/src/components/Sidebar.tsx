@@ -3,8 +3,9 @@ import { ChevronLeft, ChevronRight, Palette, PlusCircle, Settings, LogOut, User 
 import { useAuth } from '../context/AuthContext';
 import TopicSelectionModal from './TopicSelectionModal';
 import TopicSkeleton from './TopicSkeleton';
-import type { SelectionState, Subtopic, Topic } from '../utils/types';
+import type { Subtopic, Topic } from '../utils/types';
 import { useLearning } from '@/hooks/useLearning';
+import { useChat } from '@/hooks/useChat';
 
 // Helper function to get icon for topic
 function getTopicIcon(topicName: string): string {
@@ -114,6 +115,7 @@ export default function Sidebar() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { sendTopicSelection } = useChat();
 
   const groupedSubtopicsByLevel = useMemo(() => {
     const map: Record<string, { basic: typeof learning.state.topics[number]['subtopics']; intermediate: typeof learning.state.topics[number]['subtopics']; advanced: typeof learning.state.topics[number]['subtopics'] }> = {};
@@ -159,7 +161,7 @@ export default function Sidebar() {
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={learning.loading}
-            className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${collapsed ? 'px-0' : ''}`}
+            className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${collapsed ? 'px-0' : ''}`}
           >
             <PlusCircle className="w-4 h-4" />
             <span className={`${collapsed ? 'sr-only' : ''}`}>New Topic</span>
@@ -187,11 +189,11 @@ export default function Sidebar() {
                       learning.selectTopic(t.id);
                       setExpanded((prev) => ({ ...prev, [t.id]: !(prev[t.id] ?? true) }));
                     }}
-                    className={`group relative w-full flex items-center ${collapsed ? 'justify-center px-0' : 'px-3'} py-2 text-sm hover:bg-gray-200 transition`}
+                    className={`group relative w-full flex items-center ${collapsed ? 'justify-center px-0' : 'px-3'} py-2 text-sm hover:bg-gray-200 transition cursor-pointer`}
                   >
                     <div className="flex items-center gap-3">
                       <ProgressRing
-                        value={learning.topicProgressMap[t.id] ?? 0}
+                        value={learning.topicProgressMap[t.id] ?? 90}
                         icon={t.iconUrl || getTopicIcon(t.name)}
                         size={40}
                         stroke={3}
@@ -211,8 +213,8 @@ export default function Sidebar() {
                             {grouped[lvl].map((s) => (
                               <button
                                 key={s.id}
-                                onClick={() => learning.selectSubtopic(t.id, s.id)}
-                                className={`w-full flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition ${isSelected && learning.state.selection.subtopicId === s.id ? 'bg-white' : ''
+                                onClick={() => {learning.selectSubtopic(t.id, s.id); sendTopicSelection(t.name, s.title)}}
+                                className={`w-full flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${learning.state.selection.subtopicId === s.id ? 'bg-white' : ''
                                   }`}
                               >
                                 <span className="text-gray-600">{s.title}</span>
@@ -250,7 +252,7 @@ export default function Sidebar() {
             <button
               key={label}
               onClick={onClick}
-              className="group relative p-2 rounded-md hover:bg-[color:var(--bg-input)/0.9] transition flex-none"
+              className="p-2 rounded-full hover:bg-gray-200 transition cursor-pointer"
             >
               <Icon className="w-5 h-5" />
               <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 rounded bg-[var(--bg-input)] text-xs text-[var(--fg-default)] opacity-0 group-hover:opacity-100 transition">

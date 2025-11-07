@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useChat } from '../../hooks/useChat';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -12,6 +12,9 @@ export default function ChatContainer() {
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [executionResults, setExecutionResults] = useState<string[]>([]);
 
+  useEffect(() => {
+    console.log('Messages:', messages);
+  }, [messages]);
   const handleRunCode = async (code: string) => {
     try {
       // Here you would integrate with your backend API

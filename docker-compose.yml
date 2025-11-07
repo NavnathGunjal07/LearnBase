@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: learnbase-postgres
+    environment:
+      POSTGRES_USER: learnbase
+      POSTGRES_PASSWORD: learnbase_password
+      POSTGRES_DB: learnbase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learnbase -d learnbase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learnbase-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: learnbase-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://learnbase:learnbase_password@postgres:5432/learnbase?schema=public
+      - NODE_ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - learnbase-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  learnbase-network:
+    driver: bridge

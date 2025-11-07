@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { ChatMessageType } from '../utils/types';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws';
 
 export const useChat = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -52,8 +52,6 @@ export const useChat = () => {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('Received WebSocket message:', data);
-
         if (data.type === 'typing') {
           setIsTyping(true);
           // Start a new assistant message placeholder
@@ -64,15 +62,28 @@ export const useChat = () => {
           if (!delta) return;
           // Append delta to the last assistant message
           setMessages((prev) => {
-            if (prev.length === 0) return [{ sender: 'assistant', content: delta }];
-            const last = prev[prev.length - 1];
-            if (last.sender !== 'assistant') {
-              return [...prev, { sender: 'assistant', content: delta }];
+            // No messages yet → start new with assistant
+            if (prev.length === 0) {
+              return [{ sender: 'assistant', content: delta ?? '' }];
             }
+
+            const last = prev[prev.length - 1];
+
+            // If last message not from assistant → start new assistant message
+            if (last.sender !== 'assistant') {
+              return [...prev, { sender: 'assistant', content: delta ?? '' }];
+            }
+
+            // Otherwise append to last assistant message safely
             const updated = [...prev];
-            updated[updated.length - 1] = { ...last, content: last.content + delta };
+            updated[updated.length - 1] = {
+              ...last,
+              content: (last.content ?? '') + (delta ?? ''),
+            };
+
             return updated;
           });
+
         } else if (data.type === 'done') {
           setIsTyping(false);
           // Nothing else to do; stream already accumulated in last assistant message
@@ -114,5 +125,26 @@ export const useChat = () => {
     }
   };
 
-  return { messages, sendMessage, isTyping, isConnected };
+  const sendTopicSelection = (topicName: string, subtopicName: string) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      // Send WebSocket message
+      ws.send(JSON.stringify({
+        type: 'topic_selected',
+        topic: {
+          name: topicName,
+          subtopic: subtopicName
+        }
+      }));
+      return true;
+    }
+    return false;
+  };
+
+  return {
+    messages,
+    isTyping,
+    isConnected,
+    sendMessage,
+    sendTopicSelection,
+  };
 };
