@@ -1,20 +1,58 @@
-import { useEffect, useState } from 'react';
-import { useChat } from '../../hooks/useChat';
+import { useEffect, useState, useRef } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import { Code, MessageSquare } from 'lucide-react';
+import { useLearning } from '@/hooks/useLearning';
 
 
-export default function ChatContainer() {
-  const { messages, sendMessage, isTyping, isConnected } = useChat();
+interface ChatContainerProps {
+  chatHook: ReturnType<typeof import('../../hooks/useChat').useChat>;
+}
+
+export default function ChatContainer({ chatHook }: ChatContainerProps) {
+  const { messages, sendMessage, isTyping, isConnected, sendTopicSelection } = chatHook;
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [executionResults, setExecutionResults] = useState<string[]>([]);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const hasLoadedSession = useRef(false);
 
   useEffect(() => {
     console.log('Messages:', messages);
   }, [messages]);
+
+  // Auto-load last session on mount (only once)
+  useEffect(() => {
+    if (hasLoadedSession.current) return;
+    hasLoadedSession.current = true;
+
+    const loadLastSession = async () => {
+      try {
+        const { userService } = await import('@/api');
+        const data = await userService.getLastSession();
+        
+        if (data.hasSession && data.topicId && data.topicName) {
+          // Auto-resume last session
+          await sendTopicSelection(
+            data.topicName,
+            data.subtopicName || '',
+            data.topicId,
+            data.subtopicId || undefined
+          );
+        }
+        // If no session, topic selector will show automatically
+      } catch (error) {
+        console.error('Failed to load last session:', error);
+      } finally {
+        setIsLoadingSession(false);
+      }
+    };
+
+    loadLastSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleRunCode = async (code: string) => {
     try {
       // Here you would integrate with your backend API
@@ -35,6 +73,21 @@ export default function ChatContainer() {
     setShowCodeEditor(!showCodeEditor);
   };
 
+  // Show loading state while checking for last session
+  if (isLoadingSession) {
+    return (
+      <div className="flex flex-col flex-1 overflow-hidden bg-gray-50">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your learning session...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-gray-50">
       {/* Header with toggle button */}
@@ -49,7 +102,7 @@ export default function ChatContainer() {
           }`}
         >
           {showCodeEditor ? <MessageSquare className="w-4 h-4" /> : <Code className="w-4 h-4" />}
-          {showCodeEditor ? 'Hide Editor' : 'Show Editor'}
+          <span className="hidden sm:inline">{showCodeEditor ? 'Hide Editor' : 'Show Editor'}</span>
         </button>
       </div>
 

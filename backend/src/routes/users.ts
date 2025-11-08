@@ -99,6 +99,43 @@ router.patch('/me', authenticateToken, updateUserValidation, async (req: AuthReq
   }
 });
 
+// Get user's last learning session
+router.get('/me/last-session', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+
+    // Get the most recent chat session with topic info
+    const lastSession = await prisma.chatSession.findFirst({
+      where: { userId },
+      orderBy: { lastActivity: 'desc' },
+      include: {
+        userTopic: {
+          include: {
+            masterTopic: true,
+          },
+        },
+        subtopic: true,
+      },
+    });
+
+    if (!lastSession) {
+      return res.json({ hasSession: false });
+    }
+
+    return res.json({
+      hasSession: true,
+      topicId: lastSession.userTopic.masterTopicId,
+      topicName: lastSession.userTopic.masterTopic.name,
+      subtopicId: lastSession.subtopicId,
+      subtopicName: lastSession.subtopic?.title,
+      lastActivity: lastSession.lastActivity,
+    });
+  } catch (error) {
+    console.error('Get last session error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Delete current user
 router.delete('/me', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {

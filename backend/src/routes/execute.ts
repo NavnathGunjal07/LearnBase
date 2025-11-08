@@ -1,10 +1,11 @@
 import express from 'express';
 import { codeExecutionService } from '../services/CodeExecutionService';
+import { executeLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
 
 // POST /api/execute - Execute JavaScript code
-router.post('/execute', async (req, res) => {
+router.post('/execute', executeLimiter, async (req, res) => {
   try {
     const { code } = req.body;
 

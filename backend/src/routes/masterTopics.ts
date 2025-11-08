@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { authenticateToken, AuthRequest } from '../utils/auth';
+import { createLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -53,7 +54,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // Enroll user in a topic (create UserTopic)
-router.post('/enroll', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.post('/enroll', createLimiter, authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { masterTopicId } = req.body;
     const userId = req.user!.userId;

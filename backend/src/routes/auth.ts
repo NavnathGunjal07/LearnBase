@@ -3,12 +3,13 @@ import { validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
 import { hashPassword, verifyPassword, generateToken, authenticateToken, AuthRequest } from '../utils/auth';
 import { registerValidation, loginValidation } from '../utils/validators';
+import { authLimiter } from '../middleware/rateLimiter';
 
 
 const router = Router();
 
 // Register
-router.post('/register', registerValidation, async (req:Request, res: Response) => {
+router.post('/register', authLimiter, registerValidation, async (req:Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -60,7 +61,7 @@ router.post('/register', registerValidation, async (req:Request, res: Response) 
 });
 
 // Login
-router.post('/login', loginValidation, async (req:Request, res: Response) => {
+router.post('/login', authLimiter, loginValidation, async (req:Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });

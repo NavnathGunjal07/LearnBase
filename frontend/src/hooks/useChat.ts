@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { ChatMessageType } from '../utils/types';
+import { chatService } from '@/api';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws';
 
@@ -8,6 +9,8 @@ export const useChat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [currentTopicId, setCurrentTopicId] = useState<number | null>(null);
+  const [currentSubtopicId, setCurrentSubtopicId] = useState<number | null>(null);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
@@ -125,16 +128,50 @@ export const useChat = () => {
     }
   };
 
-  const sendTopicSelection = (topicName: string, subtopicName: string) => {
+  const loadChatHistory = async (topicId: number, subtopicId?: number) => {
+    try {
+      const data = await chatService.getChatHistory(topicId, subtopicId);
+      const messages = data.messages || [];
+      setMessages(messages);
+      return { sessionId: data.sessionId, hasHistory: messages.length > 0 };
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+      return { sessionId: null, hasHistory: false };
+    }
+  };
+
+  const sendTopicSelection = async (topicName: string, subtopicName: string, topicId: number, subtopicId?: number) => {
+    // Clear previous messages
+    setMessages([]);
+    
+    // Update current topic/subtopic
+    setCurrentTopicId(topicId);
+    setCurrentSubtopicId(subtopicId || null);
+    
+    // Load chat history for this topic
+    const { sessionId, hasHistory } = await loadChatHistory(topicId, subtopicId);
+    
     if (ws && ws.readyState === WebSocket.OPEN) {
-      // Send WebSocket message
-      ws.send(JSON.stringify({
-        type: 'topic_selected',
-        topic: {
-          name: topicName,
-          subtopic: subtopicName
-        }
-      }));
+      // Only send topic selection message if there's no existing history
+      if (!hasHistory) {
+        ws.send(JSON.stringify({
+          type: 'topic_selected',
+          topic: {
+            name: topicName,
+            subtopic: subtopicName,
+            topicId,
+            subtopicId
+          }
+        }));
+      } else {
+        // Just notify backend about the session without triggering welcome message
+        ws.send(JSON.stringify({
+          type: 'session_resumed',
+          sessionId,
+          topicId,
+          subtopicId
+        }));
+      }
       return true;
     }
     return false;
@@ -146,5 +183,8 @@ export const useChat = () => {
     isConnected,
     sendMessage,
     sendTopicSelection,
+    loadChatHistory,
+    currentTopicId,
+    currentSubtopicId,
   };
 };

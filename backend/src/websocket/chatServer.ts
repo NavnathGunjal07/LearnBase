@@ -2,10 +2,16 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import jwt from 'jsonwebtoken';
 import OpenAI from 'openai';
+import { PrismaClient } from '../../prisma/generated/client';
+
+const prisma = new PrismaClient();
 
 interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
   isAlive?: boolean;
+  currentSessionId?: string;
+  currentTopicId?: number;
+  currentSubtopicId?: number;
 }
 
 // Groq client configuration
@@ -105,23 +111,119 @@ export function setupWebSocketServer(server: Server) {
 
         // Process the message
         if (message.type === 'message' && message.content) {
+          // Save user message to database
+          if (ws.currentSessionId) {
+            await prisma.chatMessage.create({
+              data: {
+                chatId: ws.currentSessionId,
+                userId: ws.userId,
+                role: 'user',
+                content: message.content,
+              },
+            });
+          }
+          
           await getGroqResponse(ws, message.content);
         } else if (message.type === 'topic_selected' && message.topic) {
           // Handle topic and subtopic selection
-          const { name: topicName, subtopic: subtopicName } = message.topic;
+          const { name: topicName, subtopic: subtopicName, topicId, subtopicId } = message.topic;
           
-          // Send a confirmation message
+          // Store topic/subtopic IDs in WebSocket
+          ws.currentTopicId = topicId;
+          ws.currentSubtopicId = subtopicId;
+          
+          // Find or create chat session
+          if (ws.userId && topicId) {
+            const userTopic = await prisma.userTopic.findFirst({
+              where: {
+                userId: ws.userId,
+                masterTopicId: topicId,
+              },
+            });
+
+            if (userTopic) {
+              let chatSession = await prisma.chatSession.findFirst({
+                where: {
+                  userId: ws.userId,
+                  userTopicId: userTopic.id,
+                  subtopicId: subtopicId || null,
+                },
+                orderBy: {
+                  lastActivity: 'desc',
+                },
+              });
+
+              if (!chatSession) {
+                chatSession = await prisma.chatSession.create({
+                  data: {
+                    userId: ws.userId,
+                    userTopicId: userTopic.id,
+                    subtopicId: subtopicId || null,
+                    title: subtopicName
+                      ? `${topicName} - ${subtopicName}`
+                      : topicName,
+                  },
+                });
+              }
+
+              ws.currentSessionId = chatSession.id;
+              
+              // Update last activity
+              await prisma.chatSession.update({
+                where: { id: chatSession.id },
+                data: { lastActivity: new Date() },
+              });
+            }
+          }
+          
+          // Send a confirmation message with streaming effect
           const responseContent = subtopicName 
             ? `Great choice! You've selected **${topicName} - ${subtopicName}**. I can help you learn about this specific subtopic. What would you like to know?`
             : `Great choice! You've selected **${topicName}**. I can help you learn about this topic. What specific aspect of ${topicName} would you like to explore first?`;
           
-          ws.send(JSON.stringify({
-            type: 'delta',
-            sender: 'assistant',
-            content: responseContent,
-            timestamp: new Date().toISOString()
-          }));
-           ws.send(JSON.stringify({ type: 'done' }));
+          // Stream the message character by character for a nice effect
+          const chunkSize = 10; // Send 10 characters at a time
+          for (let i = 0; i < responseContent.length; i += chunkSize) {
+            const chunk = responseContent.slice(i, i + chunkSize);
+            ws.send(JSON.stringify({
+              type: 'delta',
+              content: chunk
+            }));
+            // Small delay for streaming effect (optional)
+            await new Promise(resolve => setTimeout(resolve, 20));
+          }
+          
+          ws.send(JSON.stringify({ type: 'done' }));
+          
+          // Save AI welcome message to database
+          if (ws.currentSessionId) {
+            await prisma.chatMessage.create({
+              data: {
+                chatId: ws.currentSessionId,
+                userId: null,
+                role: 'assistant',
+                content: responseContent,
+              },
+            });
+          }
+        } else if (message.type === 'session_resumed') {
+          // Handle session resumption (when chat history exists)
+          const { sessionId, topicId, subtopicId } = message;
+          
+          // Store session and topic info in WebSocket
+          ws.currentSessionId = sessionId;
+          ws.currentTopicId = topicId;
+          ws.currentSubtopicId = subtopicId;
+          
+          // Update last activity for the session
+          if (sessionId) {
+            await prisma.chatSession.update({
+              where: { id: sessionId },
+              data: { lastActivity: new Date() },
+            });
+          }
+          
+          console.log(`📝 Session resumed: ${sessionId} for user ${ws.userId}`);
         }
 
       } catch (error) {
@@ -159,10 +261,13 @@ async function getGroqResponse(ws: AuthenticatedWebSocket, userMessage: string) 
       stream: true,
     });
 
+    let fullResponse = '';
+
     // Handle the streaming response
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
+        fullResponse += content;
         ws.send(JSON.stringify({
           type: 'delta',
           content: content
@@ -172,6 +277,24 @@ async function getGroqResponse(ws: AuthenticatedWebSocket, userMessage: string) 
 
     // Send done signal
     ws.send(JSON.stringify({ type: 'done' }));
+
+    // Save AI response to database
+    if (ws.currentSessionId && fullResponse) {
+      await prisma.chatMessage.create({
+        data: {
+          chatId: ws.currentSessionId,
+          userId: null,
+          role: 'assistant',
+          content: fullResponse,
+        },
+      });
+      
+      // Update session last activity
+      await prisma.chatSession.update({
+        where: { id: ws.currentSessionId },
+        data: { lastActivity: new Date() },
+      });
+    }
 
   } catch (error: any) {
     console.error('Groq API error:', error);

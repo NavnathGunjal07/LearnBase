@@ -1,6 +1,7 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import type { Breadcrumb, LearningState, Subtopic, Topic } from '../utils/types';
+import { useToast } from '@/components/ui/use-toast';
 
 function calculateTopicProgress(topic: Topic): number {
   if (topic.subtopics.length === 0) return 0;
@@ -14,7 +15,9 @@ export function useLearning() {
     selection: { topicId: null, subtopicId: null },
   });
   const [loading, setLoading] = useState(true);
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const hasFetched = useRef(false);
+  const { toast } = useToast();
 
   // Fetch user's enrolled topics on mount
   useEffect(() => {
@@ -135,6 +138,22 @@ export function useLearning() {
     fetchTopics();
   }
 
+  const openTopicModal = useCallback(() => {
+    setIsTopicModalOpen(true);
+  }, []);
+
+  const closeTopicModal = useCallback(() => {
+    setIsTopicModalOpen(false);
+  }, []);
+
+  const handleTopicCreated = useCallback(() => {
+    fetchTopics();
+    toast({
+      title: 'Success',
+      description: 'Topic created successfully!',
+    });
+  }, [toast]);
+
   return {
     state,
     topicProgressMap,
@@ -146,6 +165,10 @@ export function useLearning() {
     updateSubtopicProgress,
     addTopic,
     loading,
+    isTopicModalOpen,
+    openTopicModal,
+    closeTopicModal,
+    onTopicCreated: handleTopicCreated,
   };
 }
 

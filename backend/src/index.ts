@@ -2,14 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import topicRoutes from './routes/topics';
-import masterTopicRoutes from './routes/masterTopics';
-import executeRoutes from './routes/execute';
+import apiRoutes from './routes';
 import {NextFunction,urlencoded,json,Request, Response } from "express"
 import prisma from './utils/prisma';
 import { setupWebSocketServer } from './websocket/chatServer';
+import { apiLimiter } from './middleware/rateLimiter';
 
 // Load environment variables
 dotenv.config();
@@ -27,16 +24,15 @@ app.use(cors({
 app.use(json());
 app.use(urlencoded({ extended: true }));
 
+// Apply rate limiting to all API routes
+app.use('/api', apiLimiter);
+
 // Routes
 app.get('/', (req:Request, res:Response) => {
   res.json({ message: 'Welcome to LearnBase API', status: 'running' });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/topics', topicRoutes);
-app.use('/api/master-topics', masterTopicRoutes);
-app.use('/api/execute', executeRoutes);
+app.use('/api', apiRoutes);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

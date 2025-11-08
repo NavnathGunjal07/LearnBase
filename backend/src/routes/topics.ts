@@ -1,11 +1,12 @@
 import { Router, Response } from 'express';
 import prisma from '../utils/prisma';
 import { authenticateToken, AuthRequest } from '../utils/auth';
+import { apiLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
 // Get all user's enrolled topics with progress
-router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get('/', authenticateToken, apiLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const userTopics = await prisma.userTopic.findMany({
       where: {
@@ -56,7 +57,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 });
 
 // Get user topic by ID
-router.get('/:userTopicId', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get('/:userTopicId', authenticateToken, apiLimiter, async (req: AuthRequest, res: Response) => {
   const userTopicId = parseInt(req.params.userTopicId);
 
   if (isNaN(userTopicId)) {
@@ -116,7 +117,7 @@ router.get('/:userTopicId', authenticateToken, async (req: AuthRequest, res: Res
 });
 
 // Update user topic progress (mark as accessed)
-router.patch('/:userTopicId/access', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.patch('/:userTopicId/access', authenticateToken, apiLimiter, async (req: AuthRequest, res: Response) => {
   const userTopicId = parseInt(req.params.userTopicId);
 
   if (isNaN(userTopicId)) {
@@ -148,7 +149,7 @@ router.patch('/:userTopicId/access', authenticateToken, async (req: AuthRequest,
 });
 
 // Update subtopic progress
-router.patch('/:userTopicId/subtopics/:subtopicId/progress', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.patch('/:userTopicId/subtopics/:subtopicId/progress', authenticateToken, apiLimiter, async (req: AuthRequest, res: Response) => {
   const userTopicId = parseInt(req.params.userTopicId);
   const subtopicId = parseInt(req.params.subtopicId);
   const { completedPercent } = req.body;
@@ -221,7 +222,7 @@ router.patch('/:userTopicId/subtopics/:subtopicId/progress', authenticateToken, 
 });
 
 // Unenroll from a topic (soft delete)
-router.delete('/:userTopicId', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.delete('/:userTopicId', authenticateToken, apiLimiter, async (req: AuthRequest, res: Response) => {
   const userTopicId = parseInt(req.params.userTopicId);
 
   if (isNaN(userTopicId)) {
@@ -253,7 +254,7 @@ router.delete('/:userTopicId', authenticateToken, async (req: AuthRequest, res: 
 });
 
 // Get subtopics for a user's enrolled topic
-router.get('/:userTopicId/subtopics', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get('/:userTopicId/subtopics', authenticateToken, apiLimiter, async (req: AuthRequest, res: Response) => {
   const userTopicId = parseInt(req.params.userTopicId);
 
   if (isNaN(userTopicId)) {
@@ -302,7 +303,7 @@ router.get('/:userTopicId/subtopics', authenticateToken, async (req: AuthRequest
 });
 
 // Get specific subtopic details with exercises
-router.get('/:userTopicId/subtopics/:subtopicId', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get('/:userTopicId/subtopics/:subtopicId', authenticateToken, apiLimiter, async (req: AuthRequest, res: Response) => {
   const userTopicId = parseInt(req.params.userTopicId);
   const subtopicId = parseInt(req.params.subtopicId);
 

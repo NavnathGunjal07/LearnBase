@@ -5,7 +5,6 @@ import TopicSelectionModal from './TopicSelectionModal';
 import TopicSkeleton from './TopicSkeleton';
 import type { Subtopic, Topic } from '../utils/types';
 import { useLearning } from '@/hooks/useLearning';
-import { useChat } from '@/hooks/useChat';
 
 // Helper function to get icon for topic
 function getTopicIcon(topicName: string): string {
@@ -108,14 +107,18 @@ function ProgressRing({
   );
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  chatHook: ReturnType<typeof import('../hooks/useChat').useChat>;
+}
+
+export default function Sidebar({ chatHook }: SidebarProps) {
   const { logout } = useAuth();
   const learning = useLearning();
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { sendTopicSelection } = useChat();
+  const { sendTopicSelection } = chatHook;
 
   const groupedSubtopicsByLevel = useMemo(() => {
     const map: Record<string, { basic: typeof learning.state.topics[number]['subtopics']; intermediate: typeof learning.state.topics[number]['subtopics']; advanced: typeof learning.state.topics[number]['subtopics'] }> = {};
@@ -213,7 +216,10 @@ export default function Sidebar() {
                             {grouped[lvl].map((s) => (
                               <button
                                 key={s.id}
-                                onClick={() => {learning.selectSubtopic(t.id, s.id); sendTopicSelection(t.name, s.title)}}
+                                onClick={() => {
+                                  learning.selectSubtopic(t.id, s.id); 
+                                  sendTopicSelection(t.name, s.title, parseInt(t.id), parseInt(s.id));
+                                }}
                                 className={`w-full flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${learning.state.selection.subtopicId === s.id ? 'bg-white' : ''
                                   }`}
                               >
