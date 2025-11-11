@@ -17,16 +17,20 @@ datasource db {
 
 // ---------- USER ----------
 model User {
-  id              String   @id @default(uuid())
-  name            String
-  email           String   @unique
-  passwordHash    String   @map("password_hash")
-  skillLevel      String   @default("beginner") @map("skill_level")
-  currentLanguage String?  @default("JavaScript") @map("current_language")
-  totalPoints     Int      @default(0) @map("total_points")
-  streakDays      Int      @default(0) @map("streak_days")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid())
+  name                  String
+  email                 String   @unique
+  passwordHash          String   @map("password_hash")
+  skillLevel            String   @default("beginner") @map("skill_level")
+  currentLanguage       String?  @default("JavaScript") @map("current_language")
+  totalPoints           Int      @default(0) @map("total_points")
+  streakDays            Int      @default(0) @map("streak_days")
+  background            String?  // User's educational/professional background
+  goals                 String?  // User's learning goals
+  learningInterests     String?  @map("learning_interests") // What user wants to learn (JSON or comma-separated)
+  hasCompletedOnboarding Boolean @default(false) @map("has_completed_onboarding")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   // Relationships
   userTopics   UserTopic[]

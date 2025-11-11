@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: '✓ Login successful',
         description: `Welcome back, ${user.name}!`,
       });
+      // Check onboarding status - ProtectedRoute will handle redirect
       navigate('/home');
     } catch (error) {
       // Error is already handled by the interceptor
@@ -68,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: '✓ Registration successful',
         description: 'Your account has been created successfully!',
       });
+      // New users should go to onboarding - ProtectedRoute will handle redirect
       navigate('/home');
     } catch (error) {
       // Error is already handled by the interceptor

@@ -2,6 +2,7 @@ export interface ChatMessageType {
   sender: 'user' | 'assistant';
   content: string;
   timestamp?: string;
+  isComplete?: boolean; // For streaming messages
 }
 
 export type LearningLevel = 'basic' | 'intermediate' | 'advanced';

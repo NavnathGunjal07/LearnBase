@@ -3,6 +3,8 @@ import { Server } from 'http';
 import jwt from 'jsonwebtoken';
 import OpenAI from 'openai';
 import { PrismaClient } from '../../prisma/generated/client';
+import { SYSTEM_PROMPT } from '../prompts/system';
+import { ONBOARDING_PROMPT } from '../prompts/onboarding';
 
 const prisma = new PrismaClient();
 
@@ -12,6 +14,8 @@ interface AuthenticatedWebSocket extends WebSocket {
   currentSessionId?: string;
   currentTopicId?: number;
   currentSubtopicId?: number;
+  isOnboarding?: boolean;
+  onboardingMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 // Groq client configuration
@@ -20,19 +24,7 @@ const groqClient = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
 });
 
-// System prompt for the AI
-const SYSTEM_PROMPT = `You are a helpful programming tutor. Explain concepts clearly and provide examples when helpful.
 
-IMPORTANT: Format your responses using Markdown:
-- Use **bold** for emphasis
-- Use \`code\` for inline code
-- Use \`\`\`language for code blocks
-- Use # for headings
-- Use - or * for bullet points
-- Use > for blockquotes
-- Use tables when comparing concepts
-
-Keep responses concise, educational, and well-formatted.`;
 
 export function setupWebSocketServer(server: Server) {
   const wss = new WebSocketServer({
@@ -111,6 +103,16 @@ export function setupWebSocketServer(server: Server) {
 
         // Process the message
         if (message.type === 'message' && message.content) {
+          // Initialize onboarding messages array if not exists
+          if (!ws.onboardingMessages) {
+            ws.onboardingMessages = [];
+          }
+
+          // Add user message to onboarding history
+          if (ws.isOnboarding) {
+            ws.onboardingMessages.push({ role: 'user', content: message.content });
+          }
+
           // Save user message to database
           if (ws.currentSessionId) {
             await prisma.chatMessage.create({
@@ -124,6 +126,41 @@ export function setupWebSocketServer(server: Server) {
           }
           
           await getGroqResponse(ws, message.content);
+        } else if (message.type === 'start_onboarding') {
+          // Handle onboarding start
+          ws.isOnboarding = true;
+          ws.onboardingMessages = [];
+
+          // Create a special onboarding chat session (we'll use a dummy userTopicId)
+          // For onboarding, we don't need a real topic, so we'll handle it differently
+          if (ws.userId) {
+            // Get user's name for personalized greeting
+            const user = await prisma.user.findUnique({
+              where: { id: ws.userId },
+              select: { name: true },
+            });
+
+            // Start onboarding conversation
+            const welcomeMessage = `👋 Welcome to LearnBase${user?.name ? `, ${user.name}` : ''}! I'm excited to help you start your learning journey. 
+
+To personalize your experience, I'd love to get to know you a bit. Tell me - what brings you to LearnBase? Are you completely new to programming, or do you have some experience already?`;
+
+            // Stream the welcome message
+            const chunkSize = 10;
+            for (let i = 0; i < welcomeMessage.length; i += chunkSize) {
+              const chunk = welcomeMessage.slice(i, i + chunkSize);
+              ws.send(JSON.stringify({
+                type: 'delta',
+                content: chunk
+              }));
+              await new Promise(resolve => setTimeout(resolve, 20));
+            }
+            
+            ws.send(JSON.stringify({ type: 'done' }));
+
+            // Add to onboarding messages
+            ws.onboardingMessages.push({ role: 'assistant', content: welcomeMessage });
+          }
         } else if (message.type === 'topic_selected' && message.topic) {
           // Handle topic and subtopic selection
           const { name: topicName, subtopic: subtopicName, topicId, subtopicId } = message.topic;
@@ -250,12 +287,28 @@ export function setupWebSocketServer(server: Server) {
 // Get Groq API response with streaming
 async function getGroqResponse(ws: AuthenticatedWebSocket, userMessage: string) {
   try {
+    // Use onboarding prompt if this is an onboarding session
+    const systemPrompt = ws.isOnboarding ? ONBOARDING_PROMPT : SYSTEM_PROMPT;
+    
+    // Build messages array
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // For onboarding, include conversation history
+    if (ws.isOnboarding && ws.onboardingMessages) {
+      // Add all previous messages from onboarding conversation
+      ws.onboardingMessages.forEach(msg => {
+        messages.push({ role: msg.role, content: msg.content });
+      });
+    } else {
+      // For regular chat, just add the current message
+      messages.push({ role: 'user', content: userMessage });
+    }
+
     const stream = await groqClient.chat.completions.create({
       model: 'openai/gpt-oss-20b',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage }
-      ],
+      messages: messages as any,
       temperature: 0.7,
       max_tokens: 1500,
       stream: true,
@@ -277,6 +330,76 @@ async function getGroqResponse(ws: AuthenticatedWebSocket, userMessage: string) 
 
     // Send done signal
     ws.send(JSON.stringify({ type: 'done' }));
+
+    // Add assistant response to onboarding messages
+    if (ws.isOnboarding && fullResponse) {
+      if (!ws.onboardingMessages) {
+        ws.onboardingMessages = [];
+      }
+      ws.onboardingMessages.push({ role: 'assistant', content: fullResponse });
+
+      // Try to extract onboarding information from conversation
+      // Start checking after 4 messages (2 exchanges)
+      if (ws.userId && ws.onboardingMessages.length >= 4) {
+        // Extract information after each exchange
+        await extractAndUpdateOnboardingData(ws);
+        
+        // Check completion after 6 messages (3 exchanges) and every 2 messages after that
+        if (ws.onboardingMessages.length >= 6 && ws.onboardingMessages.length % 2 === 0) {
+          // Check if we have all required fields
+          const user = await prisma.user.findUnique({
+            where: { id: ws.userId },
+            select: {
+              background: true,
+              goals: true,
+              learningInterests: true,
+              skillLevel: true,
+              hasCompletedOnboarding: true,
+            },
+          });
+
+          // Require ALL fields: background, goals, learningInterests, and skillLevel
+          if (user && !user.hasCompletedOnboarding) {
+            const hasAllInfo = user.background && user.goals && user.learningInterests && user.skillLevel;
+            
+            if (hasAllInfo) {
+              // Use AI to determine if conversation is complete and natural
+              const completionCheck = await checkOnboardingCompletion(ws.onboardingMessages);
+              
+              if (completionCheck.shouldComplete) {
+                // Complete onboarding
+                await prisma.user.update({
+                  where: { id: ws.userId },
+                  data: { hasCompletedOnboarding: true },
+                });
+
+                // Send completion message
+                const completionMessage = completionCheck.completionMessage || 
+                  `Perfect! I've got everything I need to personalize your learning experience. Now, let's choose a topic to start learning! 🚀`;
+                
+                // Stream completion message
+                const chunkSize = 10;
+                for (let i = 0; i < completionMessage.length; i += chunkSize) {
+                  const chunk = completionMessage.slice(i, i + chunkSize);
+                  ws.send(JSON.stringify({
+                    type: 'delta',
+                    content: chunk
+                  }));
+                  await new Promise(resolve => setTimeout(resolve, 20));
+                }
+                ws.send(JSON.stringify({ type: 'done' }));
+                ws.send(JSON.stringify({ type: 'onboarding_complete' }));
+
+                // Add to messages
+                if (ws.onboardingMessages) {
+                  ws.onboardingMessages.push({ role: 'assistant', content: completionMessage });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
     // Save AI response to database
     if (ws.currentSessionId && fullResponse) {
@@ -325,4 +448,130 @@ export function sendToUser(wss: WebSocketServer, userId: string, message: any) {
       client.send(JSON.stringify(message));
     }
   });
+}
+
+// Check if onboarding conversation is complete
+async function checkOnboardingCompletion(messages: Array<{ role: 'user' | 'assistant'; content: string }>): Promise<{ shouldComplete: boolean; completionMessage?: string }> {
+  try {
+    const conversationContext = messages
+      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n\n');
+
+    const checkPrompt = `Based on the following onboarding conversation, determine if we have gathered COMPLETE information about the user. We need ALL of these:
+1. Background (educational/professional background - must be clear and specific)
+2. Goals (what they want to achieve - must be clear and specific)
+3. Learning interests (what topics/technologies they want to learn - must be clear and specific)
+4. Skill level (beginner, intermediate, or advanced - must be determined)
+
+IMPORTANT: Only return shouldComplete: true if ALL FOUR pieces of information are clearly gathered and specific. If any information is vague, missing, or unclear, return shouldComplete: false so the AI can ask follow-up questions.
+
+Return JSON with:
+{
+  "shouldComplete": true/false,
+  "completionMessage": "A friendly message to wrap up onboarding and encourage them to select a topic (only if shouldComplete is true)"
+}
+
+Conversation:
+${conversationContext}
+
+Return ONLY the JSON object:`;
+
+    const response = await groqClient.chat.completions.create({
+      model: 'openai/gpt-oss-20b',
+      messages: [
+        { role: 'system', content: 'You are an assistant that determines if onboarding conversations are complete. Return only valid JSON.' },
+        { role: 'user', content: checkPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 300,
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    const jsonText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const result = JSON.parse(jsonText);
+
+    return {
+      shouldComplete: result.shouldComplete === true,
+      completionMessage: result.completionMessage,
+    };
+  } catch (error) {
+    console.error('Error checking onboarding completion:', error);
+    return { shouldComplete: false };
+  }
+}
+
+// Extract onboarding information from conversation and update user
+async function extractAndUpdateOnboardingData(ws: AuthenticatedWebSocket): Promise<boolean> {
+  if (!ws.userId || !ws.onboardingMessages || ws.onboardingMessages.length < 2) {
+    return false;
+  }
+
+  try {
+    // Build conversation context for extraction
+    const conversationContext = ws.onboardingMessages
+      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n\n');
+
+    // Use AI to extract structured information
+    const extractionPrompt = `Based on the following conversation, extract the user's information in JSON format. Return ONLY valid JSON with these fields:
+{
+  "background": "user's educational/professional background (string or null)",
+  "goals": "what they want to achieve (string or null)",
+  "learningInterests": "what they want to learn, comma-separated (string or null)",
+  "skillLevel": "beginner, intermediate, or advanced (string)"
+}
+
+If information is not available, use null for that field. Be conservative - only extract what is clearly stated.
+
+Conversation:
+${conversationContext}
+
+Return ONLY the JSON object, no other text:`;
+
+    const extractionResponse = await groqClient.chat.completions.create({
+      model: 'openai/gpt-oss-20b',
+      messages: [
+        { role: 'system', content: 'You are a data extraction assistant. Extract information from conversations and return only valid JSON.' },
+        { role: 'user', content: extractionPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 500,
+    });
+
+    const extractedText = extractionResponse.choices[0]?.message?.content || '';
+    
+    // Try to parse JSON (might be wrapped in markdown code blocks)
+    let extractedData: any = {};
+    try {
+      // Remove markdown code blocks if present
+      const jsonText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      extractedData = JSON.parse(jsonText);
+    } catch (e) {
+      console.error('Failed to parse extracted data:', e);
+      return false;
+    }
+
+    // Update user with extracted information (only if we have new data)
+    const updateData: any = {};
+    if (extractedData.background) updateData.background = extractedData.background;
+    if (extractedData.goals) updateData.goals = extractedData.goals;
+    if (extractedData.learningInterests) updateData.learningInterests = extractedData.learningInterests;
+    if (extractedData.skillLevel && ['beginner', 'intermediate', 'advanced'].includes(extractedData.skillLevel.toLowerCase())) {
+      updateData.skillLevel = extractedData.skillLevel.toLowerCase();
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.user.update({
+        where: { id: ws.userId },
+        data: updateData,
+      });
+      console.log(`✅ Updated onboarding data for user ${ws.userId}:`, updateData);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error extracting onboarding data:', error);
+    // Don't fail the chat if extraction fails
+    return false;
+  }
 }

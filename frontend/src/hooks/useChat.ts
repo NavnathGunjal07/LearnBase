@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { ChatMessageType } from '../utils/types';
-import { chatService } from '@/api';
+import { chatService, onboardingService } from '@/api';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws';
 
@@ -11,10 +11,13 @@ export const useChat = () => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [currentTopicId, setCurrentTopicId] = useState<number | null>(null);
   const [currentSubtopicId, setCurrentSubtopicId] = useState<number | null>(null);
+  const [isOnboarding, setIsOnboarding] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
-  const hasConnected = useRef(false)
+  const hasConnected = useRef(false);
+  const currentMessageRef = useRef<string>('');
 
   const connectWebSocket = () => {
     // Get token from localStorage
@@ -63,25 +66,30 @@ export const useChat = () => {
           setIsTyping(true);
           const delta: string = data.content || '';
           if (!delta) return;
+          
+          // Update current message ref for streaming
+          currentMessageRef.current += delta;
+          
           // Append delta to the last assistant message
           setMessages((prev) => {
             // No messages yet → start new with assistant
             if (prev.length === 0) {
-              return [{ sender: 'assistant', content: delta ?? '' }];
+              return [{ sender: 'assistant', content: currentMessageRef.current, isComplete: false }];
             }
 
             const last = prev[prev.length - 1];
 
             // If last message not from assistant → start new assistant message
             if (last.sender !== 'assistant') {
-              return [...prev, { sender: 'assistant', content: delta ?? '' }];
+              return [...prev, { sender: 'assistant', content: currentMessageRef.current, isComplete: false }];
             }
 
             // Otherwise append to last assistant message safely
             const updated = [...prev];
             updated[updated.length - 1] = {
               ...last,
-              content: (last.content ?? '') + (delta ?? ''),
+              content: currentMessageRef.current,
+              isComplete: false,
             };
 
             return updated;
@@ -89,7 +97,24 @@ export const useChat = () => {
 
         } else if (data.type === 'done') {
           setIsTyping(false);
-          // Nothing else to do; stream already accumulated in last assistant message
+          // Mark the last message as complete
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            if (newMessages.length > 0) {
+              newMessages[newMessages.length - 1] = {
+                ...newMessages[newMessages.length - 1],
+                isComplete: true,
+              };
+            }
+            return newMessages;
+          });
+          currentMessageRef.current = '';
+        } else if (data.type === 'onboarding_complete') {
+          // Onboarding completed
+          setIsOnboarding(false);
+          setHasCompletedOnboarding(true);
+          // Clear messages to show topic selector
+          setMessages([]);
         } else {
           // Backward compatibility: treat as a full message object
           setIsTyping(false);
@@ -141,6 +166,9 @@ export const useChat = () => {
   };
 
   const sendTopicSelection = async (topicName: string, subtopicName: string, topicId: number, subtopicId?: number) => {
+    // Don't allow topic selection during onboarding
+    if (isOnboarding) return false;
+    
     // Clear previous messages
     setMessages([]);
     
@@ -177,6 +205,40 @@ export const useChat = () => {
     return false;
   };
 
+  const startOnboarding = () => {
+    if (!isOnboarding && !hasCompletedOnboarding) {
+      setIsOnboarding(true);
+      setMessages([]);
+      currentMessageRef.current = '';
+      
+      // Wait for websocket to be ready
+      const sendOnboardingStart = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'start_onboarding' }));
+        } else {
+          // Retry after a short delay
+          setTimeout(sendOnboardingStart, 100);
+        }
+      };
+      
+      sendOnboardingStart();
+    }
+  };
+
+  // Check onboarding status on mount
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      try {
+        const status = await onboardingService.getStatus();
+        setHasCompletedOnboarding(status.hasCompletedOnboarding);
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, []);
+
   return {
     messages,
     isTyping,
@@ -186,5 +248,8 @@ export const useChat = () => {
     loadChatHistory,
     currentTopicId,
     currentSubtopicId,
+    isOnboarding,
+    hasCompletedOnboarding,
+    startOnboarding,
   };
 };
