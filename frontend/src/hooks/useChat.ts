@@ -24,6 +24,19 @@ export const useChat = (
   const hasConnected = useRef(false);
   const currentMessageRef = useRef<string>("");
   const shouldReconnectRef = useRef(true); // Flag to control reconnection
+  const [lastProgressUpdate, setLastProgressUpdate] = useState<{
+    topicId: number;
+    subtopicId: number;
+    progress: number;
+    topicProgress: number;
+    timestamp: number;
+  } | null>(null);
+  const lastProgressUpdateRef = useRef(lastProgressUpdate); // Ref to access current value in return without re-creating object if not needed, though state is fine
+
+  // Keep ref in sync
+  useEffect(() => {
+    lastProgressUpdateRef.current = lastProgressUpdate;
+  }, [lastProgressUpdate]);
 
   const connectWebSocket = () => {
     // Get token from localStorage (skip if in auth mode)
@@ -244,14 +257,18 @@ export const useChat = (
     setCurrentSubtopicId(subtopicId || null);
 
     // Load chat history for this topic
+    console.log("🔄 Loading chat history for topic:", topicId);
     const { sessionId, hasHistory } = await loadChatHistory(
       topicId,
       subtopicId
     );
+    console.log("📜 Chat history loaded:", { sessionId, hasHistory });
 
     if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("🟢 WebSocket is OPEN, sending selection message...");
       // Only send topic selection message if there's no existing history
       if (!hasHistory) {
+        console.log("📤 Sending topic_selected");
         ws.send(
           JSON.stringify({
             type: "topic_selected",
@@ -264,6 +281,7 @@ export const useChat = (
           })
         );
       } else {
+        console.log("📤 Sending session_resumed");
         // Just notify backend about the session without triggering welcome message
         ws.send(
           JSON.stringify({
@@ -275,6 +293,8 @@ export const useChat = (
         );
       }
       return true;
+    } else {
+      console.error("🔴 WebSocket is NOT OPEN", { wsState: ws?.readyState });
     }
     return false;
   };
@@ -325,5 +345,6 @@ export const useChat = (
     isOnboarding,
     hasCompletedOnboarding,
     startOnboarding,
+    lastProgressUpdate,
   };
 };

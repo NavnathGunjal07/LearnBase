@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Palette, PlusCircle, Settings, LogOut, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TopicSelectionModal from './TopicSelectionModal';
 import TopicSkeleton from './TopicSkeleton';
 import type { Subtopic, Topic } from '../utils/types';
 import { useLearning } from '@/hooks/useLearning';
+import { CircularProgress } from './CircularProgress';
+import { LinearProgress } from './LinearProgress';
 
 // Helper function to get icon for topic
 function getTopicIcon(topicName: string): string {
@@ -33,80 +35,6 @@ function getTopicIcon(topicName: string): string {
   return iconMap[key] || '📚';
 }
 
-function ProgressRing({
-  value,
-  size = 40,
-  stroke = 3,
-  icon = '📚',
-  showTooltip = true
-}: {
-  value: number;
-  size?: number;
-  stroke?: number;
-  icon?: string;
-  showTooltip?: boolean;
-}) {
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (value / 100) * circumference;
-
-  return (
-    <div className="relative group flex-none">
-      <svg width={size} height={size} className="transform -rotate-90">
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#e5e7eb"
-          strokeWidth={stroke}
-          fill="none"
-        />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#14b8a6"
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="transition-all duration-300"
-        />
-      </svg>
-      {/* Icon in center */}
-      <div
-        className="absolute inset-0 flex items-center justify-center"
-      >
-        {icon.startsWith('http') ? (
-          <img
-            src={icon}
-            alt="Topic icon"
-            className="object-contain"
-            style={{ width: `${size * 0.6}px`, height: `${size * 0.6}px` }}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-              (e.target as HTMLImageElement).parentElement!.textContent = '📚';
-            }}
-          />
-        ) : (
-          <span style={{ fontSize: `${size * 0.5}px` }}>{icon}</span>
-        )}
-      </div>
-      {/* Tooltip */}
-      {showTooltip && (
-        <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap px-2 py-1 rounded bg-gray-800 text-white text-xs opacity-0 group-hover:opacity-100 transition z-10">
-          {value}% Complete
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 -ml-1 border-4 border-transparent border-r-gray-800"></div>
-        </div>
-      )}
-
-    </div>
-  );
-}
-
 interface SidebarProps {
   chatHook: ReturnType<typeof import('../hooks/useChat').useChat>;
 }
@@ -118,7 +46,14 @@ export default function Sidebar({ chatHook }: SidebarProps) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { sendTopicSelection } = chatHook;
+  const { sendTopicSelection, lastProgressUpdate } = chatHook;
+
+  // Listen for progress updates from chat
+  useEffect(() => {
+    if (lastProgressUpdate) {
+      learning.refreshTopics();
+    }
+  }, [lastProgressUpdate]);
 
   const groupedSubtopicsByLevel = useMemo(() => {
     const map: Record<string, { basic: typeof learning.state.topics[number]['subtopics']; intermediate: typeof learning.state.topics[number]['subtopics']; advanced: typeof learning.state.topics[number]['subtopics'] }> = {};
@@ -194,14 +129,20 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                     }}
                     className={`group relative w-full flex items-center ${collapsed ? 'justify-center px-0' : 'px-3'} py-2 text-sm hover:bg-gray-200 transition cursor-pointer`}
                   >
-                    <div className="flex items-center gap-3">
-                      <ProgressRing
-                        value={learning.topicProgressMap[t.id] ?? 90}
+                    <div className="flex items-center gap-3 w-full">
+                      <CircularProgress
+                        value={learning.topicProgressMap[t.id] ?? 0}
                         icon={t.iconUrl || getTopicIcon(t.name)}
                         size={40}
-                        stroke={3}
+                        strokeWidth={3}
+                        showTooltip={false}
                       />
-                      <span className={`${collapsed ? 'sr-only' : 'text-gray-800 font-medium'}`}>{t.name}</span>
+                      <div className={`flex-1 text-left ${collapsed ? 'sr-only' : ''}`}>
+                        <span className="text-gray-800 font-medium block">{t.name}</span>
+                        <div className="w-full mt-1">
+                          <LinearProgress value={learning.topicProgressMap[t.id] ?? 0} height={2} />
+                        </div>
+                      </div>
                     </div>
                   </button>
 
@@ -220,13 +161,14 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                                   learning.selectSubtopic(t.id, s.id); 
                                   sendTopicSelection(t.name, s.title, parseInt(t.id), parseInt(s.id));
                                 }}
-                                className={`w-full flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${learning.state.selection.subtopicId === s.id ? 'bg-white' : ''
+                                className={`w-full flex flex-col items-start rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${learning.state.selection.subtopicId === s.id ? 'bg-white' : ''
                                   }`}
                               >
-                                <span className="text-gray-600">{s.title}</span>
-                                <span className="text-xs">
-                                  {s.progress >= 100 ? '✅' : s.progress >= 50 ? '🟡' : '🟢'}
-                                </span>
+                                <div className="flex items-center justify-between w-full mb-1">
+                                  <span className="text-gray-600">{s.title}</span>
+                                  <span className="text-xs text-gray-400">{Math.round(s.progress)}%</span>
+                                </div>
+                                <LinearProgress value={s.progress} height={3} />
                               </button>
                             ))}
                             {grouped[lvl].length === 0 && (

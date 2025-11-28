@@ -3,6 +3,7 @@ import { Server } from "http";
 import jwt from "jsonwebtoken";
 import { wsLogger, authLogger } from "../utils/logger";
 import { handleAuthFlow, AuthenticatedWebSocket } from "./onboardingHandler";
+import { handleLearningFlow } from "./learningHandler";
 
 export function setupWebSocketServer(server: Server) {
   const wss = new WebSocketServer({
@@ -128,14 +129,8 @@ export function setupWebSocketServer(server: Server) {
           // Handle authenticated user messages
           wsLogger.info("Handling authenticated user message");
 
-          // For now, send a simple response for authenticated users
-          // In future, this is where GROQ chat logic would go
-          ws.send(
-            JSON.stringify({
-              type: "message",
-              content: "Chat functionality coming soon! You are authenticated.",
-            })
-          );
+          // Route to learning handler
+          await handleLearningFlow(ws, message);
         }
       } catch (error) {
         wsLogger.error("Error handling WebSocket message", {

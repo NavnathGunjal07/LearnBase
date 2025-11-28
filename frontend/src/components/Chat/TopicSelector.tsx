@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BookOpen, ChevronRight, Sparkles } from 'lucide-react';
 import { useLearning } from '@/hooks/useLearning';
+import { LinearProgress } from '../LinearProgress';
 
 interface TopicSelectorProps {
   onTopicSelected: (topicId: number, topicName: string, subtopicId?: number, subtopicName?: string) => void;
@@ -109,14 +110,9 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                         <span>Progress</span>
-                        <span className="font-medium">{learning.topicProgressMap[topic.id]}%</span>
+                        <span className="font-medium">{Math.round(learning.topicProgressMap[topic.id])}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5">
-                        <div
-                          className="bg-gradient-to-r from-blue-500 to-purple-600 h-1.5 rounded-full transition-all"
-                          style={{ width: `${learning.topicProgressMap[topic.id]}%` }}
-                        />
-                      </div>
+                      <LinearProgress value={learning.topicProgressMap[topic.id]} height={6} />
                     </div>
                   )}
                 </button>
@@ -161,17 +157,14 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <h4 className="font-medium text-gray-900 mb-1">{subtopic.title}</h4>
-                              {subtopic.progress > 0 && (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-24 bg-gray-200 rounded-full h-1.5">
-                                    <div
-                                      className="bg-green-500 h-1.5 rounded-full"
-                                      style={{ width: `${subtopic.progress}%` }}
-                                    />
+                                {subtopic.progress > 0 && (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <div className="flex-1">
+                                      <LinearProgress value={subtopic.progress} height={4} />
+                                    </div>
+                                    <span className="text-xs text-gray-500 w-8 text-right">{Math.round(subtopic.progress)}%</span>
                                   </div>
-                                  <span className="text-xs text-gray-500">{subtopic.progress}%</span>
-                                </div>
-                              )}
+                                )}
                             </div>
                             <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
                           </div>

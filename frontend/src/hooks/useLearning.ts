@@ -195,5 +195,6 @@ export function useLearning() {
     openTopicModal,
     closeTopicModal,
     onTopicCreated: handleTopicCreated,
+    refreshTopics: fetchTopics,
   };
 }
