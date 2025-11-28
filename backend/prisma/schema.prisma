@@ -28,6 +28,11 @@ model User {
   background            String?  // User's educational/professional background
   goals                 String?  // User's learning goals
   learningInterests     String?  @map("learning_interests") // What user wants to learn (comma-separated)
+  onboardingStep        String   @default("AUTH_EMAIL") @map("onboarding_step") // AUTH_EMAIL, AUTH_PASSWORD, AUTH_SIGNUP_PASSWORD, ASK_NAME, ASK_INTERESTS, ASK_GOALS, ASK_EDUCATION, COMPLETE
+  failedLoginAttempts   Int      @default(0) @map("failed_login_attempts")
+  lockedUntil           DateTime? @map("locked_until")
+  onboardingAttempts    Int      @default(0) @map("onboarding_attempts")
+  onboardingLockedUntil DateTime? @map("onboarding_locked_until")
   hasCompletedOnboarding Boolean @default(false) @map("has_completed_onboarding")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")

@@ -11,23 +11,32 @@ import { useAuth } from '@/context/AuthContext';
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import('../../hooks/useChat').useChat>;
+  isAuthMode?: boolean;
 }
 
-export default function ChatContainer({ chatHook }: ChatContainerProps) {
+export default function ChatContainer({ chatHook, isAuthMode = false }: ChatContainerProps) {
   const { messages, sendMessage, isTyping, isConnected, sendTopicSelection, isOnboarding, hasCompletedOnboarding, currentTopicId } = chatHook;
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [executionResults, setExecutionResults] = useState<string[]>([]);
-  const [isLoadingSession, setIsLoadingSession] = useState(true);
-  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [isLoadingSession, setIsLoadingSession] = useState(!isAuthMode);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(!isAuthMode);
   const hasLoadedSession = useRef(false);
   const { user } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() =>{
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
 
   useEffect(() => {
     console.log('Messages:', messages);
   }, [messages]);
 
-  // Check onboarding status on mount and start onboarding if needed
+  // Check onboarding status on mount and start onboarding if needed (skip in auth mode)
   useEffect(() => {
+    if (isAuthMode) return; // Skip onboarding check in auth mode
+
     const checkOnboarding = async () => {
       if (!user) {
         setIsCheckingOnboarding(false);
@@ -64,10 +73,11 @@ export default function ChatContainer({ chatHook }: ChatContainerProps) {
       
       return () => clearTimeout(timer);
     }
-  }, [user, chatHook.isConnected, chatHook.startOnboarding]);
+  }, [isAuthMode, user, chatHook.isConnected, chatHook.startOnboarding]);
 
-  // Auto-load last session on mount (only once) - but only if onboarding is complete
+  // Auto-load last session on mount (only once) - but only if onboarding is complete (skip in auth mode)
   useEffect(() => {
+    if (isAuthMode) return; // Skip session loading in auth mode
     if (hasLoadedSession.current || isOnboarding || !hasCompletedOnboarding) return;
     hasLoadedSession.current = true;
 
@@ -95,7 +105,7 @@ export default function ChatContainer({ chatHook }: ChatContainerProps) {
 
     loadLastSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnboarding, hasCompletedOnboarding]);
+  }, [isAuthMode, isOnboarding, hasCompletedOnboarding]);
 
   const handleRunCode = async (code: string) => {
     try {
@@ -140,13 +150,16 @@ export default function ChatContainer({ chatHook }: ChatContainerProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
-            {isOnboarding ? 'Welcome to LearnBase!' : 'Chat'}
+            {isAuthMode ? '🔐 Login / Signup' : isOnboarding ? 'Welcome to LearnBase!' : 'Chat'}
           </h2>
-          {isOnboarding && (
+          {isAuthMode && (
+            <p className="text-sm text-gray-500">Chat to authenticate</p>
+          )}
+          {isOnboarding && !isAuthMode && (
             <p className="text-sm text-gray-500">Let's get to know you better</p>
           )}
         </div>
-        {!isOnboarding && (
+        {!isOnboarding && !isAuthMode && (
           <button
             onClick={toggleCodeEditor}
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition ${
@@ -169,11 +182,11 @@ export default function ChatContainer({ chatHook }: ChatContainerProps) {
       )}
 
       {/* Code Editor or Chat Messages or Topic Selector */}
-      {!isOnboarding && showCodeEditor ? (
+      {!isOnboarding && !isAuthMode && showCodeEditor ? (
         <div className="flex-1 overflow-hidden">
           <CodeEditor onRunCode={handleRunCode} />
         </div>
-      ) : hasCompletedOnboarding && !isOnboarding && messages.length === 0 && !currentTopicId ? (
+      ) : !isAuthMode && hasCompletedOnboarding && !isOnboarding && messages.length === 0 && !currentTopicId ? (
         // Show topic selector after onboarding is complete, no messages, and no topic selected
         <div className="flex-1 overflow-y-auto bg-gray-50">
           <TopicSelector onTopicSelected={async (topicId, topicName, subtopicId, subtopicName) => {
@@ -184,21 +197,23 @@ export default function ChatContainer({ chatHook }: ChatContainerProps) {
         <>
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
             <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
-              {messages.length === 0 && isOnboarding && (
+              {messages.length === 0 &&(isOnboarding || isAuthMode) && (
                 <div className="text-center text-gray-500 py-8">
-                  Starting conversation...
+                  {isAuthMode ? 'Connecting...' : 'Starting conversation...'}
                 </div>
               )}
               {messages.map((msg, i) => (
                 <ChatMessage key={i} message={msg} />
               ))}
               {isTyping && <TypingIndicator />}
+              {/* Auto-scroll target */}
+              <div ref={messagesEndRef} />
             </div>
           </div>
-          {(isOnboarding || (!hasCompletedOnboarding || messages.length > 0)) && (
+          {(isAuthMode || isOnboarding || (!hasCompletedOnboarding || messages.length > 0)) && (
             <div className="w-full flex justify-center px-4 sm:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gray-50">
               <div className="w-full max-w-3xl">
-                <ChatInput onSend={sendMessage} />
+                <ChatInput onSend={sendMessage} placeholder={isAuthMode ? "Type here..." : undefined} />
               </div>
             </div>
           )}

@@ -14,20 +14,15 @@ export default function LandingPage() {
               <span className="ml-2 text-xl font-bold text-white">LearnBase</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link to="/login">
+              <Link to="/auth">
                 <Button variant="outline" className="text-gray-200 hover:bg-gray-800 hover:text-white border-gray-700">
-                  Log in
-                </Button>
-              </Link>
-              <Link to="/register">
-                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                  Sign up
+                  Auth
                 </Button>
               </Link>
             </div>
           </div>
         </div>
-      </nav>
+      </nav>  
 
       {/* Hero Section */}
       <div className="text-center py-20 px-4 sm:px-6 lg:px-8">
@@ -39,7 +34,7 @@ export default function LandingPage() {
           An interactive learning platform to help you master programming concepts through hands-on practice and real-world projects.
         </p>
         <div className="mt-8 flex justify-center gap-4">
-          <Link to="/register">
+          <Link to="/auth">
             <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white">
               Get Started
               <Rocket className="ml-2 h-4 w-4" />

@@ -6,10 +6,9 @@ import { useToast } from '@/components/ui/use-toast';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: () => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +22,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Check for existing session on initial load
   useEffect(() => {
-
     if (hasCheckedAuth.current) return;
     hasCheckedAuth.current = true;
 
@@ -32,7 +30,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
       } catch (error) {
-        // Error is already handled by the interceptor
+        // No valid token or user not found
+        localStorage.removeItem('token');
       } finally {
         setIsLoading(false);
       }
@@ -41,41 +40,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  // Refresh user data (called after WebSocket auth)
+  const refreshUser = async () => {
     try {
-      setIsLoading(true);
-      const { user } = await authService.login({ email, password });
-      setUser(user);
-      toast({
-        title: '✓ Login successful',
-        description: `Welcome back, ${user.name}!`,
-      });
-      // Check onboarding status - ProtectedRoute will handle redirect
-      navigate('/home');
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
     } catch (error) {
-      // Error is already handled by the interceptor
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      const { user } = await authService.register({ name, email, password });
-      setUser(user);
-      toast({
-        title: '✓ Registration successful',
-        description: 'Your account has been created successfully!',
-      });
-      // New users should go to onboarding - ProtectedRoute will handle redirect
-      navigate('/home');
-    } catch (error) {
-      // Error is already handled by the interceptor
-      throw error;
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to refresh user:', error);
     }
   };
 
@@ -86,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       title: '✓ Logged out',
       description: 'You have been logged out successfully',
     });
-    navigate('/login');
+    navigate('/auth');
   };
 
   const isAuthenticated = () => authService.isAuthenticated();
@@ -94,10 +65,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     user,
     isLoading,
-    login,
-    register,
     logout,
     isAuthenticated,
+    refreshUser,
   };
 
   if (isLoading) {

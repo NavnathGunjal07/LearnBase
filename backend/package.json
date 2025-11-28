@@ -34,6 +34,7 @@
     "node-fetch": "^2.7.0",
     "openai": "^6.8.1",
     "uuid": "^13.0.0",
+    "winston": "^3.18.3",
     "ws": "^8.18.0"
   },
   "devDependencies": {

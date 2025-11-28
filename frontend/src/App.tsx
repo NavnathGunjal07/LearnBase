@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import LoginPage from "./components/Auth/Login";
-import RegisterPage from "./components/Auth/Register";
+import AuthPage from "./pages/AuthPage";
 import Home from "./pages/Home";
 import LandingPage from "./pages/LandingPage";
 import { Toaster } from "./components/ui/toaster";
@@ -12,8 +11,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         </Routes>
         <Toaster />
@@ -38,7 +36,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   // Onboarding is handled within the ChatContainer component
