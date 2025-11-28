@@ -5,10 +5,12 @@ import masterTopicRoutes from "./masterTopics";
 import executeRoutes from "./execute";
 import chatRoutes from "./chat";
 import onboardingRoutes from "./onboarding";
+import authRoutes from "./auth";
 
 const router = Router();
 
 // Mount all routes
+router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/topics", topicRoutes);
 router.use("/master-topics", masterTopicRoutes);
