@@ -2,26 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 import { useToast } from './ui/use-toast';
+import { topicService } from '@/api';
+import { Topic } from '@/utils/types';
 
-interface MasterTopic {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  iconUrl: string;
-  category: string;
-}
+
 
 interface TopicSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTopicAdded: (topicId: number, topicName: string) => void;
+  onTopicAdded: (topicId: string, topicName: string) => void;
 }
 
 export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: TopicSelectionModalProps) {
-  const [masterTopics, setMasterTopics] = useState<MasterTopic[]>([]);
+  const [masterTopics, setMasterTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(false);
-  const [enrolling, setEnrolling] = useState<number | null>(null);
+  const [enrolling, setEnrolling] = useState<string | null>(null);
   const { toast } = useToast();
   const hasFetchedRef = useRef(false);
 
@@ -40,8 +35,8 @@ export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: T
   const fetchMasterTopics = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get('/master-topics');
-      setMasterTopics(response.data);
+      const response = await topicService.getTopics();
+      setMasterTopics(response || []);
     } catch (error) {
       console.error('Failed to fetch master topics:', error);
       toast({
@@ -54,10 +49,10 @@ export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: T
     }
   };
 
-  const handleEnroll = async (topicId: number, topicName: string) => {
+  const handleEnroll = async (topicId: string, topicName: string) => {
     setEnrolling(topicId);
     try {
-      await axiosInstance.post('/user-topics', { topicId });
+      await topicService.enrollInTopic(topicId);
 
       // Notify the parent component and close the modal
       toast({

@@ -1,7 +1,13 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import axiosInstance from '../api/axiosInstance';
-import type { Breadcrumb, LearningState, Subtopic, Topic } from '../utils/types';
-import { useToast } from '@/components/ui/use-toast';
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import axiosInstance from "../api/axiosInstance";
+import type {
+  Breadcrumb,
+  LearningState,
+  Subtopic,
+  Topic,
+} from "../utils/types";
+import { useToast } from "@/components/ui/use-toast";
+import { topicService } from "@/api";
 
 function calculateTopicProgress(topic: Topic): number {
   if (topic.subtopics.length === 0) return 0;
@@ -40,21 +46,21 @@ export function useLearning() {
   const fetchTopics = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/topics');
-      const topics: Topic[] = response.data.map((ut: any) => ({
+      const response = await topicService.getUserTopics();
+      const topics: Topic[] = response.map((ut: any) => ({
         id: ut.id.toString(),
         masterTopicId: ut.masterTopicId,
         name: ut.name,
-        description: ut.description || '',
-        iconUrl: ut.iconUrl || '',
-        category: ut.category || '',
+        description: ut.description || "",
+        iconUrl: ut.iconUrl || "",
+        category: ut.category || "",
         enrolledAt: ut.enrolledAt || new Date().toISOString(),
         lastAccessedAt: ut.lastAccessedAt || new Date().toISOString(),
         progress: ut.progress || 0,
         subtopics: ut.subtopics.map((s: any) => ({
           id: s.id.toString(),
           title: s.title,
-          description: s.description || '',
+          description: s.description || "",
           difficultyLevel: s.difficultyLevel,
           orderIndex: s.orderIndex,
           progress: s.progress || 0,
@@ -70,7 +76,7 @@ export function useLearning() {
         },
       });
     } catch (error) {
-      console.error('Failed to fetch topics:', error);
+      console.error("Failed to fetch topics:", error);
     } finally {
       setLoading(false);
     }
@@ -89,20 +95,29 @@ export function useLearning() {
     [state.topics, state.selection.topicId]
   );
   const selectedSubtopic: Subtopic | null = useMemo(
-    () => selectedTopic?.subtopics.find((s) => s.id === state.selection.subtopicId) ?? null,
+    () =>
+      selectedTopic?.subtopics.find(
+        (s) => s.id === state.selection.subtopicId
+      ) ?? null,
     [selectedTopic, state.selection.subtopicId]
   );
 
-  const breadcrumb: Breadcrumb = useMemo(() => ({
-    topicName: selectedTopic?.name,
-    subtopicName: selectedSubtopic?.title,
-  }), [selectedTopic?.name, selectedSubtopic?.title]);
+  const breadcrumb: Breadcrumb = useMemo(
+    () => ({
+      topicName: selectedTopic?.name,
+      subtopicName: selectedSubtopic?.title,
+    }),
+    [selectedTopic?.name, selectedSubtopic?.title]
+  );
 
   function selectTopic(topicId: string) {
     setState((prev) => {
       const topic = prev.topics.find((t) => t.id === topicId) ?? null;
       const firstSub = topic?.subtopics[0] ?? null;
-      return { ...prev, selection: { topicId, subtopicId: firstSub?.id ?? null } };
+      return {
+        ...prev,
+        selection: { topicId, subtopicId: firstSub?.id ?? null },
+      };
     });
   }
 
@@ -110,11 +125,18 @@ export function useLearning() {
     setState((prev) => ({ ...prev, selection: { topicId, subtopicId } }));
   }
 
-  async function updateSubtopicProgress(topicId: string, subtopicId: string, progress: number) {
+  async function updateSubtopicProgress(
+    topicId: string,
+    subtopicId: string,
+    progress: number
+  ) {
     try {
-      await axiosInstance.patch(`/topics/${topicId}/subtopics/${subtopicId}/progress`, {
-        completedPercent: progress,
-      });
+      await axiosInstance.patch(
+        `/topics/${topicId}/subtopics/${subtopicId}/progress`,
+        {
+          completedPercent: progress,
+        }
+      );
 
       // Update local state
       setState((prev) => ({
@@ -123,13 +145,17 @@ export function useLearning() {
           t.id !== topicId
             ? t
             : {
-              ...t,
-              subtopics: t.subtopics.map((s) => (s.id === subtopicId ? { ...s, progress, completed: progress >= 100 } : s)),
-            }
+                ...t,
+                subtopics: t.subtopics.map((s) =>
+                  s.id === subtopicId
+                    ? { ...s, progress, completed: progress >= 100 }
+                    : s
+                ),
+              }
         ),
       }));
     } catch (error) {
-      console.error('Failed to update progress:', error);
+      console.error("Failed to update progress:", error);
     }
   }
 
@@ -149,8 +175,8 @@ export function useLearning() {
   const handleTopicCreated = useCallback(() => {
     fetchTopics();
     toast({
-      title: 'Success',
-      description: 'Topic created successfully!',
+      title: "Success",
+      description: "Topic created successfully!",
     });
   }, [toast]);
 
@@ -171,5 +197,3 @@ export function useLearning() {
     onTopicCreated: handleTopicCreated,
   };
 }
-
-
