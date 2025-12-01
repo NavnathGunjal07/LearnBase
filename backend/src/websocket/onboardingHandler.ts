@@ -36,7 +36,7 @@ export async function handleAuthFlow(ws: AuthenticatedWebSocket, message: any) {
         JSON.stringify({
           type: "error",
           message: "Please send a text message.",
-        }),
+        })
       );
       return;
     }
@@ -61,7 +61,7 @@ export async function handleAuthFlow(ws: AuthenticatedWebSocket, message: any) {
         JSON.stringify({
           type: "error",
           message: "Session error. Please provide your email again.",
-        }),
+        })
       );
       return;
     }
@@ -89,7 +89,7 @@ export async function handleAuthFlow(ws: AuthenticatedWebSocket, message: any) {
           JSON.stringify({
             type: "error",
             message: "Invalid state. Please reconnect.",
-          }),
+          })
         );
     }
   } catch (error) {
@@ -110,8 +110,8 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
         JSON.stringify({
           type: "message",
           content:
-            "That doesn't look like a valid email address. Please try again.",
-        }),
+            "Hmm, that email looks a bit... suspicious 🕶️ Try again with a real one!",
+        })
       );
       return;
     }
@@ -130,13 +130,13 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
       // Check if locked
       if (isLocked(user.lockedUntil)) {
         const lockMinutes = Math.ceil(
-          (new Date(user.lockedUntil!).getTime() - Date.now()) / 60000,
+          (new Date(user.lockedUntil!).getTime() - Date.now()) / 60000
         );
         ws.send(
           JSON.stringify({
             type: "message",
             content: `Too many failed login attempts. Please try again in ${lockMinutes} minute(s).`,
-          }),
+          })
         );
         ws.userEmail = undefined;
         return;
@@ -151,8 +151,8 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
       ws.send(
         JSON.stringify({
           type: "message",
-          content: `Welcome back! Please enter your password.`,
-        }),
+          content: `Yo! Long time no see 🕶️ Drop that password and let's roll!`,
+        })
       );
     } else {
       console.log(`🆕 Creating new user: ${email}`);
@@ -172,7 +172,7 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
         JSON.stringify({
           type: "message",
           content: `Welcome to LearnBase! 🎉 Let's create your account.\n\nPlease create a secure password with:\n• At least 8 characters\n• At least one number\n• At least one special character (!@#$%, etc.)`,
-        }),
+        })
       );
     }
   } catch (error) {
@@ -186,7 +186,7 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
 async function handleAuthPassword(
   ws: AuthenticatedWebSocket,
   user: any,
-  password: string,
+  password: string
 ) {
   try {
     console.log(`🔑 Verifying password for user: ${user.email}`);
@@ -194,13 +194,13 @@ async function handleAuthPassword(
     // Check if locked
     if (isLocked(user.lockedUntil)) {
       const lockMinutes = Math.ceil(
-        (new Date(user.lockedUntil!).getTime() - Date.now()) / 60000,
+        (new Date(user.lockedUntil!).getTime() - Date.now()) / 60000
       );
       ws.send(
         JSON.stringify({
           type: "message",
           content: `Too many failed attempts. Please try again in ${lockMinutes} minute(s).`,
-        }),
+        })
       );
       return;
     }
@@ -222,8 +222,8 @@ async function handleAuthPassword(
       ws.send(
         JSON.stringify({
           type: "message",
-          content: `Welcome back, ${user.name}! 🎉`,
-        }),
+          content: `Yesss! ${user.name} is back in the game! 😎🔥`,
+        })
       );
 
       // Authenticate the user
@@ -245,8 +245,8 @@ async function handleAuthPassword(
           JSON.stringify({
             type: "message",
             content:
-              "Too many incorrect attempts. Your account has been locked for 30 minutes.",
-          }),
+              "Whoa whoa whoa! Too many wrong tries, chief 😤 Take a 30-minute break and come back when you remember it!",
+          })
         );
         ws.userEmail = undefined;
       } else {
@@ -256,11 +256,20 @@ async function handleAuthPassword(
         });
 
         const attemptsLeft = 5 - newAttempts;
+        const wittyMessages = [
+          `Nope! That's not it 🙅 ${attemptsLeft} more shots left!`,
+          `Bzzt! Wrong password, buddy 😬 You've got ${attemptsLeft} attempts before I get grumpy!`,
+          `Oops! Try again! ${attemptsLeft} chances remaining before timeout 🕶️`,
+          `Not quite! Maybe try the one you use for everything? 😏 ${attemptsLeft} left!`,
+          `Nah, that ain't it! ${attemptsLeft} more tries before lockout 🔒`,
+        ];
+        const randomMessage =
+          wittyMessages[Math.floor(Math.random() * wittyMessages.length)];
         ws.send(
           JSON.stringify({
             type: "message",
-            content: `Incorrect password. You have ${attemptsLeft} attempt(s) remaining.`,
-          }),
+            content: randomMessage,
+          })
         );
       }
     }
@@ -275,7 +284,7 @@ async function handleAuthPassword(
 async function handleAuthSignupPassword(
   ws: AuthenticatedWebSocket,
   user: any,
-  password: string,
+  password: string
 ) {
   try {
     console.log(`🔐 Setting password for new user: ${user.email}`);
@@ -288,7 +297,7 @@ async function handleAuthSignupPassword(
         JSON.stringify({
           type: "message",
           content: validation.message,
-        }),
+        })
       );
       return;
     }
@@ -309,8 +318,8 @@ async function handleAuthSignupPassword(
     ws.send(
       JSON.stringify({
         type: "message",
-        content: `Great! Your password is set. 🔒\n\nNow let's personalize your learning experience. What's your name?`,
-      }),
+        content: `Boom! Password locked and loaded 🔒😎\n\nNow let's get personal! What should I call you?`,
+      })
     );
   } catch (error) {
     handleWebSocketError(error, ws, "handleAuthSignupPassword");
@@ -323,23 +332,23 @@ async function handleAuthSignupPassword(
 async function handleOnboardingStep(
   ws: AuthenticatedWebSocket,
   user: any,
-  input: string,
+  input: string
 ) {
   try {
     console.log(
-      `📝 Processing onboarding step ${user.onboardingStep} for user: ${user.email}`,
+      `📝 Processing onboarding step ${user.onboardingStep} for user: ${user.email}`
     );
 
     // Check if onboarding locked
     if (isLocked(user.onboardingLockedUntil)) {
       const lockMinutes = Math.ceil(
-        (new Date(user.onboardingLockedUntil!).getTime() - Date.now()) / 60000,
+        (new Date(user.onboardingLockedUntil!).getTime() - Date.now()) / 60000
       );
       ws.send(
         JSON.stringify({
           type: "message",
           content: `Too many invalid inputs. Please try again in ${lockMinutes} minute(s).`,
-        }),
+        })
       );
       return;
     }
@@ -360,7 +369,7 @@ async function handleOnboardingStep(
           console.log(`✅ Name saved: ${input.trim()}`);
         } else {
           responseMessage =
-            "Please provide a valid name (at least 2 characters).";
+            "C'mon, give me a real name! At least 2 letters 😅 Unless you're just 'X' or 'Y'?";
         }
         break;
 
@@ -372,7 +381,8 @@ async function handleOnboardingStep(
           responseMessage = `Awesome! 🎯\n\nWhat are your learning goals? What do you hope to achieve?`;
           console.log(`✅ Learning interests saved: ${input.trim()}`);
         } else {
-          responseMessage = "Please provide at least one learning interest.";
+          responseMessage =
+            "Yo! You gotta be interested in SOMETHING 🤔 What catches your eye?";
         }
         break;
 
@@ -385,7 +395,7 @@ async function handleOnboardingStep(
           console.log(`✅ Goals saved: ${input.trim()}`);
         } else {
           responseMessage =
-            "Please provide a more detailed description of your goals (at least 10 characters).";
+            "That's a bit short, my friend! Tell me more about your goals 🎯 Dream big!";
         }
         break;
 
@@ -398,7 +408,7 @@ async function handleOnboardingStep(
           console.log(`✅ Background saved: ${input.trim()}`);
         } else {
           responseMessage =
-            "Please provide more details about your background (at least 10 characters).";
+            "Gimme more details! Where're you coming from? 🤓 (Need at least 10 chars)";
         }
         break;
     }
@@ -424,7 +434,7 @@ async function handleOnboardingStep(
         JSON.stringify({
           type: "message",
           content: responseMessage,
-        }),
+        })
       );
 
       // If completed, authenticate the user
@@ -452,7 +462,7 @@ async function handleOnboardingStep(
           JSON.stringify({
             type: "message",
             content: "Too many invalid inputs. Please try again later.",
-          }),
+          })
         );
         ws.userEmail = undefined;
       } else {
@@ -465,7 +475,7 @@ async function handleOnboardingStep(
           JSON.stringify({
             type: "message",
             content: responseMessage,
-          }),
+          })
         );
       }
     }
@@ -499,7 +509,7 @@ export async function authenticateUser(ws: AuthenticatedWebSocket, user: any) {
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "7d" },
+      { expiresIn: "7d" }
     );
 
     console.log(`✅ JWT token generated for user: ${user.email}`);
@@ -531,7 +541,7 @@ export async function authenticateUser(ws: AuthenticatedWebSocket, user: any) {
           createdAt: freshUser!.createdAt,
         },
         message: "Authentication successful! 🎉",
-      }),
+      })
     );
 
     console.log(`✅ User authenticated successfully: ${freshUser!.email}`);

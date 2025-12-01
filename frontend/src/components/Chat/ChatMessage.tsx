@@ -3,17 +3,23 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
+import Avatar from "./Avatar";
 
 export default function ChatMessage({ message }: { message: ChatMessageType }) {
   const isUser = message.sender === "user";
-  const content = message.content?.trim() || "";
+  const rawContent = message.content?.trim() || "";
+
+  // Convert literal \n to actual newlines for proper rendering
+  const content = rawContent.replace(/\\n/g, "\n");
+
   if (!content) {
     return (
       <div
         className={`flex ${
-          isUser ? "justify-end" : "justify-start"
+          isUser ? "justify-end" : "justify-start items-start gap-3"
         } w-full opacity-60`}
       >
+        {!isUser && <Avatar isTyping={true} size="small" />}
         <div
           className={`max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 ${
             isUser ? "bg-white border border-gray-200" : "bg-gray-50"
@@ -27,9 +33,10 @@ export default function ChatMessage({ message }: { message: ChatMessageType }) {
   return (
     <div
       className={`flex ${
-        isUser ? "justify-end" : "justify-start"
+        isUser ? "justify-end" : "justify-start items-end gap-3"
       } w-full animate-fade-in`}
     >
+      {!isUser && <Avatar message={content} size="small" />}
       <div
         className={`${
           isUser ? "max-w-[90%] md:max-w-[75%]" : "w-[90%] max-w-[90%]"
@@ -41,7 +48,7 @@ export default function ChatMessage({ message }: { message: ChatMessageType }) {
       >
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {message.content}
+            {content}
           </p>
         ) : (
           <div className="relative">
