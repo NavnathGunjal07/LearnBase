@@ -1,4 +1,5 @@
-import axiosInstance from '@/api/axiosInstance';
+import axiosInstance from "@/api/axiosInstance";
+import { handleError } from "@/utils/errorHandler";
 
 export interface User {
   id: string;
@@ -25,56 +26,63 @@ export interface RegisterData extends LoginCredentials {
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await axiosInstance.post<AuthResponse>('/auth/login', credentials);
+      const response = await axiosInstance.post<AuthResponse>(
+        "/auth/login",
+        credentials
+      );
       const { user, token } = response.data;
-      
+
       // Store the token in localStorage
-      localStorage.setItem('token', token);
-      
+      localStorage.setItem("token", token);
+
       return { user, token };
     } catch (error) {
-      // Error is already handled by the interceptor
+      handleError(error, "Login");
       throw error;
     }
   },
 
   async register(userData: RegisterData): Promise<AuthResponse> {
     try {
-      const response = await axiosInstance.post<AuthResponse>('/auth/register', userData);
+      const response = await axiosInstance.post<AuthResponse>(
+        "/auth/register",
+        userData
+      );
       const { user, token } = response.data;
-      
+
       // Store the token in localStorage
-      localStorage.setItem('token', token);
-      
+      localStorage.setItem("token", token);
+
       return { user, token };
     } catch (error) {
-      // Error is already handled by the interceptor
+      handleError(error, "Registration");
       throw error;
     }
   },
 
   logout(): void {
     // Remove the token from localStorage
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     // Clear any other user-related data
     // ...
   },
 
   async getCurrentUser(): Promise<User | null> {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-
     try {
-      const response = await axiosInstance.get<User>('/auth/me');
+      const token = localStorage.getItem("token");
+      if (!token) return null;
+
+      const response = await axiosInstance.get<User>("/auth/me");
       return response.data;
     } catch (error) {
+      handleError(error, "Get Current User");
       // If token is invalid, clear it
-      localStorage.removeItem('token');
+      localStorage.removeItem("token");
       return null;
     }
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem("token");
   },
 };

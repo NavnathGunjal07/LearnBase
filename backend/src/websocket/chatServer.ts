@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { wsLogger, authLogger } from "../utils/logger";
 import { handleAuthFlow, AuthenticatedWebSocket } from "./onboardingHandler";
 import { handleLearningFlow } from "./learningHandler";
+import { handleWebSocketError } from "../utils/errorHandler";
 
 export function setupWebSocketServer(server: Server) {
   const wss = new WebSocketServer({
@@ -30,65 +31,69 @@ export function setupWebSocketServer(server: Server) {
   });
 
   wss.on("connection", async (ws: AuthenticatedWebSocket, req) => {
-    ws.isAlive = true;
-    ws.isAuthenticated = false;
-
-    ws.on("pong", () => {
+    try {
       ws.isAlive = true;
-    });
+      ws.isAuthenticated = false;
 
-    // Extract token from query params or headers
-    const url = new URL(req.url || "", `http://${req.headers.host}`);
-    const token =
-      url.searchParams.get("token") ||
-      req.headers.authorization?.replace("Bearer ", "");
+      ws.on("pong", () => {
+        ws.isAlive = true;
+      });
 
-    // Try to authenticate with token if provided
-    if (token) {
-      try {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET || "your-secret-key"
-        ) as { userId: string };
-        ws.userId = decoded.userId;
-        ws.isAuthenticated = true;
+      // Extract token from query params or headers
+      const url = new URL(req.url || "", `http://${req.headers.host}`);
+      const token =
+        url.searchParams.get("token") ||
+        req.headers.authorization?.replace("Bearer ", "");
 
-        wsLogger.info("WebSocket authenticated with token", {
-          userId: ws.userId,
-        });
-        console.log(`✅ WebSocket authenticated: User ${ws.userId}`);
+      // Try to authenticate with token if provided
+      if (token) {
+        try {
+          const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET || "your-secret-key"
+          ) as { userId: string };
+          ws.userId = decoded.userId;
+          ws.isAuthenticated = true;
 
-        // Send authenticated welcome message
-        ws.send(
-          JSON.stringify({
-            type: "authenticated",
-            message: "Welcome back! You are authenticated.",
-          })
-        );
-      } catch (error) {
-        wsLogger.error("Token authentication failed", { error });
-        console.error("❌ Token authentication failed:", error);
+          wsLogger.info("WebSocket authenticated with token", {
+            userId: ws.userId,
+          });
+          console.log(`✅ WebSocket authenticated: User ${ws.userId}`);
+
+          // Send authenticated welcome message
+          ws.send(
+            JSON.stringify({
+              type: "authenticated",
+              message: "Welcome back! You are authenticated.",
+            })
+          );
+        } catch (error) {
+          wsLogger.error("Token authentication failed", { error });
+          console.error("❌ Token authentication failed:", error);
+          ws.send(
+            JSON.stringify({
+              type: "auth_required",
+              message: "Authentication required",
+            })
+          );
+        }
+      } else {
+        // Unauthenticated user - start auth flow
+        wsLogger.info("Unauthenticated connection - starting auth flow");
+        authLogger.info("New auth flow initiated");
+        console.log("⚠️ New unauthenticated connection - starting auth flow");
+
+        // Send auth_required message to prompt user
         ws.send(
           JSON.stringify({
             type: "auth_required",
-            message: "Authentication required",
+            message:
+              "Welcome to LearnBase! 👋\\n\\nTo get started, please provide your email address.",
           })
         );
       }
-    } else {
-      // Unauthenticated user - start auth flow
-      wsLogger.info("Unauthenticated connection - starting auth flow");
-      authLogger.info("New auth flow initiated");
-      console.log("⚠️ New unauthenticated connection - starting auth flow");
-
-      // Send auth_required message to prompt user
-      ws.send(
-        JSON.stringify({
-          type: "auth_required",
-          message:
-            "Welcome to LearnBase! 👋\\n\\nTo get started, please provide your email address.",
-        })
-      );
+    } catch (error) {
+      handleWebSocketError(error, ws, "WebSocket connection initialization");
     }
 
     // Handle incoming messages
