@@ -176,12 +176,30 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
     // History will have: [Assistant (Initial Question), User (Current Message)] if it's the first reply
     const isFirstReply = history.length <= 2;
 
-    let systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}`;
+    // Fetch current progress for the subtopic
+    let currentProgress = 0;
+    if (session?.userTopicId && session?.subtopicId) {
+      const progressRecord = await prisma.progress.findUnique({
+        where: {
+          userId_userTopicId_subtopicId: {
+            userId: ws.userId!,
+            userTopicId: session.userTopicId,
+            subtopicId: session.subtopicId,
+          },
+        },
+      });
+      currentProgress = progressRecord?.completedPercent || 0;
+    }
+
+    // Define weightage (heuristic since not in DB)
+    const SUBTOPIC_WEIGHTAGE = 20;
+
+    let systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}\nCurrent Progress: ${currentProgress}%\nProgress Weightage per Step: ${SUBTOPIC_WEIGHTAGE}%`;
 
     if (isFirstReply) {
       systemPromptContext += `\n\nUSER CONTEXT: The user has just stated their experience level: "${content}". Adapt your teaching style accordingly. Start by acknowledging their level and introducing the first concept.`;
     } else {
-      systemPromptContext += `\n\nINSTRUCTION: Continue teaching based on the conversation history. Assess the user's understanding from their last message and update progress if appropriate.`;
+      systemPromptContext += `\n\nINSTRUCTION: Continue teaching based on the conversation history. Assess the user's understanding from their last message. If they demonstrate understanding or complete a step, calculate the new progress (current + weightage, max 100) and include it in the hidden JSON block.`;
     }
 
     const messages = [
@@ -200,7 +218,9 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
       messages,
       sessionId,
       session?.userTopicId || undefined,
-      session?.subtopicId || undefined
+      session?.subtopicId || undefined,
+      currentProgress,
+      SUBTOPIC_WEIGHTAGE
     );
   } catch (error) {
     handleWebSocketError(error, ws, "handleUserMessage");
@@ -212,16 +232,61 @@ async function generateAIResponse(
   messages: any[],
   sessionId: string,
   userTopicId?: number,
-  subtopicId?: number
+  subtopicId?: number,
+  currentProgress: number = 0,
+  weightage: number = 20
 ) {
   try {
     ws.send(JSON.stringify({ type: "typing" }));
 
+    // Step 1: Generate Text Response (Streaming)
     const fullResponse = await streamChatCompletion({
       messages,
       onDelta: (content) => {
         ws.send(JSON.stringify({ type: "delta", content }));
       },
+      // No onJson needed here as LEARNING_PROMPT doesn't output JSON anymore
+    });
+
+    ws.send(JSON.stringify({ type: "done" }));
+
+    // Save assistant message
+    await prisma.chatMessage.create({
+      data: {
+        chatId: sessionId,
+        role: "assistant",
+        content: fullResponse,
+        messageType: "text",
+      },
+    });
+
+    // Step 2: Generate Metadata (Suggestions & Progress)
+    // Create a new context for the metadata prompt
+    const { METADATA_PROMPT } = await import("../prompts/metadata");
+
+    const metadataMessages = [
+      {
+        role: "system",
+        content: METADATA_PROMPT,
+      },
+      {
+        role: "user",
+        content: `
+        Current Progress: ${currentProgress}%
+        Weightage: ${weightage}%
+
+        LATEST ASSISTANT RESPONSE:
+        "${fullResponse}"
+
+        Generate the JSON metadata now.
+        `,
+      },
+    ];
+
+    // We can use streamChatCompletion but just ignore onDelta and capture onJson
+    // Or we could use a non-streaming call if we had one, but reusing streamChatCompletion is fine
+    await streamChatCompletion({
+      messages: metadataMessages,
       onJson: async (data) => {
         if (data.progress_update && userTopicId && subtopicId) {
           await handleProgressUpdate(
@@ -241,18 +306,7 @@ async function generateAIResponse(
         }
       },
     });
-
     ws.send(JSON.stringify({ type: "done" }));
-
-    // Save assistant message
-    await prisma.chatMessage.create({
-      data: {
-        chatId: sessionId,
-        role: "assistant",
-        content: fullResponse,
-        messageType: "text",
-      },
-    });
   } catch (error) {
     console.error("GROQ API error:", error);
     ws.send(
