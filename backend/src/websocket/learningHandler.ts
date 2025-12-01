@@ -248,7 +248,8 @@ async function generateAIResponse(
       // No onJson needed here as LEARNING_PROMPT doesn't output JSON anymore
     });
 
-    ws.send(JSON.stringify({ type: "done" }));
+    // Do NOT send done here, wait for metadata step to finish
+    // ws.send(JSON.stringify({ type: "done" }));
 
     // Save assistant message
     await prisma.chatMessage.create({

@@ -24,7 +24,7 @@ export const useChat = (
   const hasConnected = useRef(false);
   const currentMessageRef = useRef<string>("");
   const shouldReconnectRef = useRef(true); // Flag to control reconnection
-  const [lastProgressUpdate] = useState<{
+  const [lastProgressUpdate, setLastProgressUpdate] = useState<{
     topicId: number;
     subtopicId: number;
     progress: number;
@@ -221,10 +221,29 @@ export const useChat = (
               { sender: "assistant", content, isComplete: true },
             ]);
           }
+        } else if (data.type === "progress_updated") {
+          // Handle progress update
+          setLastProgressUpdate({
+            topicId: data.topicId,
+            subtopicId: data.subtopicId,
+            progress: data.progress,
+            topicProgress: data.topicProgress,
+            timestamp: Date.now(),
+          });
+        } else if (data.type === "error") {
+          setIsTyping(false);
+          const content = data.content || data.message || "An error occurred";
+          setMessages((prev) => [
+            ...prev,
+            { sender: "assistant", content, isComplete: true, isError: true },
+          ]);
         } else {
           // Backward compatibility: treat as a full message object
+          console.warn("⚠️ Received unhandled message type:", data);
           setIsTyping(false);
-          setMessages((prev) => [...prev, data]);
+          if (data.content || data.message) {
+            setMessages((prev) => [...prev, data]);
+          }
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
