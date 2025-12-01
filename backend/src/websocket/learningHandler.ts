@@ -23,7 +23,7 @@ interface ProgressUpdate {
 
 export async function handleLearningFlow(
   ws: AuthenticatedWebSocket,
-  message: any,
+  message: any
 ) {
   const { type } = message;
 
@@ -46,7 +46,7 @@ export async function handleLearningFlow(
       JSON.stringify({
         type: "error",
         content: "An error occurred in the learning session.",
-      }),
+      })
     );
   }
 }
@@ -57,7 +57,7 @@ async function handleTopicSelected(ws: AuthenticatedWebSocket, message: any) {
     const { topicId, subtopicId, name, subtopic: subtopicName } = topic;
 
     console.log(
-      `📚 Topic selected: ${name} (${subtopicName}) for user ${ws.userId}`,
+      `📚 Topic selected: ${name} (${subtopicName}) for user ${ws.userId}`
     );
 
     // Create or find chat session
@@ -91,7 +91,16 @@ async function handleTopicSelected(ws: AuthenticatedWebSocket, message: any) {
 
     // Send initial question to user
     ws.send(JSON.stringify({ type: "delta", content: initialQuestion }));
-    ws.send(JSON.stringify({ type: "done" }));
+    ws.send(
+      JSON.stringify({
+        type: "done",
+        suggestions: [
+          "I'm a complete beginner",
+          "I know the basics",
+          "I'm looking for advanced tips",
+        ],
+      })
+    );
   } catch (error) {
     handleWebSocketError(error, ws, "handleTopicSelected");
   }
@@ -191,7 +200,7 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
       messages,
       sessionId,
       session?.userTopicId || undefined,
-      session?.subtopicId || undefined,
+      session?.subtopicId || undefined
     );
   } catch (error) {
     handleWebSocketError(error, ws, "handleUserMessage");
@@ -203,7 +212,7 @@ async function generateAIResponse(
   messages: any[],
   sessionId: string,
   userTopicId?: number,
-  subtopicId?: number,
+  subtopicId?: number
 ) {
   try {
     ws.send(JSON.stringify({ type: "typing" }));
@@ -219,7 +228,15 @@ async function generateAIResponse(
             ws,
             userTopicId,
             subtopicId,
-            data.progress_update,
+            data.progress_update
+          );
+        }
+        if (data.suggestions && Array.isArray(data.suggestions)) {
+          ws.send(
+            JSON.stringify({
+              type: "suggestions",
+              suggestions: data.suggestions,
+            })
           );
         }
       },
@@ -242,7 +259,7 @@ async function generateAIResponse(
       JSON.stringify({
         type: "error",
         message: "I'm having trouble thinking right now. Please try again.",
-      }),
+      })
     );
   }
 }
@@ -251,10 +268,10 @@ async function handleProgressUpdate(
   ws: AuthenticatedWebSocket,
   userTopicId: number,
   subtopicId: number,
-  update: ProgressUpdate,
+  update: ProgressUpdate
 ) {
   console.log(
-    `📈 Progress update for user ${ws.userId}: ${update.score}% - ${update.reasoning}`,
+    `📈 Progress update for user ${ws.userId}: ${update.score}% - ${update.reasoning}`
   );
 
   try {
@@ -305,7 +322,7 @@ async function handleProgressUpdate(
         subtopicId: subtopicId,
         progress: update.score,
         topicProgress: avgProgress,
-      }),
+      })
     );
   } catch (error) {
     console.error("Failed to update progress:", error);

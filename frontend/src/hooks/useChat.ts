@@ -6,7 +6,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
 
 export const useChat = (
   isAuthMode?: boolean,
-  onAuthenticated?: (token: string, user: any) => void,
+  onAuthenticated?: (token: string, user: any) => void
 ) => {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -14,7 +14,7 @@ export const useChat = (
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [currentTopicId, setCurrentTopicId] = useState<number | null>(null);
   const [currentSubtopicId, setCurrentSubtopicId] = useState<number | null>(
-    null,
+    null
   );
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
@@ -33,6 +33,12 @@ export const useChat = (
   } | null>(null);
   const lastProgressUpdateRef = useRef(lastProgressUpdate); // Ref to access current value in return without re-creating object if not needed, though state is fine
 
+  const [inputConfig, setInputConfig] = useState<{
+    inputType: "text" | "email" | "password" | "select";
+    options?: string[];
+    suggestions?: string[];
+  }>({ inputType: "text" });
+
   // Keep ref in sync
   useEffect(() => {
     lastProgressUpdateRef.current = lastProgressUpdate;
@@ -47,7 +53,7 @@ export const useChat = (
 
     socket.onopen = () => {
       console.log(
-        "✅ WebSocket connected" + (isAuthMode ? " (Auth Mode)" : ""),
+        "✅ WebSocket connected" + (isAuthMode ? " (Auth Mode)" : "")
       );
       setIsConnected(true);
       reconnectAttemptsRef.current = 0;
@@ -70,10 +76,10 @@ export const useChat = (
         reconnectAttemptsRef.current++;
         const delay = Math.min(
           1000 * Math.pow(2, reconnectAttemptsRef.current),
-          30000,
+          30000
         );
         console.log(
-          `🔄 Reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current})`,
+          `🔄 Reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current})`
         );
 
         reconnectTimeoutRef.current = setTimeout(() => {
@@ -87,6 +93,27 @@ export const useChat = (
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+
+        // Handle input configuration if present
+        if (data.inputType || data.suggestions) {
+          setInputConfig((prev) => ({
+            ...prev,
+            ...(data.inputType ? { inputType: data.inputType } : {}),
+            ...(data.options ? { options: data.options } : {}),
+            ...(data.suggestions ? { suggestions: data.suggestions } : {}),
+          }));
+        } else if (data.type === "auth_required") {
+          // Default to email for auth_required if not specified (though we added it in backend)
+          if (!data.inputType) {
+            setInputConfig({ inputType: "email" });
+          }
+        } else if (data.type === "suggestions") {
+          setInputConfig((prev) => ({
+            ...prev,
+            suggestions: data.suggestions,
+          }));
+        }
+
         if (data.type === "typing") {
           setIsTyping(true);
           // Start a new assistant message placeholder
@@ -170,6 +197,7 @@ export const useChat = (
           setHasCompletedOnboarding(true);
           // Clear messages to show topic selector
           setMessages([]);
+          setInputConfig({ inputType: "text" }); // Reset input
         } else if (data.type === "authenticated") {
           // Authentication successful - only in auth mode
           console.log("🔐 Received authenticated message:", data);
@@ -227,6 +255,10 @@ export const useChat = (
   const sendMessage = (content: string) => {
     const userMsg: ChatMessageType = { sender: "user", content };
     setMessages((prev) => [...prev, userMsg]);
+
+    // Clear suggestions when user sends a message
+    setInputConfig((prev) => ({ ...prev, suggestions: undefined }));
+
     if (ws && ws.readyState === WebSocket.OPEN) {
       // In auth mode, send as JSON with type=message
       if (isAuthMode) {
@@ -255,7 +287,7 @@ export const useChat = (
     topicName: string,
     subtopicName: string,
     topicId: number,
-    subtopicId?: number,
+    subtopicId?: number
   ) => {
     // Don't allow topic selection during onboarding
     if (isOnboarding) return false;
@@ -271,7 +303,7 @@ export const useChat = (
     console.log("🔄 Loading chat history for topic:", topicId);
     const { sessionId, hasHistory } = await loadChatHistory(
       topicId,
-      subtopicId,
+      subtopicId
     );
     console.log("📜 Chat history loaded:", { sessionId, hasHistory });
 
@@ -289,7 +321,7 @@ export const useChat = (
               topicId,
               subtopicId,
             },
-          }),
+          })
         );
       } else {
         console.log("📤 Sending session_resumed");
@@ -300,7 +332,7 @@ export const useChat = (
             sessionId,
             topicId,
             subtopicId,
-          }),
+          })
         );
       }
       return true;
@@ -357,5 +389,6 @@ export const useChat = (
     hasCompletedOnboarding,
     startOnboarding,
     lastProgressUpdate,
+    inputConfig,
   };
 };

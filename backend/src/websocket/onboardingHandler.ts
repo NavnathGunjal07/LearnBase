@@ -111,6 +111,7 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
           type: "message",
           content:
             "Hmm, that email looks a bit... suspicious 🕶️ Try again with a real one!",
+          inputType: "email",
         })
       );
       return;
@@ -152,6 +153,7 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
         JSON.stringify({
           type: "message",
           content: `Yo! Long time no see 🕶️ Drop that password and let's roll!`,
+          inputType: "password",
         })
       );
     } else {
@@ -172,6 +174,7 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
         JSON.stringify({
           type: "message",
           content: `Welcome to LearnBase! 🎉 Let's create your account.\n\nPlease create a secure password with:\n• At least 8 characters\n• At least one number\n• At least one special character (!@#$%, etc.)`,
+          inputType: "password",
         })
       );
     }
@@ -269,6 +272,7 @@ async function handleAuthPassword(
           JSON.stringify({
             type: "message",
             content: randomMessage,
+            inputType: "password",
           })
         );
       }
@@ -297,6 +301,7 @@ async function handleAuthSignupPassword(
         JSON.stringify({
           type: "message",
           content: validation.message,
+          inputType: "password",
         })
       );
       return;
@@ -365,7 +370,7 @@ async function handleOnboardingStep(
         if (isValid) {
           updateData.name = input.trim();
           nextStep = "ASK_INTERESTS";
-          responseMessage = `Nice to meet you, ${input.trim()}! 👋\n\nWhat topics or technologies are you interested in learning? (You can list multiple, separated by commas)`;
+          responseMessage = `Nice to meet you, ${input.trim()}! 👋\n\nWhat topics or technologies are you interested in learning? (Select multiple)`;
           console.log(`✅ Name saved: ${input.trim()}`);
         } else {
           responseMessage =
@@ -434,6 +439,30 @@ async function handleOnboardingStep(
         JSON.stringify({
           type: "message",
           content: responseMessage,
+          inputType:
+            nextStep === "ASK_INTERESTS"
+              ? "select"
+              : nextStep === "ASK_GOALS" ||
+                nextStep === "ASK_EDUCATION" ||
+                nextStep === "COMPLETE"
+              ? "text"
+              : "text",
+          options:
+            nextStep === "ASK_INTERESTS"
+              ? [
+                  "React",
+                  "Node.js",
+                  "Python",
+                  "JavaScript",
+                  "TypeScript",
+                  "AI/ML",
+                  "DevOps",
+                  "System Design",
+                  "Algorithms",
+                  "CSS/Tailwind",
+                  "Database",
+                ]
+              : undefined,
         })
       );
 
