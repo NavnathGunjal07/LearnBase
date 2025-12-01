@@ -1,7 +1,15 @@
-import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService, User } from '@/services/auth';
-import { useToast } from '@/components/ui/use-toast';
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useRef,
+} from "react";
+import { useNavigate } from "react-router-dom";
+import { authService, User } from "@/services/auth";
+import { useToast } from "@/components/ui/use-toast";
+import { handleError } from "@/utils/errorHandler";
 
 interface AuthContextType {
   user: User | null;
@@ -30,8 +38,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
       } catch (error) {
+        handleError(error, "Check Authentication");
         // No valid token or user not found
-        localStorage.removeItem('token');
+        localStorage.removeItem("token");
       } finally {
         setIsLoading(false);
       }
@@ -46,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      handleError(error, "Refresh User");
     }
   };
 
@@ -54,10 +63,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authService.logout();
     setUser(null);
     toast({
-      title: '✓ Logged out',
-      description: 'You have been logged out successfully',
+      title: "✓ Logged out",
+      description: "You have been logged out successfully",
     });
-    navigate('/auth');
+    navigate("/auth");
   };
 
   const isAuthenticated = () => authService.isAuthenticated();
@@ -81,17 +90,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
 };

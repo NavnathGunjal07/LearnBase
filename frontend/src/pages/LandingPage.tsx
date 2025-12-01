@@ -1,8 +1,32 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { BookOpen, Code, Users, Rocket } from 'lucide-react';
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Code, Users, Rocket } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
 
 export default function LandingPage() {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to home if user is authenticated
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/home", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gray-700 border-t-indigo-400 rounded-full animate-spin" />
+          <p className="text-gray-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-gray-100">
       {/* Navigation */}
@@ -11,18 +35,23 @@ export default function LandingPage() {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <BookOpen className="h-8 w-8 text-indigo-400" />
-              <span className="ml-2 text-xl font-bold text-white">LearnBase</span>
+              <span className="ml-2 text-xl font-bold text-white">
+                LearnBase
+              </span>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/auth">
-                <Button variant="outline" className="text-gray-200 hover:bg-gray-800 hover:text-white border-gray-700">
+                <Button
+                  variant="outline"
+                  className="text-gray-200 hover:bg-gray-800 hover:text-white border-gray-700"
+                >
                   Auth
                 </Button>
               </Link>
             </div>
           </div>
         </div>
-      </nav>  
+      </nav>
 
       {/* Hero Section */}
       <div className="text-center py-20 px-4 sm:px-6 lg:px-8">
@@ -31,17 +60,25 @@ export default function LandingPage() {
           <span className="block text-indigo-400">LearnBase</span>
         </h1>
         <p className="mt-3 max-w-md mx-auto text-base text-gray-300 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-          An interactive learning platform to help you master programming concepts through hands-on practice and real-world projects.
+          An interactive learning platform to help you master programming
+          concepts through hands-on practice and real-world projects.
         </p>
         <div className="mt-8 flex justify-center gap-4">
           <Link to="/auth">
-            <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button
+              size="lg"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
               Get Started
               <Rocket className="ml-2 h-4 w-4" />
             </Button>
           </Link>
           <Link to="#how-it-works">
-            <Button size="lg" variant="outline" className="text-gray-200 border-gray-600 hover:bg-gray-800 hover:text-white">
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-gray-200 border-gray-600 hover:bg-gray-800 hover:text-white"
+            >
               Learn More
             </Button>
           </Link>
@@ -56,7 +93,8 @@ export default function LandingPage() {
               How LearnBase Works
             </h2>
             <p className="mt-4 max-w-2xl text-xl text-gray-400 mx-auto">
-              Start your programming journey with our simple and effective learning approach
+              Start your programming journey with our simple and effective
+              learning approach
             </p>
           </div>
 
@@ -66,9 +104,12 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-900/50 text-indigo-400">
                   <BookOpen className="h-8 w-8" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-white">Learn Concepts</h3>
+                <h3 className="mt-6 text-lg font-medium text-white">
+                  Learn Concepts
+                </h3>
                 <p className="mt-2 text-base text-gray-400">
-                  Access comprehensive lessons and tutorials on various programming topics.
+                  Access comprehensive lessons and tutorials on various
+                  programming topics.
                 </p>
               </div>
 
@@ -76,9 +117,12 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-900/50 text-indigo-400">
                   <Code className="h-8 w-8" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-white">Practice Coding</h3>
+                <h3 className="mt-6 text-lg font-medium text-white">
+                  Practice Coding
+                </h3>
                 <p className="mt-2 text-base text-gray-400">
-                  Write and test code directly in your browser with our interactive editor.
+                  Write and test code directly in your browser with our
+                  interactive editor.
                 </p>
               </div>
 
@@ -86,9 +130,12 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-900/50 text-indigo-400">
                   <Users className="h-8 w-8" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-white">Join Community</h3>
+                <h3 className="mt-6 text-lg font-medium text-white">
+                  Join Community
+                </h3>
                 <p className="mt-2 text-base text-gray-400">
-                  Connect with other learners, share knowledge, and grow together.
+                  Connect with other learners, share knowledge, and grow
+                  together.
                 </p>
               </div>
             </div>
@@ -103,9 +150,13 @@ export default function LandingPage() {
             <span className="block">Ready to start your coding journey?</span>
           </h2>
           <p className="mt-4 text-lg leading-6 text-indigo-200">
-            Join thousands of learners who have already discovered the power of LearnBase.
+            Join thousands of learners who have already discovered the power of
+            LearnBase.
           </p>
-          <Link to="/register" className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 sm:w-auto">
+          <Link
+            to="/register"
+            className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 sm:w-auto"
+          >
             Get Started for Free
           </Link>
         </div>
