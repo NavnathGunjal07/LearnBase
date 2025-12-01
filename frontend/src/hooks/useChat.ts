@@ -90,50 +90,58 @@ export const useChat = (
         if (data.type === "typing") {
           setIsTyping(true);
           // Start a new assistant message placeholder
-          setMessages((prev) => [
-            ...prev,
-            { sender: "assistant", content: "" },
-          ]);
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            // Only add new placeholder if last message isn't already an incomplete assistant message
+            if (
+              lastMsg &&
+              lastMsg.sender === "assistant" &&
+              !lastMsg.isComplete
+            ) {
+              return prev;
+            }
+            return [
+              ...prev,
+              { sender: "assistant", content: "", isComplete: false },
+            ];
+          });
         } else if (data.type === "delta") {
           setIsTyping(true);
           const delta: string = data.content || "";
           if (!delta) return;
 
-          // Update current message ref for streaming
-          currentMessageRef.current += delta;
-
-          // Append delta to the last assistant message
+          // Append delta to the last assistant message using functional update
           setMessages((prev) => {
-            // No messages yet → start new with assistant
             if (prev.length === 0) {
+              // No messages yet, create new assistant message
               return [
                 {
                   sender: "assistant",
-                  content: currentMessageRef.current,
+                  content: delta,
                   isComplete: false,
                 },
               ];
             }
 
-            const last = prev[prev.length - 1];
+            const lastMsg = prev[prev.length - 1];
 
-            // If last message not from assistant → start new assistant message
-            if (last.sender !== "assistant") {
+            // If last message is not from assistant or is complete, create new message
+            if (lastMsg.sender !== "assistant" || lastMsg.isComplete) {
               return [
                 ...prev,
                 {
                   sender: "assistant",
-                  content: currentMessageRef.current,
+                  content: delta,
                   isComplete: false,
                 },
               ];
             }
 
-            // Otherwise append to last assistant message safely
+            // Append to existing incomplete assistant message
             const updated = [...prev];
             updated[updated.length - 1] = {
-              ...last,
-              content: currentMessageRef.current,
+              ...lastMsg,
+              content: (lastMsg.content || "") + delta,
               isComplete: false,
             };
 
@@ -143,14 +151,17 @@ export const useChat = (
           setIsTyping(false);
           // Mark the last message as complete
           setMessages((prev) => {
-            const newMessages = [...prev];
-            if (newMessages.length > 0) {
-              newMessages[newMessages.length - 1] = {
-                ...newMessages[newMessages.length - 1],
-                isComplete: true,
-              };
-            }
-            return newMessages;
+            if (prev.length === 0) return prev;
+
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg.sender !== "assistant") return prev;
+
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...lastMsg,
+              isComplete: true,
+            };
+            return updated;
           });
           currentMessageRef.current = "";
         } else if (data.type === "onboarding_complete") {

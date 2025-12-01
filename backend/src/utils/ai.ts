@@ -72,7 +72,7 @@ export async function streamChatCompletion({
         }
       } else {
         // Normal text content
-        if (onDelta) onDelta(content);
+        if (onDelta && content) onDelta(content);
         fullResponse += content;
       }
     }

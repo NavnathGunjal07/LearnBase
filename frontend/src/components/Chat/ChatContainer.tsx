@@ -38,6 +38,7 @@ export default function ChatContainer({
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
+    console.log("📜 Messages updated:", messages);
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
@@ -251,8 +252,6 @@ export default function ChatContainer({
               {messages.map((msg, i) => (
                 <ChatMessage key={i} message={msg} />
               ))}
-              {/* TypingIndicator removed as ChatMessage handles the loading state */}
-              {/* {isTyping && <TypingIndicator />} */}
               {/* Auto-scroll target */}
               <div ref={messagesEndRef} />
             </div>
