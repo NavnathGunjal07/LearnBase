@@ -1,12 +1,12 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import http from 'http';
-import apiRoutes from './routes';
-import {NextFunction,urlencoded,json,Request, Response } from "express"
-import prisma from './utils/prisma';
-import { setupWebSocketServer } from './websocket/chatServer';
-import { apiLimiter } from './middleware/rateLimiter';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import http from "http";
+import apiRoutes from "./routes";
+import { NextFunction, urlencoded, json, Request, Response } from "express";
+import prisma from "./utils/prisma";
+import { setupWebSocketServer } from "./websocket/chatServer";
+import { apiLimiter } from "./middleware/rateLimiter";
 
 // Load environment variables
 dotenv.config();
@@ -18,27 +18,29 @@ const PORT = process.env.PORT || 8080;
 const server = http.createServer(app);
 
 // Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGINS?.split(',') || '*'
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGINS?.split(",") || "*",
+  }),
+);
 app.use(json());
 app.use(urlencoded({ extended: true }));
 
 // Apply rate limiting to all API routes
-app.use('/api', apiLimiter);
+app.use("/api", apiLimiter);
 
 // Routes
-app.get('/', (req:Request, res:Response) => {
-  res.json({ message: 'Welcome to LearnBase API', status: 'running' });
+app.get("/", (req: Request, res: Response) => {
+  res.json({ message: "Welcome to LearnBase API", status: "running" });
 });
 
-app.use('/api', apiRoutes);
+app.use("/api", apiRoutes);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
+  console.error("Error:", err);
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
+    error: err.message || "Internal server error",
   });
 });
 
@@ -47,18 +49,18 @@ async function startServer() {
   try {
     // Test database connection
     await prisma.$connect();
-    console.log('✅ Database connected successfully');
-    
+    console.log("✅ Database connected successfully");
+
     // Setup WebSocket server
     setupWebSocketServer(server);
-    
+
     server.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
       console.log(`🔌 WebSocket server: ws://localhost:${PORT}/ws`);
     });
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error("❌ Database connection failed:", error);
     process.exit(1);
   }
 }
@@ -66,9 +68,9 @@ async function startServer() {
 startServer();
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
+process.on("SIGINT", async () => {
   await prisma.$disconnect();
-  console.log('👋 Database disconnected');
+  console.log("👋 Database disconnected");
   process.exit(0);
 });
 

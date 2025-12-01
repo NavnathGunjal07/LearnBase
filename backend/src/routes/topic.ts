@@ -69,7 +69,7 @@ router.get(
         progress: ut.completedPercent,
         subtopics: ut.masterTopic.subtopics.map((s) => {
           const subtopicProgress = ut.progress.find(
-            (p) => p.subtopicId === s.id
+            (p) => p.subtopicId === s.id,
           );
           return {
             id: s.id,
@@ -87,7 +87,7 @@ router.get(
       console.error("Get user topics error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Get a specific  topic with its subtopics
@@ -200,7 +200,7 @@ router.post(
       console.error("Enroll topic error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Unenroll from a topic (soft delete)
@@ -239,7 +239,7 @@ router.delete(
       console.error("Unenroll topic error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 export default router;

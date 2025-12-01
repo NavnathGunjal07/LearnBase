@@ -16,7 +16,7 @@ export class AppError extends Error {
     public type: ErrorType,
     public message: string,
     public statusCode?: number,
-    public details?: any
+    public details?: any,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -129,7 +129,7 @@ export function handleError(error: unknown, context?: string): ErrorResponse {
 export function displayError(
   error: unknown,
   context?: string,
-  showToast?: (message: string) => void
+  showToast?: (message: string) => void,
 ): void {
   const errorResponse = handleError(error, context);
 
@@ -146,7 +146,7 @@ export function displayError(
 export async function safeAsync<T>(
   fn: () => Promise<T>,
   fallback?: T,
-  context?: string
+  context?: string,
 ): Promise<T | undefined> {
   try {
     return await fn();
@@ -174,7 +174,7 @@ export async function retryAsync<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
   delayMs: number = 1000,
-  context?: string
+  context?: string,
 ): Promise<T> {
   let lastError: unknown;
 
@@ -187,7 +187,7 @@ export async function retryAsync<T>(
 
       if (i < maxRetries - 1) {
         await new Promise((resolve) =>
-          setTimeout(resolve, delayMs * Math.pow(2, i))
+          setTimeout(resolve, delayMs * Math.pow(2, i)),
         );
       }
     }

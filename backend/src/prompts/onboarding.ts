@@ -98,4 +98,3 @@ As you chat, mentally track:
 
 Remember: This should feel like chatting with a friendly mentor, not filling out a form! Make it engaging and personal.
 `;
-

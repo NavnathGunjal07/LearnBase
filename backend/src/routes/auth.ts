@@ -42,7 +42,7 @@ router.get(
       console.error("Error fetching current user:", error);
       return res.status(500).json({ error: "Failed to fetch user data" });
     }
-  }
+  },
 );
 
 export default router;

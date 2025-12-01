@@ -1,4 +1,4 @@
-import axiosInstance from '../axiosInstance';
+import axiosInstance from "../axiosInstance";
 
 export interface OnboardingStatus {
   hasCompletedOnboarding: boolean;
@@ -30,7 +30,8 @@ export const onboardingService = {
    * Get onboarding status
    */
   async getStatus(): Promise<OnboardingStatus> {
-    const response = await axiosInstance.get<OnboardingStatus>('/onboarding/status');
+    const response =
+      await axiosInstance.get<OnboardingStatus>("/onboarding/status");
     return response.data;
   },
 
@@ -38,16 +39,17 @@ export const onboardingService = {
    * Update onboarding data
    */
   async updateData(data: OnboardingData): Promise<any> {
-    const response = await axiosInstance.patch('/onboarding/update', data);
+    const response = await axiosInstance.patch("/onboarding/update", data);
     return response.data;
   },
 
   /**
    * Complete onboarding
    */
-  async complete(data: CompleteOnboardingData): Promise<{ success: boolean; user: any }> {
-    const response = await axiosInstance.post('/onboarding/complete', data);
+  async complete(
+    data: CompleteOnboardingData,
+  ): Promise<{ success: boolean; user: any }> {
+    const response = await axiosInstance.post("/onboarding/complete", data);
     return response.data;
   },
 };
-

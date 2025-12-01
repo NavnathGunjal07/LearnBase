@@ -21,7 +21,7 @@ export class AppError extends Error {
     public message: string,
     public statusCode: number = 500,
     public isOperational: boolean = true,
-    public details?: any
+    public details?: any,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -98,7 +98,7 @@ export function handleHttpError(error: unknown, res: Response): void {
 export function handleWebSocketError(
   error: unknown,
   ws: WebSocket,
-  context?: string
+  context?: string,
 ): void {
   let errorMessage = "An error occurred";
   let errorType = ErrorType.WEBSOCKET;
@@ -139,7 +139,7 @@ export function handleWebSocketError(
             type: errorType,
             message: errorMessage,
           },
-        })
+        }),
       );
     } catch (sendError) {
       logger.error("Failed to send error message to client:", sendError);
@@ -163,7 +163,7 @@ export function asyncHandler(fn: Function) {
  */
 export async function safeAsync<T>(
   fn: () => Promise<T>,
-  context?: string
+  context?: string,
 ): Promise<T | null> {
   try {
     return await fn();

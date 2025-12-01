@@ -50,7 +50,7 @@ export function setupWebSocketServer(server: Server) {
         try {
           const decoded = jwt.verify(
             token,
-            process.env.JWT_SECRET || "your-secret-key"
+            process.env.JWT_SECRET || "your-secret-key",
           ) as { userId: string };
           ws.userId = decoded.userId;
           ws.isAuthenticated = true;
@@ -65,7 +65,7 @@ export function setupWebSocketServer(server: Server) {
             JSON.stringify({
               type: "authenticated",
               message: "Welcome back! You are authenticated.",
-            })
+            }),
           );
         } catch (error) {
           wsLogger.error("Token authentication failed", { error });
@@ -74,7 +74,7 @@ export function setupWebSocketServer(server: Server) {
             JSON.stringify({
               type: "auth_required",
               message: "Authentication required",
-            })
+            }),
           );
         }
       } else {
@@ -89,7 +89,7 @@ export function setupWebSocketServer(server: Server) {
             type: "auth_required",
             message:
               "Welcome to LearnBase! 👋\\n\\nTo get started, please provide your email address.",
-          })
+          }),
         );
       }
     } catch (error) {
@@ -141,7 +141,7 @@ export function setupWebSocketServer(server: Server) {
           JSON.stringify({
             type: "error",
             message: "Failed to process message",
-          })
+          }),
         );
       }
     });
@@ -154,7 +154,7 @@ export function setupWebSocketServer(server: Server) {
       console.log(
         `👋 WebSocket disconnected: User ${
           ws.userId || ws.userEmail || "unknown"
-        }`
+        }`,
       );
     });
 

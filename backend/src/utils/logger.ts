@@ -6,7 +6,7 @@ const logFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.errors({ stack: true }),
   winston.format.splat(),
-  winston.format.json()
+  winston.format.json(),
 );
 
 // Define console format for development
@@ -19,7 +19,7 @@ const consoleFormat = winston.format.combine(
       msg += ` ${JSON.stringify(meta)}`;
     }
     return msg;
-  })
+  }),
 );
 
 // Create logs directory if it doesn't exist
@@ -58,7 +58,7 @@ if (process.env.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
       format: consoleFormat,
-    })
+    }),
   );
 }
 

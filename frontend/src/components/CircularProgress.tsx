@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface CircularProgressProps {
   value: number;
@@ -15,7 +15,7 @@ export function CircularProgress({
   strokeWidth = 3,
   icon,
   showTooltip = true,
-  className = '',
+  className = "",
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -23,13 +23,16 @@ export function CircularProgress({
 
   // Color gradient based on progress
   const getStrokeColor = (val: number) => {
-    if (val >= 100) return '#10b981'; // Green-500
-    if (val >= 50) return '#f59e0b'; // Amber-500
-    return '#3b82f6'; // Blue-500
+    if (val >= 100) return "#10b981"; // Green-500
+    if (val >= 50) return "#f59e0b"; // Amber-500
+    return "#3b82f6"; // Blue-500
   };
 
   return (
-    <div className={`relative group flex-none ${className}`} style={{ width: size, height: size }}>
+    <div
+      className={`relative group flex-none ${className}`}
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="transform -rotate-90">
         {/* Background circle */}
         <circle
@@ -55,18 +58,18 @@ export function CircularProgress({
           className="transition-all duration-500 ease-out"
         />
       </svg>
-      
+
       {/* Icon in center */}
       {icon && (
         <div className="absolute inset-0 flex items-center justify-center">
-          {icon.startsWith('http') ? (
+          {icon.startsWith("http") ? (
             <img
               src={icon}
               alt="Icon"
               className="object-contain"
               style={{ width: `${size * 0.6}px`, height: `${size * 0.6}px` }}
               onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
+                (e.target as HTMLImageElement).style.display = "none";
               }}
             />
           ) : (

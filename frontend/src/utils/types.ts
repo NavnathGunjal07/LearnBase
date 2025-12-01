@@ -1,17 +1,17 @@
 export interface ChatMessageType {
-  sender: 'user' | 'assistant';
+  sender: "user" | "assistant";
   content: string;
   timestamp?: string;
   isComplete?: boolean; // For streaming messages
 }
 
-export type LearningLevel = 'basic' | 'intermediate' | 'advanced';
+export type LearningLevel = "basic" | "intermediate" | "advanced";
 
 export interface LearningObjective {
   text: string;
 }
 
-export type DifficultyLevel = 'basic' | 'intermediate' | 'advanced';
+export type DifficultyLevel = "basic" | "intermediate" | "advanced";
 
 export interface Subtopic {
   id: string;
@@ -36,7 +36,6 @@ export interface Topic {
   subtopics: Subtopic[];
 }
 
-
 export interface SelectionState {
   topicId: string | null;
   subtopicId: string | null;
@@ -51,4 +50,3 @@ export interface Breadcrumb {
   topicName?: string;
   subtopicName?: string;
 }
-  

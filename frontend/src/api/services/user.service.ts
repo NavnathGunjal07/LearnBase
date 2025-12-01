@@ -1,4 +1,4 @@
-import axiosInstance from '../axiosInstance';
+import axiosInstance from "../axiosInstance";
 
 export interface User {
   id: string;
@@ -32,7 +32,7 @@ export const userService = {
    * Get current user profile
    */
   async getCurrentUser(): Promise<User> {
-    const response = await axiosInstance.get<User>('/users/me');
+    const response = await axiosInstance.get<User>("/users/me");
     return response.data;
   },
 
@@ -40,7 +40,7 @@ export const userService = {
    * Update current user profile
    */
   async updateUser(data: UpdateUserData): Promise<User> {
-    const response = await axiosInstance.patch<User>('/users/me', data);
+    const response = await axiosInstance.patch<User>("/users/me", data);
     return response.data;
   },
 
@@ -48,7 +48,9 @@ export const userService = {
    * Get user's last learning session
    */
   async getLastSession(): Promise<LastSession> {
-    const response = await axiosInstance.get<LastSession>('/users/me/last-session');
+    const response = await axiosInstance.get<LastSession>(
+      "/users/me/last-session",
+    );
     return response.data;
   },
 
@@ -56,6 +58,6 @@ export const userService = {
    * Delete current user account
    */
   async deleteAccount(): Promise<void> {
-    await axiosInstance.delete('/users/me');
+    await axiosInstance.delete("/users/me");
   },
 };

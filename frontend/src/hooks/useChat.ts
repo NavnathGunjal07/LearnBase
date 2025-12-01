@@ -6,7 +6,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
 
 export const useChat = (
   isAuthMode?: boolean,
-  onAuthenticated?: (token: string, user: any) => void
+  onAuthenticated?: (token: string, user: any) => void,
 ) => {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -14,7 +14,7 @@ export const useChat = (
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [currentTopicId, setCurrentTopicId] = useState<number | null>(null);
   const [currentSubtopicId, setCurrentSubtopicId] = useState<number | null>(
-    null
+    null,
   );
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
@@ -47,7 +47,7 @@ export const useChat = (
 
     socket.onopen = () => {
       console.log(
-        "✅ WebSocket connected" + (isAuthMode ? " (Auth Mode)" : "")
+        "✅ WebSocket connected" + (isAuthMode ? " (Auth Mode)" : ""),
       );
       setIsConnected(true);
       reconnectAttemptsRef.current = 0;
@@ -70,10 +70,10 @@ export const useChat = (
         reconnectAttemptsRef.current++;
         const delay = Math.min(
           1000 * Math.pow(2, reconnectAttemptsRef.current),
-          30000
+          30000,
         );
         console.log(
-          `🔄 Reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current})`
+          `🔄 Reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current})`,
         );
 
         reconnectTimeoutRef.current = setTimeout(() => {
@@ -255,7 +255,7 @@ export const useChat = (
     topicName: string,
     subtopicName: string,
     topicId: number,
-    subtopicId?: number
+    subtopicId?: number,
   ) => {
     // Don't allow topic selection during onboarding
     if (isOnboarding) return false;
@@ -271,7 +271,7 @@ export const useChat = (
     console.log("🔄 Loading chat history for topic:", topicId);
     const { sessionId, hasHistory } = await loadChatHistory(
       topicId,
-      subtopicId
+      subtopicId,
     );
     console.log("📜 Chat history loaded:", { sessionId, hasHistory });
 
@@ -289,7 +289,7 @@ export const useChat = (
               topicId,
               subtopicId,
             },
-          })
+          }),
         );
       } else {
         console.log("📤 Sending session_resumed");
@@ -300,7 +300,7 @@ export const useChat = (
             sessionId,
             topicId,
             subtopicId,
-          })
+          }),
         );
       }
       return true;

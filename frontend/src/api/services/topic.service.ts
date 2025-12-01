@@ -63,14 +63,14 @@ export const topicService = {
   async updateProgress(
     topicId: string,
     subtopicId: string,
-    progress: number
+    progress: number,
   ): Promise<void> {
     try {
       await axiosInstance.patch(
         `/subtopics/${topicId}/${subtopicId}/progress`,
         {
           completedPercent: progress,
-        }
+        },
       );
     } catch (error) {
       handleError(error, "Update Progress");

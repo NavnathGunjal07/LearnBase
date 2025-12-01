@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface LinearProgressProps {
   value: number;
@@ -11,13 +11,13 @@ export function LinearProgress({
   value,
   height = 4,
   showLabel = false,
-  className = '',
+  className = "",
 }: LinearProgressProps) {
   // Color gradient based on progress
   const getBarColor = (val: number) => {
-    if (val >= 100) return 'bg-green-500';
-    if (val >= 50) return 'bg-amber-500';
-    return 'bg-blue-500';
+    if (val >= 100) return "bg-green-500";
+    if (val >= 50) return "bg-amber-500";
+    return "bg-blue-500";
   };
 
   return (
@@ -29,7 +29,10 @@ export function LinearProgress({
           </span>
         )}
       </div>
-      <div className={`w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden`} style={{ height }}>
+      <div
+        className={`w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden`}
+        style={{ height }}
+      >
         <div
           className={`h-full rounded-full transition-all duration-500 ease-out ${getBarColor(value)}`}
           style={{ width: `${Math.min(100, Math.max(0, value))}%` }}

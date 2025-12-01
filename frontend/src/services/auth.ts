@@ -28,7 +28,7 @@ export const authService = {
     try {
       const response = await axiosInstance.post<AuthResponse>(
         "/auth/login",
-        credentials
+        credentials,
       );
       const { user, token } = response.data;
 
@@ -46,7 +46,7 @@ export const authService = {
     try {
       const response = await axiosInstance.post<AuthResponse>(
         "/auth/register",
-        userData
+        userData,
       );
       const { user, token } = response.data;
 

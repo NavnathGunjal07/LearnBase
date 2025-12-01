@@ -47,7 +47,7 @@ router.patch(
       console.error("Update user error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Get user's last learning session
@@ -88,7 +88,7 @@ router.get(
       console.error("Get last session error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Delete current user
@@ -106,7 +106,7 @@ router.delete(
       console.error("Delete user error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 export default router;

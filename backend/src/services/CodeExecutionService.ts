@@ -1,8 +1,8 @@
 // Code execution service using Node.js vm module for sandboxing
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
-import fs from 'fs/promises';
+import { exec } from "child_process";
+import { promisify } from "util";
+import path from "path";
+import fs from "fs/promises";
 
 const execAsync = promisify(exec);
 
@@ -17,7 +17,7 @@ export class CodeExecutionService {
   private tempDir: string;
 
   constructor() {
-    this.tempDir = path.join(process.cwd(), 'temp');
+    this.tempDir = path.join(process.cwd(), "temp");
     this.ensureTempDir();
   }
 
@@ -44,32 +44,32 @@ export class CodeExecutionService {
         // Execute with timeout and limited resources
         const { stdout } = await execAsync(
           `node "${tempFile}"`,
-          { timeout: 10000, maxBuffer: 1024 * 1024 } // 10s timeout, 1MB buffer
+          { timeout: 10000, maxBuffer: 1024 * 1024 }, // 10s timeout, 1MB buffer
         );
 
         const executionTime = Date.now() - startTime;
 
         return {
           success: true,
-          output: stdout || 'Code executed successfully (no output)',
+          output: stdout || "Code executed successfully (no output)",
           executionTime,
         };
       } catch (execError: any) {
         const executionTime = Date.now() - startTime;
 
-        if (execError.code === 'ETIMEDOUT') {
+        if (execError.code === "ETIMEDOUT") {
           return {
             success: false,
-            output: '',
-            error: 'Execution timed out after 10 seconds',
+            output: "",
+            error: "Execution timed out after 10 seconds",
             executionTime,
           };
         }
 
         return {
           success: false,
-          output: execError.stdout || '',
-          error: execError.stderr || execError.message || 'Execution failed',
+          output: execError.stdout || "",
+          error: execError.stderr || execError.message || "Execution failed",
           executionTime,
         };
       } finally {
@@ -77,15 +77,15 @@ export class CodeExecutionService {
         try {
           await fs.unlink(tempFile);
         } catch (cleanupError) {
-          console.warn('Failed to cleanup temp file:', cleanupError);
+          console.warn("Failed to cleanup temp file:", cleanupError);
         }
       }
     } catch (error: any) {
       const executionTime = Date.now() - startTime;
       return {
         success: false,
-        output: '',
-        error: error.message || 'Failed to prepare code for execution',
+        output: "",
+        error: error.message || "Failed to prepare code for execution",
         executionTime,
       };
     }

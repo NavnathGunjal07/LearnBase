@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import axiosInstance from '../api/axiosInstance';
-import { useToast } from './ui/use-toast';
-import { topicService } from '@/api';
-import { Topic } from '@/utils/types';
-
-
+import { useState, useEffect, useRef } from "react";
+import { X, Loader2 } from "lucide-react";
+import axiosInstance from "../api/axiosInstance";
+import { useToast } from "./ui/use-toast";
+import { topicService } from "@/api";
+import { Topic } from "@/utils/types";
 
 interface TopicSelectionModalProps {
   isOpen: boolean;
@@ -13,7 +11,11 @@ interface TopicSelectionModalProps {
   onTopicAdded: (topicId: string, topicName: string) => void;
 }
 
-export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: TopicSelectionModalProps) {
+export default function TopicSelectionModal({
+  isOpen,
+  onClose,
+  onTopicAdded,
+}: TopicSelectionModalProps) {
   const [masterTopics, setMasterTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(false);
   const [enrolling, setEnrolling] = useState<string | null>(null);
@@ -38,11 +40,11 @@ export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: T
       const response = await topicService.getTopics();
       setMasterTopics(response || []);
     } catch (error) {
-      console.error('Failed to fetch master topics:', error);
+      console.error("Failed to fetch master topics:", error);
       toast({
-        title: '✕ Error',
-        description: 'Failed to load topics',
-        variant: 'destructive',
+        title: "✕ Error",
+        description: "Failed to load topics",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -56,17 +58,17 @@ export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: T
 
       // Notify the parent component and close the modal
       toast({
-        title: '✓ Success',
+        title: "✓ Success",
         description: `Successfully enrolled in ${topicName}`,
       });
       onTopicAdded(topicId, topicName);
       onClose();
     } catch (error) {
-      console.error('Failed to enroll in topic:', error);
+      console.error("Failed to enroll in topic:", error);
       toast({
-        title: '✕ Error',
-        description: 'Failed to enroll in topic',
-        variant: 'destructive',
+        title: "✕ Error",
+        description: "Failed to enroll in topic",
+        variant: "destructive",
       });
     } finally {
       setEnrolling(null);
@@ -82,7 +84,9 @@ export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: T
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Add New Topic</h2>
-            <p className="text-sm text-gray-600 mt-1">Select a topic to start learning</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Select a topic to start learning
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -118,7 +122,8 @@ export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: T
                       className="w-10 h-10 object-contain"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
-                          'https://via.placeholder.com/40?text=' + topic.name[0];
+                          "https://via.placeholder.com/40?text=" +
+                          topic.name[0];
                       }}
                     />
                   </div>
@@ -147,7 +152,6 @@ export default function TopicSelectionModal({ isOpen, onClose, onTopicAdded }: T
                 </button>
               ))}
             </div>
-
           )}
 
           {!loading && masterTopics.length === 0 && (

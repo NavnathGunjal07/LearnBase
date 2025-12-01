@@ -19,7 +19,7 @@ axiosInstance.interceptors.request.use(
     // Log API calls in development
     if (import.meta.env.DEV) {
       console.log(
-        `🔵 API Request: ${config.method?.toUpperCase()} ${config.url}`
+        `🔵 API Request: ${config.method?.toUpperCase()} ${config.url}`,
       );
     }
 
@@ -27,7 +27,7 @@ axiosInstance.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor for error handling
@@ -114,7 +114,7 @@ axiosInstance.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

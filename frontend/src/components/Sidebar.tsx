@@ -1,49 +1,57 @@
-import { useMemo, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Palette, PlusCircle, Settings, LogOut, User } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import TopicSelectionModal from './TopicSelectionModal';
-import TopicSkeleton from './TopicSkeleton';
-import type { Subtopic, Topic } from '../utils/types';
-import { useLearning } from '@/hooks/useLearning';
-import { CircularProgress } from './CircularProgress';
-import { LinearProgress } from './LinearProgress';
+import { useMemo, useState, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Palette,
+  PlusCircle,
+  Settings,
+  LogOut,
+  User,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import TopicSelectionModal from "./TopicSelectionModal";
+import TopicSkeleton from "./TopicSkeleton";
+import type { Subtopic, Topic } from "../utils/types";
+import { useLearning } from "@/hooks/useLearning";
+import { CircularProgress } from "./CircularProgress";
+import { LinearProgress } from "./LinearProgress";
 
 // Helper function to get icon for topic
 function getTopicIcon(topicName: string): string {
   const iconMap: Record<string, string> = {
-    'javascript': '🟨',
-    'python': '🐍',
-    'react': '⚛️',
-    'node.js': '🟢',
-    'nodejs': '🟢',
-    'typescript': '🔷',
-    'vue.js': '💚',
-    'vue': '💚',
-    'angular': '🅰️',
-    'sql': '🗄️',
-    'java': '☕',
-    'c++': '⚙️',
-    'go': '🐹',
-    'rust': '🦀',
-    'php': '🐘',
-    'ruby': '💎',
-    'swift': '🦅',
-    'kotlin': '🎯',
+    javascript: "🟨",
+    python: "🐍",
+    react: "⚛️",
+    "node.js": "🟢",
+    nodejs: "🟢",
+    typescript: "🔷",
+    "vue.js": "💚",
+    vue: "💚",
+    angular: "🅰️",
+    sql: "🗄️",
+    java: "☕",
+    "c++": "⚙️",
+    go: "🐹",
+    rust: "🦀",
+    php: "🐘",
+    ruby: "💎",
+    swift: "🦅",
+    kotlin: "🎯",
   };
 
-  const key = topicName.toLowerCase().replace(/\s+/g, '');
-  return iconMap[key] || '📚';
+  const key = topicName.toLowerCase().replace(/\s+/g, "");
+  return iconMap[key] || "📚";
 }
 
 interface SidebarProps {
-  chatHook: ReturnType<typeof import('../hooks/useChat').useChat>;
+  chatHook: ReturnType<typeof import("../hooks/useChat").useChat>;
 }
 
 export default function Sidebar({ chatHook }: SidebarProps) {
   const { logout } = useAuth();
   const learning = useLearning();
   const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { sendTopicSelection, lastProgressUpdate } = chatHook;
@@ -56,13 +64,20 @@ export default function Sidebar({ chatHook }: SidebarProps) {
   }, [lastProgressUpdate]);
 
   const groupedSubtopicsByLevel = useMemo(() => {
-    const map: Record<string, { basic: typeof learning.state.topics[number]['subtopics']; intermediate: typeof learning.state.topics[number]['subtopics']; advanced: typeof learning.state.topics[number]['subtopics'] }> = {};
+    const map: Record<
+      string,
+      {
+        basic: (typeof learning.state.topics)[number]["subtopics"];
+        intermediate: (typeof learning.state.topics)[number]["subtopics"];
+        advanced: (typeof learning.state.topics)[number]["subtopics"];
+      }
+    > = {};
     learning.state.topics.forEach((t: Topic) => {
       map[t.id] = { basic: [], intermediate: [], advanced: [] } as any;
       t.subtopics.forEach((s: Subtopic) => {
-        if (s.difficultyLevel === 'basic') {
+        if (s.difficultyLevel === "basic") {
           map[t.id].basic.push(s);
-        } else if (s.difficultyLevel === 'intermediate') {
+        } else if (s.difficultyLevel === "intermediate") {
           map[t.id].intermediate.push(s);
         } else {
           map[t.id].advanced.push(s);
@@ -73,9 +88,13 @@ export default function Sidebar({ chatHook }: SidebarProps) {
   }, [learning.state.topics]);
 
   return (
-    <aside className={`hidden md:flex ${collapsed ? 'w-16' : 'md:w-64 lg:w-72 xl:w-80'} flex-col bg-gray-100 border-r border-default text-[var(--fg-default)]`}>
+    <aside
+      className={`hidden md:flex ${collapsed ? "w-16" : "md:w-64 lg:w-72 xl:w-80"} flex-col bg-gray-100 border-r border-default text-[var(--fg-default)]`}
+    >
       <div className="flex items-center justify-between p-3 border-b border-default">
-        <div className={`flex items-center transition ${collapsed ? 'justify-center' : ''}`}>
+        <div
+          className={`flex items-center transition ${collapsed ? "justify-center" : ""}`}
+        >
           {!collapsed && (
             <img
               src="/src/assets/learnbase_logo.jpg"
@@ -83,14 +102,22 @@ export default function Sidebar({ chatHook }: SidebarProps) {
               className="w-8 h-8 mr-3 rounded"
             />
           )}
-          <div className={`text-sm font-semibold ${collapsed ? 'sr-only' : ''}`}>LearnBase</div>
+          <div
+            className={`text-sm font-semibold ${collapsed ? "sr-only" : ""}`}
+          >
+            LearnBase
+          </div>
         </div>
         <button
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           onClick={() => setCollapsed(!collapsed)}
           className="p-2 rounded-md hover:bg-[color:var(--bg-input)/0.9] transition"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
         </button>
       </div>
 
@@ -99,10 +126,10 @@ export default function Sidebar({ chatHook }: SidebarProps) {
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={learning.loading}
-            className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${collapsed ? 'px-0' : ''}`}
+            className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${collapsed ? "px-0" : ""}`}
           >
             <PlusCircle className="w-4 h-4" />
-            <span className={`${collapsed ? 'sr-only' : ''}`}>New Topic</span>
+            <span className={`${collapsed ? "sr-only" : ""}`}>New Topic</span>
           </button>
         </div>
 
@@ -112,22 +139,31 @@ export default function Sidebar({ chatHook }: SidebarProps) {
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="text-4xl mb-3">📚</div>
             <p className="text-sm text-gray-600 mb-2">No topics yet</p>
-            <p className="text-xs text-gray-500">Click "New Topic" to get started</p>
+            <p className="text-xs text-gray-500">
+              Click "New Topic" to get started
+            </p>
           </div>
         ) : (
-          < >
+          <>
             {learning.state.topics.map((t: Topic) => {
               const isExpanded = expanded[t.id] ?? true;
               const isSelected = learning.state.selection.topicId === t.id;
-              const grouped = groupedSubtopicsByLevel[t.id] || { basic: [], intermediate: [], advanced: [] };
+              const grouped = groupedSubtopicsByLevel[t.id] || {
+                basic: [],
+                intermediate: [],
+                advanced: [],
+              };
               return (
                 <div key={t.id} className="">
                   <button
                     onClick={() => {
                       learning.selectTopic(t.id);
-                      setExpanded((prev) => ({ ...prev, [t.id]: !(prev[t.id] ?? true) }));
+                      setExpanded((prev) => ({
+                        ...prev,
+                        [t.id]: !(prev[t.id] ?? true),
+                      }));
                     }}
-                    className={`group relative w-full flex items-center ${collapsed ? 'justify-center px-0' : 'px-3'} py-2 text-sm hover:bg-gray-200 transition cursor-pointer`}
+                    className={`group relative w-full flex items-center ${collapsed ? "justify-center px-0" : "px-3"} py-2 text-sm hover:bg-gray-200 transition cursor-pointer`}
                   >
                     <div className="flex items-center gap-3 w-full">
                       <CircularProgress
@@ -137,10 +173,17 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                         strokeWidth={3}
                         showTooltip={false}
                       />
-                      <div className={`flex-1 text-left ${collapsed ? 'sr-only' : ''}`}>
-                        <span className="text-gray-800 font-medium block">{t.name}</span>
+                      <div
+                        className={`flex-1 text-left ${collapsed ? "sr-only" : ""}`}
+                      >
+                        <span className="text-gray-800 font-medium block">
+                          {t.name}
+                        </span>
                         <div className="w-full mt-1">
-                          <LinearProgress value={learning.topicProgressMap[t.id] ?? 0} height={2} />
+                          <LinearProgress
+                            value={learning.topicProgressMap[t.id] ?? 0}
+                            height={2}
+                          />
                         </div>
                       </div>
                     </div>
@@ -148,35 +191,58 @@ export default function Sidebar({ chatHook }: SidebarProps) {
 
                   {!collapsed && isExpanded && (
                     <div className="px-4 pb-2">
-                      {(['basic', 'intermediate', 'advanced'] as const).map((lvl) => (
-                        <div key={lvl} className="mt-4">
-                          <div className="text-xs uppercase text-gray-500 mb-2">
-                            {lvl === 'basic' ? 'Basic' : lvl === 'intermediate' ? 'Intermediate' : 'Advanced'}
-                          </div>
-                          <div className="space-y-1">
-                            {grouped[lvl].map((s) => (
-                              <button
-                                key={s.id}
-                                onClick={() => {
-                                  learning.selectSubtopic(t.id, s.id); 
-                                  sendTopicSelection(t.name, s.title, parseInt(t.id), parseInt(s.id));
-                                }}
-                                className={`w-full flex flex-col items-start rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${learning.state.selection.subtopicId === s.id ? 'bg-white' : ''
+                      {(["basic", "intermediate", "advanced"] as const).map(
+                        (lvl) => (
+                          <div key={lvl} className="mt-4">
+                            <div className="text-xs uppercase text-gray-500 mb-2">
+                              {lvl === "basic"
+                                ? "Basic"
+                                : lvl === "intermediate"
+                                  ? "Intermediate"
+                                  : "Advanced"}
+                            </div>
+                            <div className="space-y-1">
+                              {grouped[lvl].map((s) => (
+                                <button
+                                  key={s.id}
+                                  onClick={() => {
+                                    learning.selectSubtopic(t.id, s.id);
+                                    sendTopicSelection(
+                                      t.name,
+                                      s.title,
+                                      parseInt(t.id),
+                                      parseInt(s.id),
+                                    );
+                                  }}
+                                  className={`w-full flex flex-col items-start rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${
+                                    learning.state.selection.subtopicId === s.id
+                                      ? "bg-white"
+                                      : ""
                                   }`}
-                              >
-                                <div className="flex items-center justify-between w-full mb-1">
-                                  <span className="text-gray-600">{s.title}</span>
-                                  <span className="text-xs text-gray-400">{Math.round(s.progress)}%</span>
+                                >
+                                  <div className="flex items-center justify-between w-full mb-1">
+                                    <span className="text-gray-600">
+                                      {s.title}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {Math.round(s.progress)}%
+                                    </span>
+                                  </div>
+                                  <LinearProgress
+                                    value={s.progress}
+                                    height={3}
+                                  />
+                                </button>
+                              ))}
+                              {grouped[lvl].length === 0 && (
+                                <div className="text-xs text-gray-400">
+                                  No subtopics
                                 </div>
-                                <LinearProgress value={s.progress} height={3} />
-                              </button>
-                            ))}
-                            {grouped[lvl].length === 0 && (
-                              <div className="text-xs text-gray-400">No subtopics</div>
-                            )}
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ),
+                      )}
                     </div>
                   )}
                 </div>
@@ -188,14 +254,13 @@ export default function Sidebar({ chatHook }: SidebarProps) {
 
       <div className="p-3 border-t border-default">
         <div className="flex items-center justify-center gap-2 overflow-visible">
-          {(
-            (collapsed
-              ? [{ icon: Settings, label: 'Settings', onClick: () => { } }]
-              : [
-                { icon: User, label: 'Account', onClick: () => { } },
-                { icon: Settings, label: 'Settings', onClick: () => { } },
-                { icon: LogOut, label: 'Logout', onClick: logout },
-              ])
+          {(collapsed
+            ? [{ icon: Settings, label: "Settings", onClick: () => {} }]
+            : [
+                { icon: User, label: "Account", onClick: () => {} },
+                { icon: Settings, label: "Settings", onClick: () => {} },
+                { icon: LogOut, label: "Logout", onClick: logout },
+              ]
           ).map(({ icon: Icon, label, onClick }) => (
             <button
               key={label}
@@ -212,17 +277,17 @@ export default function Sidebar({ chatHook }: SidebarProps) {
             <button
               aria-label="Toggle theme"
               onClick={() => {
-                const next = theme === 'dark' ? 'light' : 'dark';
+                const next = theme === "dark" ? "light" : "dark";
                 setTheme(next);
                 const root = document.documentElement;
-                if (next === 'light') root.setAttribute('data-theme', 'light');
-                else root.removeAttribute('data-theme');
+                if (next === "light") root.setAttribute("data-theme", "light");
+                else root.removeAttribute("data-theme");
               }}
               className="group relative p-2 rounded-md hover:bg-[color:var(--bg-input)/0.9] transition flex-none"
             >
               <Palette className="w-5 h-5" />
               <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 rounded bg-[var(--bg-input)] text-xs text-[var(--fg-default)] opacity-0 group-hover:opacity-100 transition">
-                {theme === 'dark' ? 'Light theme' : 'Dark theme'}
+                {theme === "dark" ? "Light theme" : "Dark theme"}
               </span>
             </button>
           )}

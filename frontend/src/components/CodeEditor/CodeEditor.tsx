@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
-import Editor from '@monaco-editor/react';
-import { Play, RotateCcw, Download } from 'lucide-react';
+import { useState, useRef } from "react";
+import Editor from "@monaco-editor/react";
+import { Play, RotateCcw, Download } from "lucide-react";
 
 interface CodeEditorProps {
   onRunCode: (code: string) => void;
@@ -8,7 +8,11 @@ interface CodeEditorProps {
   className?: string;
 }
 
-export default function CodeEditor({ onRunCode, initialCode = '', className = '' }: CodeEditorProps) {
+export default function CodeEditor({
+  onRunCode,
+  initialCode = "",
+  className = "",
+}: CodeEditorProps) {
   const [code, setCode] = useState(initialCode);
   const [isRunning, setIsRunning] = useState(false);
   const editorRef = useRef<any>(null);
@@ -20,7 +24,7 @@ export default function CodeEditor({ onRunCode, initialCode = '', className = ''
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
       target: monaco.languages.typescript.ScriptTarget.Latest,
       allowNonTsExtensions: true,
-      lib: ['es2020'],
+      lib: ["es2020"],
     });
   };
 
@@ -43,11 +47,11 @@ export default function CodeEditor({ onRunCode, initialCode = '', className = ''
   };
 
   const handleDownload = () => {
-    const blob = new Blob([code], { type: 'text/javascript' });
+    const blob = new Blob([code], { type: "text/javascript" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'practice.js';
+    a.download = "practice.js";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -55,7 +59,9 @@ export default function CodeEditor({ onRunCode, initialCode = '', className = ''
   };
 
   return (
-    <div className={`w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden flex flex-col ${className}`}>
+    <div
+      className={`w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden flex flex-col ${className}`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-3">
@@ -63,8 +69,12 @@ export default function CodeEditor({ onRunCode, initialCode = '', className = ''
             <span className="text-yellow-600 font-mono text-sm">JS</span>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">JavaScript Practice</h2>
-            <p className="text-sm text-gray-600">Write and run JavaScript code</p>
+            <h2 className="text-lg font-semibold text-gray-900">
+              JavaScript Practice
+            </h2>
+            <p className="text-sm text-gray-600">
+              Write and run JavaScript code
+            </p>
           </div>
         </div>
       </div>
@@ -75,7 +85,7 @@ export default function CodeEditor({ onRunCode, initialCode = '', className = ''
           height="100%"
           defaultLanguage="javascript"
           value={code}
-          onChange={(value: string | undefined) => setCode(value || '')}
+          onChange={(value: string | undefined) => setCode(value || "")}
           onMount={handleEditorDidMount}
           theme="vs-light"
           options={{
@@ -84,7 +94,7 @@ export default function CodeEditor({ onRunCode, initialCode = '', className = ''
             lineHeight: 21,
             padding: { top: 16, bottom: 16 },
             scrollBeyondLastLine: false,
-            wordWrap: 'on',
+            wordWrap: "on",
             automaticLayout: true,
             tabSize: 2,
             insertSpaces: true,
@@ -119,8 +129,8 @@ export default function CodeEditor({ onRunCode, initialCode = '', className = ''
             disabled={isRunning || !code.trim()}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition ${
               isRunning || !code.trim()
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500'
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500"
             }`}
           >
             {isRunning ? (

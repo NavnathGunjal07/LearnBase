@@ -6,7 +6,6 @@ import TopicSelector from "./TopicSelector";
 import { Code, MessageSquare } from "lucide-react";
 import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -108,7 +107,7 @@ export default function ChatContainer({
             data.topicName,
             data.subtopicName || "",
             data.topicId,
-            data.subtopicId || undefined
+            data.subtopicId || undefined,
           );
         }
         // If no session, topic selector will show automatically
@@ -170,8 +169,8 @@ export default function ChatContainer({
             {isAuthMode
               ? "🔐 Login / Signup"
               : isOnboarding
-              ? "Welcome to LearnBase!"
-              : "Chat"}
+                ? "Welcome to LearnBase!"
+                : "Chat"}
           </h2>
           {isAuthMode && (
             <p className="text-sm text-gray-500">Chat to authenticate</p>
@@ -229,13 +228,13 @@ export default function ChatContainer({
               topicId,
               topicName,
               subtopicId,
-              subtopicName
+              subtopicName,
             ) => {
               await sendTopicSelection(
                 topicName,
                 subtopicName || "",
                 topicId,
-                subtopicId
+                subtopicId,
               );
             }}
           />

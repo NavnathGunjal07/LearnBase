@@ -1,19 +1,19 @@
-import { Router } from 'express';
-import { PrismaClient } from '../../prisma/generated/client';
-import { authenticateToken } from '../utils/auth';
-import { chatLimiter } from '../middleware/rateLimiter';
+import { Router } from "express";
+import { PrismaClient } from "../../prisma/generated/client";
+import { authenticateToken } from "../utils/auth";
+import { chatLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Get chat history for a specific topic/subtopic (last 2 days only)
-router.get('/history', authenticateToken, async (req, res) => {
+router.get("/history", authenticateToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
     const { topicId, subtopicId } = req.query;
 
     if (!topicId) {
-      return res.status(400).json({ error: 'Topic ID is required' });
+      return res.status(400).json({ error: "Topic ID is required" });
     }
 
     // Calculate date 2 days ago
@@ -43,7 +43,7 @@ router.get('/history', authenticateToken, async (req, res) => {
         },
       },
       orderBy: {
-        lastActivity: 'desc',
+        lastActivity: "desc",
       },
     });
 
@@ -66,7 +66,7 @@ router.get('/history', authenticateToken, async (req, res) => {
           subtopicId: subtopicId ? parseInt(subtopicId as string) : null,
           title: subtopic
             ? `${masterTopic?.name} - ${subtopic.title}`
-            : masterTopic?.name || 'Learning Session',
+            : masterTopic?.name || "Learning Session",
         },
       });
     }
@@ -80,13 +80,13 @@ router.get('/history', authenticateToken, async (req, res) => {
         },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: "asc",
       },
     });
 
     // Transform messages to frontend format
     const formattedMessages = messages.map((msg) => ({
-      sender: msg.role === 'user' ? 'user' : 'assistant',
+      sender: msg.role === "user" ? "user" : "assistant",
       content: msg.content,
       timestamp: msg.createdAt.toISOString(),
     }));
@@ -96,19 +96,19 @@ router.get('/history', authenticateToken, async (req, res) => {
       messages: formattedMessages,
     });
   } catch (error) {
-    console.error('Error fetching chat history:', error);
-    return res.status(500).json({ error: 'Failed to fetch chat history' });
+    console.error("Error fetching chat history:", error);
+    return res.status(500).json({ error: "Failed to fetch chat history" });
   }
 });
 
 // Save a chat message
-router.post('/message', chatLimiter, authenticateToken, async (req, res) => {
+router.post("/message", chatLimiter, authenticateToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
     const { sessionId, role, content, topicId, subtopicId } = req.body;
 
     if (!content) {
-      return res.status(400).json({ error: 'Message content is required' });
+      return res.status(400).json({ error: "Message content is required" });
     }
 
     let chatSessionId = sessionId;
@@ -123,7 +123,7 @@ router.post('/message', chatLimiter, authenticateToken, async (req, res) => {
       });
 
       if (!userTopic) {
-        return res.status(404).json({ error: 'User topic not found' });
+        return res.status(404).json({ error: "User topic not found" });
       }
 
       let chatSession = await prisma.chatSession.findFirst({
@@ -133,7 +133,7 @@ router.post('/message', chatLimiter, authenticateToken, async (req, res) => {
           subtopicId: subtopicId ? parseInt(subtopicId) : null,
         },
         orderBy: {
-          lastActivity: 'desc',
+          lastActivity: "desc",
         },
       });
 
@@ -155,7 +155,7 @@ router.post('/message', chatLimiter, authenticateToken, async (req, res) => {
             subtopicId: subtopicId ? parseInt(subtopicId) : null,
             title: subtopic
               ? `${masterTopic?.name} - ${subtopic.title}`
-              : masterTopic?.name || 'Learning Session',
+              : masterTopic?.name || "Learning Session",
           },
         });
       }
@@ -164,15 +164,17 @@ router.post('/message', chatLimiter, authenticateToken, async (req, res) => {
     }
 
     if (!chatSessionId) {
-      return res.status(400).json({ error: 'Session ID or topic ID is required' });
+      return res
+        .status(400)
+        .json({ error: "Session ID or topic ID is required" });
     }
 
     // Save the message
     const message = await prisma.chatMessage.create({
       data: {
         chatId: chatSessionId,
-        userId: role === 'user' ? userId : null,
-        role: role || 'user',
+        userId: role === "user" ? userId : null,
+        role: role || "user",
         content,
       },
     });
@@ -189,19 +191,19 @@ router.post('/message', chatLimiter, authenticateToken, async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.error('Error saving message:', error);
-    return res.status(500).json({ error: 'Failed to save message' });
+    console.error("Error saving message:", error);
+    return res.status(500).json({ error: "Failed to save message" });
   }
 });
 
 // Clear chat history for a specific topic/subtopic
-router.delete('/history', authenticateToken, async (req, res) => {
+router.delete("/history", authenticateToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
     const { topicId, subtopicId } = req.query;
 
     if (!topicId) {
-      return res.status(400).json({ error: 'Topic ID is required' });
+      return res.status(400).json({ error: "Topic ID is required" });
     }
 
     const userTopic = await prisma.userTopic.findFirst({
@@ -212,7 +214,7 @@ router.delete('/history', authenticateToken, async (req, res) => {
     });
 
     if (!userTopic) {
-      return res.json({ success: true, message: 'No chat history found' });
+      return res.json({ success: true, message: "No chat history found" });
     }
 
     // Delete all chat sessions and their messages for this topic/subtopic
@@ -224,10 +226,10 @@ router.delete('/history', authenticateToken, async (req, res) => {
       },
     });
 
-    return res.json({ success: true, message: 'Chat history cleared' });
+    return res.json({ success: true, message: "Chat history cleared" });
   } catch (error) {
-    console.error('Error clearing chat history:', error);
-    return res.status(500).json({ error: 'Failed to clear chat history' });
+    console.error("Error clearing chat history:", error);
+    return res.status(500).json({ error: "Failed to clear chat history" });
   }
 });
 

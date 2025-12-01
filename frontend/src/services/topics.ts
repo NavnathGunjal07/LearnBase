@@ -1,4 +1,4 @@
-import axiosInstance from '@/api/axiosInstance';
+import axiosInstance from "@/api/axiosInstance";
 
 export interface Topic {
   id: string;
@@ -37,10 +37,10 @@ export const topicService = {
   // Topic operations
   async getTopics(): Promise<Topic[]> {
     try {
-      const response = await axiosInstance.get<Topic[]>('/topics');
+      const response = await axiosInstance.get<Topic[]>("/topics");
       return response.data;
     } catch (error) {
-      console.error('Error fetching topics:', error);
+      console.error("Error fetching topics:", error);
       throw error;
     }
   },
@@ -57,15 +57,18 @@ export const topicService = {
 
   async createTopic(data: CreateTopicData): Promise<Topic> {
     try {
-      const response = await axiosInstance.post<Topic>('/topics', data);
+      const response = await axiosInstance.post<Topic>("/topics", data);
       return response.data;
     } catch (error) {
-      console.error('Error creating topic:', error);
+      console.error("Error creating topic:", error);
       throw error;
     }
   },
 
-  async updateTopic(id: string, data: Partial<CreateTopicData>): Promise<Topic> {
+  async updateTopic(
+    id: string,
+    data: Partial<CreateTopicData>,
+  ): Promise<Topic> {
     try {
       const response = await axiosInstance.patch<Topic>(`/topics/${id}`, data);
       return response.data;
@@ -87,20 +90,23 @@ export const topicService = {
   // Subtopic operations
   async createSubtopic(data: CreateSubtopicData): Promise<Subtopic> {
     try {
-      const response = await axiosInstance.post<Subtopic>('/subtopics', data);
+      const response = await axiosInstance.post<Subtopic>("/subtopics", data);
       return response.data;
     } catch (error) {
-      console.error('Error creating subtopic:', error);
+      console.error("Error creating subtopic:", error);
       throw error;
     }
   },
 
   async updateSubtopic(
     id: string,
-    data: Partial<Omit<CreateSubtopicData, 'topicId'>>
+    data: Partial<Omit<CreateSubtopicData, "topicId">>,
   ): Promise<Subtopic> {
     try {
-      const response = await axiosInstance.patch<Subtopic>(`/subtopics/${id}`, data);
+      const response = await axiosInstance.patch<Subtopic>(
+        `/subtopics/${id}`,
+        data,
+      );
       return response.data;
     } catch (error) {
       console.error(`Error updating subtopic ${id}:`, error);
@@ -120,16 +126,19 @@ export const topicService = {
   // Progress operations
   async updateSubtopicProgress(
     subtopicId: string,
-    completed: boolean
+    completed: boolean,
   ): Promise<Subtopic> {
     try {
       const response = await axiosInstance.patch<Subtopic>(
         `/subtopics/${subtopicId}/progress`,
-        { completed }
+        { completed },
       );
       return response.data;
     } catch (error) {
-      console.error(`Error updating progress for subtopic ${subtopicId}:`, error);
+      console.error(
+        `Error updating progress for subtopic ${subtopicId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -137,7 +146,7 @@ export const topicService = {
   async getTopicProgress(topicId: string): Promise<number> {
     try {
       const response = await axiosInstance.get<{ progress: number }>(
-        `/topics/${topicId}/progress`
+        `/topics/${topicId}/progress`,
       );
       return response.data.progress;
     } catch (error) {

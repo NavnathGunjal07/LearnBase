@@ -1,4 +1,4 @@
-import type { Breadcrumb } from '../utils/types';
+import type { Breadcrumb } from "../utils/types";
 
 export default function Navbar({ breadcrumb }: { breadcrumb: Breadcrumb }) {
   return (
@@ -6,9 +6,13 @@ export default function Navbar({ breadcrumb }: { breadcrumb: Breadcrumb }) {
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <div className="text-sm text-gray-600">
           {breadcrumb.topicName && (
-            <span className="text-gray-700 font-medium">{breadcrumb.topicName}</span>
+            <span className="text-gray-700 font-medium">
+              {breadcrumb.topicName}
+            </span>
           )}
-          {breadcrumb.topicName && breadcrumb.subtopicName && <span className="mx-2 text-gray-400">→</span>}
+          {breadcrumb.topicName && breadcrumb.subtopicName && (
+            <span className="mx-2 text-gray-400">→</span>
+          )}
           {breadcrumb.subtopicName && (
             <span className="text-gray-600">{breadcrumb.subtopicName}</span>
           )}
@@ -17,5 +21,3 @@ export default function Navbar({ breadcrumb }: { breadcrumb: Breadcrumb }) {
     </div>
   );
 }
-
-
