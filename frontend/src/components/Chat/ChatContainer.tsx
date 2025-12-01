@@ -241,8 +241,8 @@ export default function ChatContainer({
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
-            <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50 scroll-smooth">
+            <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6 pb-4">
               {messages.length === 0 && (isOnboarding || isAuthMode) && (
                 <div className="text-center text-gray-500 py-8">
                   {isAuthMode ? "Connecting..." : "Starting conversation..."}
@@ -259,8 +259,8 @@ export default function ChatContainer({
             isOnboarding ||
             !hasCompletedOnboarding ||
             messages.length > 0) && (
-            <div className="w-full flex justify-center px-4 sm:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gray-50">
-              <div className="w-full max-w-3xl">
+            <div className="w-full bg-gray-50 border-t border-gray-100">
+              <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 <ChatInput
                   onSend={sendMessage}
                   placeholder={isAuthMode ? "Type here..." : undefined}

@@ -89,11 +89,15 @@ export default function Sidebar({ chatHook }: SidebarProps) {
 
   return (
     <aside
-      className={`hidden md:flex ${collapsed ? "w-16" : "md:w-64 lg:w-72 xl:w-80"} flex-col bg-gray-100 border-r border-default text-[var(--fg-default)]`}
+      className={`hidden md:flex ${
+        collapsed ? "w-16" : "md:w-64 lg:w-72 xl:w-80"
+      } h-full flex-col bg-gray-100 border-r border-default text-[var(--fg-default)]`}
     >
       <div className="flex items-center justify-between p-3 border-b border-default">
         <div
-          className={`flex items-center transition ${collapsed ? "justify-center" : ""}`}
+          className={`flex items-center transition ${
+            collapsed ? "justify-center" : ""
+          }`}
         >
           {!collapsed && (
             <img
@@ -126,7 +130,9 @@ export default function Sidebar({ chatHook }: SidebarProps) {
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={learning.loading}
-            className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${collapsed ? "px-0" : ""}`}
+            className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              collapsed ? "px-0" : ""
+            }`}
           >
             <PlusCircle className="w-4 h-4" />
             <span className={`${collapsed ? "sr-only" : ""}`}>New Topic</span>
@@ -147,7 +153,6 @@ export default function Sidebar({ chatHook }: SidebarProps) {
           <>
             {learning.state.topics.map((t: Topic) => {
               const isExpanded = expanded[t.id] ?? true;
-              const isSelected = learning.state.selection.topicId === t.id;
               const grouped = groupedSubtopicsByLevel[t.id] || {
                 basic: [],
                 intermediate: [],
@@ -163,7 +168,9 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                         [t.id]: !(prev[t.id] ?? true),
                       }));
                     }}
-                    className={`group relative w-full flex items-center ${collapsed ? "justify-center px-0" : "px-3"} py-2 text-sm hover:bg-gray-200 transition cursor-pointer`}
+                    className={`group relative w-full flex items-center ${
+                      collapsed ? "justify-center px-0" : "px-3"
+                    } py-2 text-sm hover:bg-gray-200 transition cursor-pointer`}
                   >
                     <div className="flex items-center gap-3 w-full">
                       <CircularProgress
@@ -174,7 +181,9 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                         showTooltip={false}
                       />
                       <div
-                        className={`flex-1 text-left ${collapsed ? "sr-only" : ""}`}
+                        className={`flex-1 text-left ${
+                          collapsed ? "sr-only" : ""
+                        }`}
                       >
                         <span className="text-gray-800 font-medium block">
                           {t.name}
@@ -198,8 +207,8 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                               {lvl === "basic"
                                 ? "Basic"
                                 : lvl === "intermediate"
-                                  ? "Intermediate"
-                                  : "Advanced"}
+                                ? "Intermediate"
+                                : "Advanced"}
                             </div>
                             <div className="space-y-1">
                               {grouped[lvl].map((s) => (
@@ -211,7 +220,7 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                                       t.name,
                                       s.title,
                                       parseInt(t.id),
-                                      parseInt(s.id),
+                                      parseInt(s.id)
                                     );
                                   }}
                                   className={`w-full flex flex-col items-start rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${
@@ -241,7 +250,7 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                               )}
                             </div>
                           </div>
-                        ),
+                        )
                       )}
                     </div>
                   )}
