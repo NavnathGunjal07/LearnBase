@@ -24,7 +24,7 @@ export const useChat = (
   const hasConnected = useRef(false);
   const currentMessageRef = useRef<string>("");
   const shouldReconnectRef = useRef(true); // Flag to control reconnection
-  const [lastProgressUpdate, setLastProgressUpdate] = useState<{
+  const [lastProgressUpdate] = useState<{
     topicId: number;
     subtopicId: number;
     progress: number;

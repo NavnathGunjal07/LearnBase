@@ -115,11 +115,6 @@ export function setupWebSocketServer(server: Server) {
           contentLength: message.content?.length || 0,
         });
 
-        console.log(
-          `📨 Received message from ${ws.userId || ws.userEmail || "unknown"}:`,
-          message
-        );
-
         // Route based on authentication status
         if (!ws.isAuthenticated) {
           // Handle authentication/onboarding flow
@@ -137,7 +132,6 @@ export function setupWebSocketServer(server: Server) {
           error: (error as Error).message,
           stack: (error as Error).stack,
         });
-        console.error("Error handling message:", error);
         ws.send(
           JSON.stringify({
             type: "error",

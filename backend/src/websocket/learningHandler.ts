@@ -74,18 +74,22 @@ async function handleTopicSelected(ws: AuthenticatedWebSocket, message: any) {
   ws.currentTopicId = topicId;
   ws.currentSubtopicId = subtopicId;
 
-  // Generate initial AI greeting
-  const systemMessage = {
-    role: "system",
-    content: `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${name}\nSubtopic: ${subtopicName}`,
-  };
+  // Generate initial greeting asking for experience level
+  const initialQuestion = `Welcome to **${name}**! 🎓\n\nTo help me tailor the lessons for you, could you tell me a bit about your current understanding of **${subtopicName}**?\n\n(e.g., "I'm a complete beginner", "I know the basics", "I'm looking for advanced tips")`;
 
-  const initialUserContext = {
-    role: "user",
-    content: `I want to learn about ${subtopicName} in ${name}.`,
-  };
+  // Save system message (initial context)
+  await prisma.chatMessage.create({
+    data: {
+      chatId: session.id,
+      role: "assistant",
+      content: initialQuestion,
+      messageType: "text",
+    },
+  });
 
-  await generateAIResponse(ws, [systemMessage, initialUserContext], session.id);
+  // Send initial question to user
+  ws.send(JSON.stringify({ type: "delta", content: initialQuestion }));
+  ws.send(JSON.stringify({ type: "done" }));
 }
 
 async function handleSessionResumed(ws: AuthenticatedWebSocket, message: any) {
@@ -105,9 +109,6 @@ async function handleSessionResumed(ws: AuthenticatedWebSocket, message: any) {
     ws.currentSessionId = session.id;
     ws.currentTopicId = topicId;
     ws.currentSubtopicId = subtopicId;
-
-    // No need to send a message, client just loads history
-    // But we could send a "Welcome back" if we wanted
   } else {
     ws.send(JSON.stringify({ type: "error", content: "Session not found" }));
   }
@@ -152,10 +153,22 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
   const topicName = session?.userTopic.masterTopic.name || "Coding";
   const subtopicName = session?.subtopic?.title || "General";
 
+  // Check if this is the first user reply (response to the level question)
+  // History will have: [Assistant (Initial Question), User (Current Message)] if it's the first reply
+  const isFirstReply = history.length <= 2;
+
+  let systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}`;
+
+  if (isFirstReply) {
+    systemPromptContext += `\n\nUSER CONTEXT: The user has just stated their experience level: "${content}". Adapt your teaching style accordingly. Start by acknowledging their level and introducing the first concept.`;
+  } else {
+    systemPromptContext += `\n\nINSTRUCTION: Continue teaching based on the conversation history. Assess the user's understanding from their last message and update progress if appropriate.`;
+  }
+
   const messages = [
     {
       role: "system",
-      content: `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}`,
+      content: systemPromptContext,
     },
     ...history.map((m) => ({
       role: m.role as "user" | "assistant" | "system",
@@ -215,8 +228,7 @@ async function generateAIResponse(
     ws.send(
       JSON.stringify({
         type: "error",
-        content:
-          "I'm having trouble connecting to my brain right now. Please check if the GROQ_API_KEY is set in the backend .env file.",
+        message: "I'm having trouble thinking right now. Please try again.",
       })
     );
   }
