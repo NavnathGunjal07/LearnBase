@@ -170,7 +170,11 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                     }}
                     className={`group relative w-full flex items-center ${
                       collapsed ? "justify-center px-0" : "px-3"
-                    } py-2 text-sm hover:bg-gray-200 transition cursor-pointer`}
+                    } py-2 text-sm transition cursor-pointer ${
+                      learning.state.selection.topicId === t.id
+                        ? "bg-blue-50 text-blue-900 ring-1 ring-blue-200"
+                        : "hover:bg-gray-200"
+                    }`}
                   >
                     <div className="flex items-center gap-3 w-full">
                       <CircularProgress
@@ -185,9 +189,14 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                           collapsed ? "sr-only" : ""
                         }`}
                       >
-                        <span className="text-gray-800 font-medium block">
-                          {t.name}
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-800 font-medium block">
+                            {t.name}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {Math.round(learning.topicProgressMap[t.id] ?? 0)}%
+                          </span>
+                        </div>
                         <div className="w-full mt-1">
                           <LinearProgress
                             value={learning.topicProgressMap[t.id] ?? 0}
@@ -223,10 +232,10 @@ export default function Sidebar({ chatHook }: SidebarProps) {
                                       parseInt(s.id)
                                     );
                                   }}
-                                  className={`w-full flex flex-col items-start rounded-md px-2 py-2 text-sm hover:bg-gray-200 transition cursor-pointer ${
+                                  className={`w-full flex flex-col items-start rounded-md px-2 py-2 text-sm transition cursor-pointer ${
                                     learning.state.selection.subtopicId === s.id
-                                      ? "bg-white"
-                                      : ""
+                                      ? "bg-blue-100 ring-1 ring-blue-200"
+                                      : "hover:bg-gray-200"
                                   }`}
                                 >
                                   <div className="flex items-center justify-between w-full mb-1">

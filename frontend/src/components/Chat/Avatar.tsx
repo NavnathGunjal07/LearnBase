@@ -50,6 +50,12 @@ export const Avatar: React.FC<AvatarProps> = ({
   const [currentQuote, setCurrentQuote] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
   // Auto-analyze mood from message if not provided
   const analyzeMood = (text: string): Mood => {
     const lower = text.toLowerCase();
@@ -100,6 +106,14 @@ export const Avatar: React.FC<AvatarProps> = ({
     const randomQuote =
       LEARNING_QUOTES[Math.floor(Math.random() * LEARNING_QUOTES.length)];
     setCurrentQuote(randomQuote);
+
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setTooltipPos({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 15, // 15px gap from the left edge of avatar
+      });
+    }
     setShowTooltip(true);
   };
 
@@ -122,6 +136,7 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: "relative",
         width: `${container}px`,
@@ -132,9 +147,16 @@ export const Avatar: React.FC<AvatarProps> = ({
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
-      {/* Tooltip */}
-      {showTooltip && (
-        <div style={styles.tooltip}>
+      {/* Tooltip - Using Fixed Positioning to break out of containers */}
+      {showTooltip && tooltipPos && (
+        <div
+          style={{
+            ...styles.tooltip,
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            transform: "translate(-100%, -50%)", // Position to the left and centered vertically
+          }}
+        >
           <div style={styles.tooltipText}>{currentQuote}</div>
         </div>
       )}
@@ -429,30 +451,27 @@ export const Avatar: React.FC<AvatarProps> = ({
 
 const styles: Record<string, React.CSSProperties> = {
   tooltip: {
-    position: "absolute",
-    right: "100%",
-    top: "50%",
-    transform: "translateY(-50%)",
-    marginRight: "15px",
+    position: "fixed", // Changed to fixed
+    // right, top, transform handled in inline style
     width: "max-content",
     maxWidth: "300px",
     background: "white",
     color: "black",
-    padding: "8px 12px",
-    borderRadius: "8px",
-    fontSize: "11px",
+    padding: "12px 16px", // Increased padding
+    borderRadius: "12px", // Increased border radius
+    fontSize: "13px", // Increased font size
     fontWeight: "500",
     whiteSpace: "nowrap",
 
     textAlign: "center",
-    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1), 0 0 20px rgba(0, 0, 0, 0.1)",
-    zIndex: 9999,
+    boxShadow: "0 8px 25px rgba(0, 0, 0, 0.15), 0 0 20px rgba(0, 0, 0, 0.1)", // Stronger shadow
+    zIndex: 99999, // Very high z-index
     animation: "tooltipFadeIn 0.3s ease",
     pointerEvents: "none",
   },
   tooltipText: {
     whiteSpace: "normal",
-    lineHeight: "1.3",
+    lineHeight: "1.4",
   },
 };
 
