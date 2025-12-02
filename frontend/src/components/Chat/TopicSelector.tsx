@@ -2,13 +2,14 @@ import { useState } from "react";
 import { BookOpen, ChevronRight, Sparkles } from "lucide-react";
 import { useLearning } from "@/hooks/useLearning";
 import { LinearProgress } from "../LinearProgress";
+import { APP_NAME } from "@/utils/constants";
 
 interface TopicSelectorProps {
   onTopicSelected: (
     topicId: number,
     topicName: string,
     subtopicId?: number,
-    subtopicName?: string,
+    subtopicName?: string
   ) => void;
 }
 
@@ -18,7 +19,7 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
   const [step, setStep] = useState<"topic" | "subtopic">("topic");
 
   const selectedTopic = learning.state.topics.find(
-    (t) => t.id === selectedTopicId,
+    (t) => t.id === selectedTopicId
   );
 
   const handleTopicSelect = (topicId: string) => {
@@ -40,7 +41,7 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
         parseInt(selectedTopicId!),
         selectedTopic.name,
         parseInt(subtopicId),
-        subtopic?.title,
+        subtopic?.title
       );
     }
   };
@@ -67,7 +68,7 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
         <div className="max-w-md text-center">
           <div className="text-6xl mb-4">📚</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            Welcome to LearnBase!
+            Welcome to {APP_NAME}!
           </h2>
           <p className="text-gray-600 mb-6">
             You haven't created any topics yet. Start your learning journey by
@@ -166,7 +167,7 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
               {["basic", "intermediate", "advanced"].map((level) => {
                 const subtopics =
                   selectedTopic?.subtopics.filter(
-                    (s) => s.difficultyLevel === level,
+                    (s) => s.difficultyLevel === level
                   ) || [];
 
                 if (subtopics.length === 0) return null;
@@ -216,7 +217,7 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
               onClick={() =>
                 onTopicSelected(
                   parseInt(selectedTopicId!),
-                  selectedTopic?.name || "",
+                  selectedTopic?.name || ""
                 )
               }
               className="w-full bg-gray-100 border-2 border-gray-300 rounded-lg p-4 hover:bg-gray-200 transition text-center"

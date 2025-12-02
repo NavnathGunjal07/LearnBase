@@ -15,6 +15,8 @@ import type { Subtopic, Topic } from "../utils/types";
 import { useLearning } from "@/hooks/useLearning";
 import { CircularProgress } from "./CircularProgress";
 import { LinearProgress } from "./LinearProgress";
+import { APP_NAME } from "../utils/constants";
+import Avatar from "./Chat/Avatar";
 
 // Helper function to get icon for topic
 function getTopicIcon(topicName: string): string {
@@ -100,16 +102,14 @@ export default function Sidebar({ chatHook }: SidebarProps) {
           }`}
         >
           {!collapsed && (
-            <img
-              src="/src/assets/learnbase_logo.jpg"
-              alt="LearnBase Logo"
-              className="w-8 h-8 mr-3 rounded"
-            />
+            <div className="mr-3">
+              <Avatar size="small" mood="happy" />
+            </div>
           )}
           <div
             className={`text-sm font-semibold ${collapsed ? "sr-only" : ""}`}
           >
-            LearnBase
+            {APP_NAME}
           </div>
         </div>
         <button

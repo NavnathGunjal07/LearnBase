@@ -7,6 +7,7 @@ import TopicSelector from "./TopicSelector";
 import { Code, MessageSquare } from "lucide-react";
 import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
+import { APP_NAME } from "@/utils/constants";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -203,8 +204,8 @@ export default function ChatContainer({
             {isAuthMode
               ? "🔐 Login / Signup"
               : isOnboarding
-              ? "Welcome to LearnBase!"
-              : "Chat"}
+              ? `Welcome to ${APP_NAME}`
+              : `Chat with ${APP_NAME}`}
           </h2>
           {isAuthMode && (
             <p className="text-sm text-gray-500">Chat to authenticate</p>
