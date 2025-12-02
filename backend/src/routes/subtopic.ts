@@ -63,30 +63,56 @@ router.patch(
       });
 
       // Update overall user topic progress
-      const allProgress = await prisma.progress.findMany({
-        where: { userTopicId },
-      });
-
-      const avgProgress =
-        allProgress.length > 0
-          ? allProgress.reduce((sum, p) => sum + p.completedPercent, 0) /
-            allProgress.length
-          : 0;
-
-      await prisma.userTopic.update({
+      // 1. Get Master Topic ID
+      const userTopicData = await prisma.userTopic.findUnique({
         where: { id: userTopicId },
-        data: {
-          completedPercent: avgProgress,
-          lastAccessedAt: new Date(),
-        },
+        select: { masterTopicId: true },
       });
+
+      if (userTopicData) {
+        // 2. Get all subtopics and their weights
+        const subtopics = await prisma.subtopic.findMany({
+          where: { masterTopicId: userTopicData.masterTopicId },
+          select: { id: true, weightage: true },
+        });
+
+        // 3. Get all progress records
+        const allProgress = await prisma.progress.findMany({
+          where: { userTopicId },
+        });
+
+        // 4. Calculate weighted average
+        let totalWeightedScore = 0;
+        let totalMaxWeight = 0;
+
+        for (const subtopic of subtopics) {
+          const progress = allProgress.find(
+            (p) => p.subtopicId === subtopic.id
+          );
+          const score = progress ? progress.completedPercent : 0;
+
+          totalWeightedScore += score * subtopic.weightage;
+          totalMaxWeight += subtopic.weightage;
+        }
+
+        const weightedProgress =
+          totalMaxWeight > 0 ? totalWeightedScore / totalMaxWeight : 0;
+
+        await prisma.userTopic.update({
+          where: { id: userTopicId },
+          data: {
+            completedPercent: weightedProgress,
+            lastAccessedAt: new Date(),
+          },
+        });
+      }
 
       return res.json(progress);
     } catch (error) {
       console.error("Update progress error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  },
+  }
 );
 
 export default router;

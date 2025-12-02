@@ -191,10 +191,10 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
       currentProgress = progressRecord?.completedPercent || 0;
     }
 
-    // Define weightage (heuristic since not in DB)
-    const SUBTOPIC_WEIGHTAGE = 20;
+    // Get weightage from subtopic
+    const subtopicWeightage = session?.subtopic?.weightage || 10;
 
-    let systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}\nCurrent Progress: ${currentProgress}%\nProgress Weightage per Step: ${SUBTOPIC_WEIGHTAGE}%`;
+    let systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}\nCurrent Progress: ${currentProgress}%\nProgress Weightage per Step: ${subtopicWeightage}%`;
 
     if (isFirstReply) {
       systemPromptContext += `\n\nUSER CONTEXT: The user has just stated their experience level: "${content}". Adapt your teaching style accordingly. Start by acknowledging their level and introducing the first concept.`;
@@ -220,7 +220,7 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
       session?.userTopicId || undefined,
       session?.subtopicId || undefined,
       currentProgress,
-      SUBTOPIC_WEIGHTAGE
+      subtopicWeightage
     );
   } catch (error) {
     handleWebSocketError(error, ws, "handleUserMessage");

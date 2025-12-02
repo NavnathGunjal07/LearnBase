@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
 import CodeEditor from "../CodeEditor/CodeEditor";
@@ -34,6 +35,7 @@ export default function ChatContainer({
   const hasCheckedOnboarding = useRef(false);
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -89,38 +91,70 @@ export default function ChatContainer({
     }
   }, [isAuthMode, user, chatHook.isConnected, chatHook.startOnboarding]);
 
-  // Auto-load last session on mount (only once) - but only if onboarding is complete (skip in auth mode)
+  // Handle URL params and session loading
   useEffect(() => {
-    if (isAuthMode) return; // Skip session loading in auth mode
+    if (isAuthMode) return;
     if (hasLoadedSession.current || isOnboarding || !hasCompletedOnboarding)
       return;
+
+    // Only proceed if connected to avoid race conditions
+    if (!isConnected) return;
+
     hasLoadedSession.current = true;
 
-    const loadLastSession = async () => {
+    const initSession = async () => {
       try {
-        const { userService } = await import("@/api");
-        const data = await userService.getLastSession();
+        // Check URL params first
+        const topicParam = searchParams.get("topic");
+        const subtopicParam = searchParams.get("subtopic");
+        const topicIdParam = searchParams.get("topicId");
+        const subtopicIdParam = searchParams.get("subtopicId");
 
-        if (data.hasSession && data.topicId && data.topicName) {
-          // Auto-resume last session
+        if (topicParam && topicIdParam) {
+          console.log("🔗 Initializing from URL params:", {
+            topicParam,
+            subtopicParam,
+          });
           await sendTopicSelection(
-            data.topicName,
-            data.subtopicName || "",
-            data.topicId,
-            data.subtopicId || undefined
+            topicParam,
+            subtopicParam || "",
+            parseInt(topicIdParam),
+            subtopicIdParam ? parseInt(subtopicIdParam) : undefined
           );
+        } else {
+          // Fallback to last session if no URL params
+          const { userService } = await import("@/api");
+          const data = await userService.getLastSession();
+
+          if (data.hasSession && data.topicId && data.topicName) {
+            // Update URL to match restored session
+            setSearchParams({
+              topic: data.topicName,
+              topicId: data.topicId.toString(),
+              ...(data.subtopicName && { subtopic: data.subtopicName }),
+              ...(data.subtopicId && {
+                subtopicId: data.subtopicId.toString(),
+              }),
+            });
+
+            await sendTopicSelection(
+              data.topicName,
+              data.subtopicName || "",
+              data.topicId,
+              data.subtopicId || undefined
+            );
+          }
         }
-        // If no session, topic selector will show automatically
       } catch (error) {
-        console.error("Failed to load last session:", error);
+        console.error("Failed to initialize session:", error);
       } finally {
         setIsLoadingSession(false);
       }
     };
 
-    loadLastSession();
+    initSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthMode, isOnboarding, hasCompletedOnboarding]);
+  }, [isAuthMode, isOnboarding, hasCompletedOnboarding, isConnected]); // Added isConnected dependency
 
   const handleRunCode = async (code: string) => {
     try {
@@ -230,6 +264,14 @@ export default function ChatContainer({
               subtopicId,
               subtopicName
             ) => {
+              // Update URL params on selection
+              setSearchParams({
+                topic: topicName,
+                topicId: topicId.toString(),
+                ...(subtopicName && { subtopic: subtopicName }),
+                ...(subtopicId && { subtopicId: subtopicId.toString() }),
+              });
+
               await sendTopicSelection(
                 topicName,
                 subtopicName || "",

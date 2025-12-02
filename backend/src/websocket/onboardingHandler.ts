@@ -465,6 +465,43 @@ async function handleOnboardingStep(
               : undefined,
         })
       );
+      let suggestions: string[] = [];
+      if (nextStep === "ASK_GOALS") {
+        suggestions = [
+          "Become a Full Stack Developer",
+          "Master Backend Engineering",
+          "Learn AI and Machine Learning",
+          "Improve System Design Skills",
+          "Prepare for Technical Interviews",
+          "Build a Startup MVP",
+          "Learn Cloud Computing",
+          "Get a Promotion",
+          "Switch Careers",
+          "Build a Portfolio",
+        ];
+      } else if (nextStep === "ASK_EDUCATION") {
+        suggestions = [
+          "Computer Science Student",
+          "Self-taught Developer",
+          "Bootcamp Graduate",
+          "Junior Developer",
+          "Senior Developer",
+          "Career Switcher",
+          "Hobbyist",
+          "Non-technical Background",
+          "High School Student",
+          "Working Professional",
+        ];
+      }
+
+      if (suggestions.length > 0) {
+        ws.send(
+          JSON.stringify({
+            type: "suggestions",
+            suggestions: suggestions,
+          })
+        );
+      }
 
       // If completed, authenticate the user
       if (nextStep === "COMPLETE") {
