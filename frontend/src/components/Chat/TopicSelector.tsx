@@ -3,6 +3,7 @@ import { BookOpen, ChevronRight, Sparkles } from "lucide-react";
 import { useLearning } from "@/hooks/useLearning";
 import { LinearProgress } from "../LinearProgress";
 import { APP_NAME } from "@/utils/constants";
+import TopicSearch from "../TopicSearch";
 
 interface TopicSelectorProps {
   onTopicSelected: (
@@ -105,8 +106,20 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
             <p className="text-sm text-blue-900 font-medium mb-2">
               💡 Quick Start:
             </p>
-            <p className="text-sm text-blue-800">
-              Create a topic like <strong>JavaScript</strong>,{" "}
+            <div className="mb-2">
+              <TopicSearch
+                onTopicAdded={(topicId) => {
+                  // After adding, select it immediately
+                  learning.addTopic(); // Refresh list
+                  // Small delay to ensure list is updated before selecting
+                  setTimeout(() => {
+                    handleTopicSelect(topicId);
+                  }, 500);
+                }}
+              />
+            </div>
+            <p className="text-xs text-blue-800 mt-2">
+              Search for a topic like <strong>JavaScript</strong>,{" "}
               <strong>Python</strong>, or any subject you want to learn!
             </p>
           </div>
