@@ -173,7 +173,7 @@ async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
       ws.send(
         JSON.stringify({
           type: "message",
-          content: `Welcome to LearnBase! 🎉 Let's create your account.\n\nPlease create a secure password with:\n• At least 8 characters\n• At least one number\n• At least one special character (!@#$%, etc.)`,
+          content: `Welcome to LearnBase AI! 🎉 Let's create your account.\n\nPlease create a secure password with:\n• At least 8 characters\n• At least one number\n• At least one special character (!@#$%, etc.)`,
           inputType: "password",
         })
       );

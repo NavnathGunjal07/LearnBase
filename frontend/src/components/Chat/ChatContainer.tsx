@@ -2,9 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import CodeEditor from "../CodeEditor/CodeEditor";
 import TopicSelector from "./TopicSelector";
-import { Code, MessageSquare } from "lucide-react";
 import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { APP_NAME } from "@/utils/constants";
@@ -28,7 +26,6 @@ export default function ChatContainer({
     hasCompletedOnboarding,
     currentTopicId,
   } = chatHook;
-  const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [executionResults, setExecutionResults] = useState<string[]>([]);
   const [isLoadingSession, setIsLoadingSession] = useState(!isAuthMode);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(!isAuthMode);
@@ -157,26 +154,6 @@ export default function ChatContainer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthMode, isOnboarding, hasCompletedOnboarding, isConnected]); // Added isConnected dependency
 
-  const handleRunCode = async (code: string) => {
-    try {
-      // Here you would integrate with your backend API
-      // For now, let's simulate code execution
-      const result = `Executed: ${code.length} characters of code`;
-      setExecutionResults((prev) => [...prev, result]);
-
-      // Send the result back to chat
-      sendMessage(`Code execution result: ${result}`);
-    } catch (error) {
-      const errorMessage = `Error executing code: ${error}`;
-      setExecutionResults((prev) => [...prev, errorMessage]);
-      sendMessage(errorMessage);
-    }
-  };
-
-  const toggleCodeEditor = () => {
-    setShowCodeEditor(!showCodeEditor);
-  };
-
   // Show loading state while checking onboarding or last session
   if (isCheckingOnboarding || (isLoadingSession && !isOnboarding)) {
     return (
@@ -197,46 +174,6 @@ export default function ChatContainer({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-gray-50">
-      {/* Header with toggle button */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            {isAuthMode
-              ? "🔐 Login / Signup"
-              : isOnboarding
-              ? `Welcome to ${APP_NAME}`
-              : `Chat with ${APP_NAME}`}
-          </h2>
-          {isAuthMode && (
-            <p className="text-sm text-gray-500">Chat to authenticate</p>
-          )}
-          {isOnboarding && !isAuthMode && (
-            <p className="text-sm text-gray-500">
-              Let's get to know you better
-            </p>
-          )}
-        </div>
-        {!isOnboarding && !isAuthMode && (
-          <button
-            onClick={toggleCodeEditor}
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition ${
-              showCodeEditor
-                ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            {showCodeEditor ? (
-              <MessageSquare className="w-4 h-4" />
-            ) : (
-              <Code className="w-4 h-4" />
-            )}
-            <span className="hidden sm:inline">
-              {showCodeEditor ? "Hide Editor" : "Show Editor"}
-            </span>
-          </button>
-        )}
-      </div>
-
       {/* Connection Status */}
       {!isConnected && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-center">
@@ -246,16 +183,12 @@ export default function ChatContainer({
         </div>
       )}
 
-      {/* Code Editor or Chat Messages or Topic Selector */}
-      {!isOnboarding && !isAuthMode && showCodeEditor ? (
-        <div className="flex-1 overflow-hidden">
-          <CodeEditor onRunCode={handleRunCode} />
-        </div>
-      ) : !isAuthMode &&
-        hasCompletedOnboarding &&
-        !isOnboarding &&
-        messages.length === 0 &&
-        !currentTopicId ? (
+      {/* Chat Messages or Topic Selector */}
+      {!isAuthMode &&
+      hasCompletedOnboarding &&
+      !isOnboarding &&
+      messages.length === 0 &&
+      !currentTopicId ? (
         // Show topic selector after onboarding is complete, no messages, and no topic selected
         <div className="flex-1 overflow-y-auto bg-gray-50">
           <TopicSelector

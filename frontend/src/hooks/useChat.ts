@@ -282,8 +282,13 @@ export const useChat = (
     const userMsg: ChatMessageType = { sender: "user", content };
     setMessages((prev) => [...prev, userMsg]);
 
-    // Clear suggestions when user sends a message
-    setInputConfig((prev) => ({ ...prev, suggestions: undefined }));
+    // Clear suggestions and reset input to text when user sends a message
+    setInputConfig((prev) => ({
+      ...prev,
+      suggestions: undefined,
+      inputType: "text",
+      language: undefined,
+    }));
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       // In auth mode, send as JSON with type=message

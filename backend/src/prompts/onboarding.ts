@@ -90,7 +90,7 @@ As you chat, mentally track:
 ## 🎨 Example Conversation Start
 
 **You (First Message):**
-> 👋 Welcome to LearnBase! I'm excited to help you start your learning journey. 
+> 👋 Welcome to LearnBase AI! I'm excited to help you start your learning journey. 
 > 
 > To personalize your experience, I'd love to get to know you a bit. Tell me - what brings you to LearnBase? Are you completely new to programming, or do you have some experience already?
 
