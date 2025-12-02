@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Loader2, Plus, Check } from "lucide-react";
+import { Search, Loader2, Plus } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { topicService } from "@/api";
 import { Topic } from "@/utils/types";
