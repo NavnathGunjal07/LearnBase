@@ -5,12 +5,13 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npm run copy-client",
     "start": "node dist/src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "copy-client": "xcopy prisma\\generated dist\\prisma\\generated /E /I /Y"
   },
   "keywords": [
     "learnbase",
