@@ -97,7 +97,7 @@ export default function TopicSelectionModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-teal-600" />

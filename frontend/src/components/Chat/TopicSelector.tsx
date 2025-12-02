@@ -92,7 +92,7 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
   }
 
   return (
-    <div className="flex items-center justify-center h-full p-8">
+    <div className="flex items-center justify-center h-full p-4 sm:p-8">
       <div className="max-w-2xl w-full">
         {step === "topic" ? (
           <div className="space-y-6">

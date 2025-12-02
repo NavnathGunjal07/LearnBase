@@ -194,7 +194,7 @@ export default function ChatInput({
             value={input}
             onChange={setInput}
             language={language}
-            className="border-0 rounded-none h-[200px]"
+            className="border-0 rounded-none h-[150px] sm:h-[200px]"
           />
         </div>
       </div>
@@ -224,7 +224,7 @@ export default function ChatInput({
       )}
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm w-full"
+        className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white border border-gray-200 rounded-xl shadow-sm w-full"
       >
         <input
           type={inputType}
