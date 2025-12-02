@@ -5,7 +5,6 @@ import ChatInput from "./ChatInput";
 import TopicSelector from "./TopicSelector";
 import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
-import { APP_NAME } from "@/utils/constants";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -26,7 +25,6 @@ export default function ChatContainer({
     hasCompletedOnboarding,
     currentTopicId,
   } = chatHook;
-  const [executionResults, setExecutionResults] = useState<string[]>([]);
   const [isLoadingSession, setIsLoadingSession] = useState(!isAuthMode);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(!isAuthMode);
   const hasLoadedSession = useRef(false);

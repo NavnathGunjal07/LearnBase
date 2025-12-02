@@ -1,5 +1,3 @@
-import React from "react";
-
 interface LinearProgressProps {
   value: number;
   height?: number;
@@ -34,7 +32,9 @@ export function LinearProgress({
         style={{ height }}
       >
         <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${getBarColor(value)}`}
+          className={`h-full rounded-full transition-all duration-500 ease-out ${getBarColor(
+            value
+          )}`}
           style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
         />
       </div>

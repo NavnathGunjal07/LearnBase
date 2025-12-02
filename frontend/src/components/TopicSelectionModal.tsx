@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Loader2 } from "lucide-react";
-import axiosInstance from "../api/axiosInstance";
 import { useToast } from "./ui/use-toast";
 import { topicService } from "@/api";
 import { Topic } from "@/utils/types";
