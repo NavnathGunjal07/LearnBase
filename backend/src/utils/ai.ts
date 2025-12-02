@@ -34,7 +34,6 @@ export async function streamChatCompletion({
       stream: true,
     });
 
-    console.log(completion);
     let fullResponse = "";
     let jsonBuffer = "";
     let isCollectingJson = false;
