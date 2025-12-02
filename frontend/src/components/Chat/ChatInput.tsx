@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Check, X } from "lucide-react";
+import { APP_NAME } from "@/utils/constants";
 
 interface ChatInputProps {
   onSend: (msg: string) => void;
@@ -17,6 +18,7 @@ export default function ChatInput({
   suggestions = [],
 }: ChatInputProps) {
   const [input, setInput] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,7 @@ export default function ChatInput({
   useEffect(() => {
     // Reset state when inputType changes
     setInput("");
+    setValidationError(null);
     setSelectedOptions([]);
     setIsDropdownOpen(false);
   }, [inputType]);
@@ -51,8 +54,18 @@ export default function ChatInput({
       setIsDropdownOpen(false);
     } else {
       if (!input.trim()) return;
+
+      if (inputType === "email") {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(input)) {
+          setValidationError("Please enter a valid email address");
+          return;
+        }
+      }
+
       onSend(input);
       setInput("");
+      setValidationError(null);
     }
   };
 
@@ -149,7 +162,13 @@ export default function ChatInput({
   }
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col gap-2 w-full relative">
+      {validationError && (
+        <div className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-1 flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+          {validationError}
+        </div>
+      )}
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-2 px-1">
           {suggestions.map((suggestion, index) => (
@@ -170,9 +189,12 @@ export default function ChatInput({
         <input
           type={inputType}
           className="flex-1 bg-transparent text-gray-900 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md"
-          placeholder={placeholder || "Message LearnBase..."}
+          placeholder={placeholder || `Message ${APP_NAME}...`}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            if (validationError) setValidationError(null);
+          }}
         />
         <button
           type="submit"
