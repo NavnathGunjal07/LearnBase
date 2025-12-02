@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, Check, X } from "lucide-react";
+import { ChevronDown, Check, X, Play } from "lucide-react";
 import { APP_NAME } from "@/utils/constants";
+import ChatCodeEditor from "./ChatCodeEditor";
 
 interface ChatInputProps {
   onSend: (msg: string) => void;
   placeholder?: string;
-  inputType?: "text" | "email" | "password" | "select";
+  inputType?: "text" | "email" | "password" | "select" | "code";
   options?: string[];
   suggestions?: string[];
+  language?: string;
 }
 
 export default function ChatInput({
@@ -16,6 +18,7 @@ export default function ChatInput({
   inputType = "text",
   options = [],
   suggestions = [],
+  language = "javascript",
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -52,6 +55,11 @@ export default function ChatInput({
       onSend(selectedOptions.join(", "));
       setSelectedOptions([]);
       setIsDropdownOpen(false);
+    } else if (inputType === "code") {
+      if (!input.trim()) return;
+      // Prefix with CODE_EXECUTION_REQUEST: for the backend to recognize it
+      onSend(`CODE_EXECUTION_REQUEST:\n${input}`);
+      setInput("");
     } else {
       if (!input.trim()) return;
 
@@ -157,6 +165,38 @@ export default function ChatInput({
         >
           Send
         </button>
+      </div>
+    );
+  }
+
+  if (inputType === "code") {
+    return (
+      <div className="flex flex-col gap-2 w-full relative">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
+            <span className="text-xs font-medium text-gray-500 uppercase">
+              {language} Editor
+            </span>
+            <button
+              onClick={handleSubmit}
+              disabled={!input.trim()}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                input.trim()
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              <Play className="w-3 h-3" />
+              Run Code
+            </button>
+          </div>
+          <ChatCodeEditor
+            value={input}
+            onChange={setInput}
+            language={language}
+            className="border-0 rounded-none h-[200px]"
+          />
+        </div>
       </div>
     );
   }

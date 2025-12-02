@@ -310,6 +310,7 @@ export default function ChatContainer({
                   inputType={chatHook.inputConfig?.inputType}
                   options={chatHook.inputConfig?.options}
                   suggestions={chatHook.inputConfig?.suggestions}
+                  language={chatHook.inputConfig?.language}
                 />
               </div>
             </div>

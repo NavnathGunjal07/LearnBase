@@ -34,9 +34,10 @@ export const useChat = (
   const lastProgressUpdateRef = useRef(lastProgressUpdate); // Ref to access current value in return without re-creating object if not needed, though state is fine
 
   const [inputConfig, setInputConfig] = useState<{
-    inputType: "text" | "email" | "password" | "select";
+    inputType: "text" | "email" | "password" | "select" | "code";
     options?: string[];
     suggestions?: string[];
+    language?: string;
   }>({ inputType: "text" });
 
   // Keep ref in sync
@@ -111,6 +112,12 @@ export const useChat = (
           setInputConfig((prev) => ({
             ...prev,
             suggestions: data.suggestions,
+          }));
+        } else if (data.type === "code_request") {
+          setInputConfig((prev) => ({
+            ...prev,
+            inputType: "code",
+            language: data.language || "javascript",
           }));
         }
 

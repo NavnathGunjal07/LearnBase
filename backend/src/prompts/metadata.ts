@@ -14,6 +14,9 @@ You must output **ONLY** a valid JSON object. Do not include any text outside th
 \`\`\`json
 {
   "suggestions": ["Option 1", "Option 2", "Option 3"], // 2-4 short, relevant follow-up options or quiz answers
+  "code_request": { // Optional: Include ONLY when the user explicitly asks to write code or for a challenge. DO NOT use this for general teaching.
+    "language": "javascript" // The programming language for the code editor
+  },
   "progress_update": { // Optional: Include ONLY when the user demonstrates understanding or completes a concept
     "score": 40, // The NEW total percentage (Current Progress + Weightage, max 100)
     "reasoning": "Brief explanation of why progress was updated"
@@ -26,6 +29,7 @@ You must output **ONLY** a valid JSON object. Do not include any text outside th
    - Provide 2-4 short, clickable suggestions.
    - If the mentor asked a quiz question, these MUST be the answer options.
    - If the mentor explained a concept, suggestions should be follow-up questions or "I understand".
+   - **IMPORTANT**: If the mentor has just finished explaining a concept, ALWAYS include a suggestion like "Give me a challenge" or "Let's practice" to invite the user to code.
 2. **Progress**:
    - Calculate \`new_score = current_progress + weightage\`.
    - Cap the score at 100.

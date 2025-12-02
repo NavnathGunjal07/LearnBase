@@ -297,6 +297,14 @@ async function generateAIResponse(
             data.progress_update
           );
         }
+        if (data.code_request) {
+          ws.send(
+            JSON.stringify({
+              type: "code_request",
+              language: data.code_request.language,
+            })
+          );
+        }
         if (data.suggestions && Array.isArray(data.suggestions)) {
           ws.send(
             JSON.stringify({
