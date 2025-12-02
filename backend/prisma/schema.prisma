@@ -58,6 +58,7 @@ model MasterTopic {
   category    String?  // e.g., "Programming Language", "Framework", "Library"
   isActive    Boolean  @default(true) @map("is_active")
   orderIndex  Int?     @default(0) @map("order_index")
+  weightage   Int      @default(100) // Relative weight for progress calculation
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -95,6 +96,7 @@ model Subtopic {
   title           String
   description     String?
   difficultyLevel String   @default("basic") @map("difficulty_level") // basic, intermediate, advanced
+  weightage       Int      @default(10) // Relative weight for progress calculation
   orderIndex      Int?     @map("order_index")
   createdAt       DateTime @default(now()) @map("created_at")
 

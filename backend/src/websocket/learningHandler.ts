@@ -351,34 +351,58 @@ async function handleProgressUpdate(
     });
 
     // Update overall topic progress
-    const allProgress = await prisma.progress.findMany({
-      where: { userTopicId },
-    });
-
-    const avgProgress =
-      allProgress.length > 0
-        ? allProgress.reduce((sum, p) => sum + p.completedPercent, 0) /
-          allProgress.length
-        : 0;
-
-    await prisma.userTopic.update({
+    // 1. Get Master Topic ID
+    const userTopic = await prisma.userTopic.findUnique({
       where: { id: userTopicId },
-      data: {
-        completedPercent: avgProgress,
-        lastAccessedAt: new Date(),
-      },
+      select: { masterTopicId: true },
     });
 
-    // Notify frontend
-    ws.send(
-      JSON.stringify({
-        type: "progress_updated",
-        topicId: userTopicId,
-        subtopicId: subtopicId,
-        progress: update.score,
-        topicProgress: avgProgress,
-      })
-    );
+    if (userTopic) {
+      // 2. Get all subtopics and their weights
+      const subtopics = await prisma.subtopic.findMany({
+        where: { masterTopicId: userTopic.masterTopicId },
+        select: { id: true, weightage: true },
+      });
+
+      // 3. Get all progress records
+      const allProgress = await prisma.progress.findMany({
+        where: { userTopicId },
+      });
+
+      // 4. Calculate weighted average
+      let totalWeightedScore = 0;
+      let totalMaxWeight = 0;
+
+      for (const subtopic of subtopics) {
+        const progress = allProgress.find((p) => p.subtopicId === subtopic.id);
+        const score = progress ? progress.completedPercent : 0;
+
+        totalWeightedScore += score * subtopic.weightage;
+        totalMaxWeight += subtopic.weightage;
+      }
+
+      const weightedProgress =
+        totalMaxWeight > 0 ? totalWeightedScore / totalMaxWeight : 0;
+
+      await prisma.userTopic.update({
+        where: { id: userTopicId },
+        data: {
+          completedPercent: weightedProgress,
+          lastAccessedAt: new Date(),
+        },
+      });
+
+      // Notify frontend
+      ws.send(
+        JSON.stringify({
+          type: "progress_updated",
+          topicId: userTopicId,
+          subtopicId: subtopicId,
+          progress: update.score,
+          topicProgress: weightedProgress,
+        })
+      );
+    }
   } catch (error) {
     console.error("Failed to update progress:", error);
   }
