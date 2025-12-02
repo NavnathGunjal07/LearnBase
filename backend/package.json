@@ -11,7 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "copy-client": "xcopy prisma\\generated dist\\prisma\\generated /E /I /Y"
+    "copy-client": "mkdir -p dist/prisma/generated && cp -r prisma/generated/ dist/prisma/generated"
   },
   "keywords": [
     "learnbase",
