@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import http from "http";
 import apiRoutes from "./routes";
 import { NextFunction, urlencoded, json, Request, Response } from "express";
-import prisma from "./utils/prisma";
+import prisma from "./config/prisma";
 import { setupWebSocketServer } from "./websocket/chatServer";
 import { apiLimiter } from "./middleware/rateLimiter";
 
@@ -21,7 +21,7 @@ const server = http.createServer(app);
 app.use(
   cors({
     origin: process.env.CORS_ORIGINS?.split(",") || "*",
-  }),
+  })
 );
 app.use(json());
 app.use(urlencoded({ extended: true }));

@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import prisma from "../utils/prisma";
+import prisma from "../config/prisma";
 import { authenticateToken, AuthRequest } from "../utils/auth";
 
 const router = Router();
@@ -38,7 +38,7 @@ router.get(
       console.error("Get onboarding status error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  },
+  }
 );
 
 // Update onboarding data
@@ -89,7 +89,7 @@ router.patch(
       console.error("Update onboarding error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  },
+  }
 );
 
 // Complete onboarding
@@ -134,7 +134,7 @@ router.post(
       console.error("Complete onboarding error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
-  },
+  }
 );
 
 export default router;

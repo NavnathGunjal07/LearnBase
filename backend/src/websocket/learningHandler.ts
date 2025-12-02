@@ -1,10 +1,8 @@
 import { WebSocket } from "ws";
-import { PrismaClient } from "../../prisma/generated/client";
+import prisma from "../config/prisma";
 import { LEARNING_PROMPT } from "../prompts/learning";
 import { streamChatCompletion } from "../utils/ai";
 import { handleWebSocketError } from "../utils/errorHandler";
-
-const prisma = new PrismaClient();
 
 export interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;

@@ -1,10 +1,9 @@
 import { Router } from "express";
-import { PrismaClient } from "../../prisma/generated/client";
+import prisma from "../config/prisma";
 import { authenticateToken } from "../utils/auth";
 import { chatLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Get chat history for a specific topic/subtopic (last 2 days only)
 router.get("/history", authenticateToken, async (req, res) => {

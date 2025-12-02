@@ -1,7 +1,7 @@
 import { WebSocket } from "ws";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "../../prisma/generated/client";
+import prisma from "../config/prisma";
 import {
   isValidEmail,
   isValidPassword,
@@ -11,8 +11,6 @@ import {
   getLockoutTime,
 } from "../utils/validation";
 import { handleWebSocketError } from "../utils/errorHandler";
-
-const prisma = new PrismaClient();
 
 export interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;

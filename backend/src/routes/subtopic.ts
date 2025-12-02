@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import prisma from "../utils/prisma";
+import prisma from "../config/prisma";
 import { authenticateToken, AuthRequest } from "../utils/auth";
 import { apiLimiter } from "../middleware/rateLimiter";
 

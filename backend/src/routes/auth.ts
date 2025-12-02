@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
 import { authenticateToken, AuthRequest } from "../utils/auth";
-import prisma from "../utils/prisma";
+import prisma from "../config/prisma";
 
 const router = Router();
 
@@ -42,7 +42,7 @@ router.get(
       console.error("Error fetching current user:", error);
       return res.status(500).json({ error: "Failed to fetch user data" });
     }
-  },
+  }
 );
 
 export default router;
