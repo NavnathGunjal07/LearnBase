@@ -41,7 +41,7 @@ axiosInstance.interceptors.response.use(
       switch (status) {
         case 400:
           toast({
-            title: "✕ Invalid Request",
+            title: "Invalid Request",
             description:
               data.error ||
               data.message ||
@@ -52,7 +52,7 @@ axiosInstance.interceptors.response.use(
         case 401:
           // Handle unauthorized access
           toast({
-            title: "✕ Unauthorized",
+            title: "Unauthorized",
             description: data.error || "Please log in to continue",
             variant: "destructive",
             duration: 2000,
@@ -64,7 +64,7 @@ axiosInstance.interceptors.response.use(
           break;
         case 403:
           toast({
-            title: "✕ Forbidden",
+            title: "Forbidden",
             description:
               data.error ||
               data.message ||
@@ -74,7 +74,7 @@ axiosInstance.interceptors.response.use(
           break;
         case 404:
           toast({
-            title: "✕ Not Found",
+            title: "Not Found",
             description:
               data.error ||
               data.message ||
@@ -84,7 +84,7 @@ axiosInstance.interceptors.response.use(
           break;
         case 500:
           toast({
-            title: "✕ Server Error",
+            title: "Server Error",
             description:
               "An error occurred on the server. Please try again later.",
             variant: "destructive",
@@ -92,7 +92,7 @@ axiosInstance.interceptors.response.use(
           break;
         default:
           toast({
-            title: "✕ Error",
+            title: "Error",
             description: data.error || data.message || "An error occurred",
             variant: "destructive",
           });
@@ -100,7 +100,7 @@ axiosInstance.interceptors.response.use(
     } else if (error.request) {
       // The request was made but no response was received
       toast({
-        title: "✕ Network Error",
+        title: "Network Error",
         description:
           "Unable to connect to the server. Please check your internet connection.",
         variant: "destructive",
@@ -108,7 +108,7 @@ axiosInstance.interceptors.response.use(
     } else {
       // Something happened in setting up the request
       toast({
-        title: "✕ Error",
+        title: "Error",
         description: error.message || "An error occurred",
         variant: "destructive",
       });

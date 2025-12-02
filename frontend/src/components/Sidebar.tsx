@@ -3,13 +3,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Palette,
-  PlusCircle,
   Settings,
   LogOut,
   User,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import TopicSelectionModal from "./TopicSelectionModal";
+import TopicSearch from "./TopicSearch";
 import TopicSkeleton from "./TopicSkeleton";
 import type { Subtopic, Topic } from "../utils/types";
 import { useLearning } from "@/hooks/useLearning";
@@ -61,7 +60,6 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const { sendTopicSelection, lastProgressUpdate } = chatHook;
 
   // Listen for progress updates from chat
@@ -153,16 +151,10 @@ export default function Sidebar({
 
         <div className="flex-1 overflow-y-auto">
           <div className="p-2">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              disabled={learning.loading}
-              className={`w-full flex items-center justify-center gap-2 rounded-md py-2 text-sm bg-white hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                collapsed ? "px-0" : ""
-              }`}
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span className={`${collapsed ? "sr-only" : ""}`}>New Topic</span>
-            </button>
+            <TopicSearch
+              onTopicAdded={() => learning.addTopic()}
+              collapsed={collapsed}
+            />
           </div>
 
           {learning.loading && !collapsed ? (
@@ -340,16 +332,6 @@ export default function Sidebar({
             )}
           </div>
         </div>
-
-        {/* Topic Selection Modal */}
-        <TopicSelectionModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onTopicAdded={() => {
-            setIsModalOpen(false);
-            learning.addTopic();
-          }}
-        />
       </aside>
     </>
   );

@@ -27,7 +27,31 @@ export default function TopicSelector({ onTopicSelected }: TopicSelectorProps) {
     const topic = learning.state.topics.find((t) => t.id === topicId);
 
     if (topic && topic.subtopics.length > 0) {
-      setStep("subtopic");
+      // Find the first subtopic (prioritize basic, then intermediate, then advanced)
+      const levels = ["basic", "intermediate", "advanced"];
+      let firstSubtopic = null;
+
+      for (const level of levels) {
+        const subtopic = topic.subtopics.find(
+          (s) => s.difficultyLevel === level
+        );
+        if (subtopic) {
+          firstSubtopic = subtopic;
+          break;
+        }
+      }
+
+      // Fallback to the first one if no level match (shouldn't happen if types are correct)
+      if (!firstSubtopic) {
+        firstSubtopic = topic.subtopics[0];
+      }
+
+      onTopicSelected(
+        parseInt(topicId),
+        topic.name,
+        parseInt(firstSubtopic.id),
+        firstSubtopic.title
+      );
     } else {
       // No subtopics, start with just the topic
       onTopicSelected(parseInt(topicId), topic?.name || "");

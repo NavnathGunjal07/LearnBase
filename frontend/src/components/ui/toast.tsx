@@ -10,7 +10,9 @@ const ToastViewport = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Viewport
     ref={ref}
-    className={`fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px] ${className || ""}`}
+    className={`fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px] ${
+      className || ""
+    }`}
     {...props}
   />
 ));
@@ -42,7 +44,9 @@ const ToastAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Action
     ref={ref}
-    className={`inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-[var(--border-default)] bg-transparent px-3 text-sm font-medium transition-colors hover:bg-[var(--bg-input)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-50 ${className || ""}`}
+    className={`inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-[var(--border-default)] bg-transparent px-3 text-sm font-medium transition-colors hover:bg-[var(--bg-input)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-50 ${
+      className || ""
+    }`}
     {...props}
   />
 ));
@@ -54,7 +58,9 @@ const ToastClose = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Close
     ref={ref}
-    className={`absolute right-2 top-2 rounded-md p-1 text-[var(--fg-muted)] opacity-0 transition-opacity hover:text-[var(--fg-default)] focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-600 group-[.destructive]:hover:text-red-900 ${className || ""}`}
+    className={`absolute right-2 top-2 rounded-md p-1 text-[var(--fg-muted)] transition-opacity hover:text-[var(--fg-default)] focus:outline-none focus:ring-2 group-[.destructive]:text-red-600 group-[.destructive]:hover:text-red-900 ${
+      className || ""
+    }`}
     toast-close=""
     {...props}
   >
