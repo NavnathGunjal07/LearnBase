@@ -4,12 +4,15 @@ import { APP_NAME } from "@/utils/constants";
 import ChatCodeEditor from "./ChatCodeEditor";
 
 interface ChatInputProps {
-  onSend: (msg: string) => void;
+  onSend: (msg: string, mode?: "chat" | "visualizer") => void;
   placeholder?: string;
   inputType?: "text" | "email" | "password" | "select" | "code";
   options?: string[];
   suggestions?: string[];
   language?: string;
+  visualizerData?: any;
+  onVisualizerClick?: () => void;
+  isGeneratingVisualizer?: boolean;
 }
 
 export default function ChatInput({
@@ -19,8 +22,12 @@ export default function ChatInput({
   options = [],
   suggestions = [],
   language = "javascript",
+  visualizerData,
+  onVisualizerClick,
+  isGeneratingVisualizer = false,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
+  const [mode, setMode] = useState<"chat" | "visualizer">("chat");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -71,7 +78,7 @@ export default function ChatInput({
         }
       }
 
-      onSend(input);
+      onSend(input, mode);
       setInput("");
       setValidationError(null);
     }
@@ -209,6 +216,25 @@ export default function ChatInput({
           {validationError}
         </div>
       )}
+      {isGeneratingVisualizer && (
+        <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-full shadow-sm">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <span>Generating visualization...</span>
+          </div>
+        </div>
+      )}
+      {!isGeneratingVisualizer && visualizerData && (
+        <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2">
+          <button
+            onClick={onVisualizerClick}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+          >
+            <span>✨</span>
+            <span>View Visualization</span>
+          </button>
+        </div>
+      )}
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-2 px-1">
           {suggestions.map((suggestion, index) => (
@@ -222,6 +248,33 @@ export default function ChatInput({
           ))}
         </div>
       )}
+
+      {/* Tool Selector */}
+      <div className="flex gap-2 px-1">
+        <button
+          type="button"
+          onClick={() => setMode("chat")}
+          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
+            mode === "chat"
+              ? "bg-blue-100 text-blue-700 border-blue-200"
+              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          💬 Chat
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("visualizer")}
+          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
+            mode === "visualizer"
+              ? "bg-purple-100 text-purple-700 border-purple-200"
+              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          ✨ Visualizer
+        </button>
+      </div>
+
       <form
         onSubmit={handleSubmit}
         className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white border border-gray-200 rounded-xl shadow-sm w-full"
@@ -229,7 +282,12 @@ export default function ChatInput({
         <input
           type={inputType}
           className="flex-1 bg-transparent text-gray-900 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md"
-          placeholder={placeholder || `Message ${APP_NAME}...`}
+          placeholder={
+            placeholder ||
+            (mode === "visualizer"
+              ? "Describe what to visualize..."
+              : `Message ${APP_NAME}...`)
+          }
           value={input}
           onChange={(e) => {
             setInput(e.target.value);

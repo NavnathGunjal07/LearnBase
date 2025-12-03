@@ -4,10 +4,25 @@ import { chatService, onboardingService } from "@/api";
 
 const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
 
+export interface UseChatOptions {
+  isAuthMode?: boolean;
+  onAuthenticated?: (token: string, user: any) => void;
+  onVisualizer?: (data: any) => void;
+}
+
 export const useChat = (
-  isAuthMode?: boolean,
-  onAuthenticated?: (token: string, user: any) => void
+  optionsOrIsAuthMode?: boolean | UseChatOptions,
+  onAuthenticatedLegacy?: (token: string, user: any) => void
 ) => {
+  const options: UseChatOptions =
+    typeof optionsOrIsAuthMode === "object"
+      ? optionsOrIsAuthMode
+      : {
+          isAuthMode: optionsOrIsAuthMode,
+          onAuthenticated: onAuthenticatedLegacy,
+        };
+
+  const { isAuthMode, onAuthenticated, onVisualizer } = options;
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -38,7 +53,9 @@ export const useChat = (
     options?: string[];
     suggestions?: string[];
     language?: string;
+    visualizerData?: any;
   }>({ inputType: "text" });
+  const [isGeneratingVisualizer, setIsGeneratingVisualizer] = useState(false);
 
   // Keep ref in sync
   useEffect(() => {
@@ -237,8 +254,22 @@ export const useChat = (
             topicProgress: data.topicProgress,
             timestamp: Date.now(),
           });
+        } else if (data.type === "visualizer_progress") {
+          setIsGeneratingVisualizer(true);
+        } else if (data.type === "visualizer") {
+          // Handle visualizer data - store in inputConfig for manual triggering
+          setIsGeneratingVisualizer(false);
+          if (data.payload) {
+            setInputConfig((prev) => ({
+              ...prev,
+              visualizerData: data.payload,
+            }));
+          }
+        } else if (data.type === "visualizer_complete") {
+          setIsGeneratingVisualizer(false);
         } else if (data.type === "error") {
           setIsTyping(false);
+          setIsGeneratingVisualizer(false);
           const content = data.content || data.message || "An error occurred";
           setMessages((prev) => [
             ...prev,
@@ -278,7 +309,10 @@ export const useChat = (
     };
   }, []);
 
-  const sendMessage = (content: string) => {
+  const sendMessage = (
+    content: string,
+    mode: "chat" | "visualizer" = "chat"
+  ) => {
     const userMsg: ChatMessageType = { sender: "user", content };
     setMessages((prev) => [...prev, userMsg]);
 
@@ -288,15 +322,20 @@ export const useChat = (
       suggestions: undefined,
       inputType: "text",
       language: undefined,
+      visualizerData: undefined,
     }));
+    setIsGeneratingVisualizer(false);
 
     if (ws && ws.readyState === WebSocket.OPEN) {
-      // In auth mode, send as JSON with type=message
-      if (isAuthMode) {
-        ws.send(JSON.stringify({ type: "message", content }));
-      } else {
-        ws.send(content); // Send just the content for regular chat
-      }
+      // Always send as JSON with type=message and include mode
+      ws.send(
+        JSON.stringify({
+          type: "message",
+          content,
+          mode,
+          sessionId: currentTopicId ? undefined : null, // Optional: include session context if needed, but backend handles it via state
+        })
+      );
     } else {
       console.error("WebSocket not connected");
     }
@@ -407,6 +446,12 @@ export const useChat = (
     checkOnboardingStatus();
   }, []);
 
+  const triggerVisualizer = () => {
+    if (inputConfig.visualizerData && onVisualizer) {
+      onVisualizer(inputConfig.visualizerData);
+    }
+  };
+
   return {
     messages,
     isTyping,
@@ -421,5 +466,7 @@ export const useChat = (
     startOnboarding,
     lastProgressUpdate,
     inputConfig,
+    triggerVisualizer,
+    isGeneratingVisualizer,
   };
 };

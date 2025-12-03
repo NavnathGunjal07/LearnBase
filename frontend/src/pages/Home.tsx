@@ -3,9 +3,21 @@ import { Menu } from "lucide-react";
 import ChatContainer from "../components/Chat/ChatContainer";
 import Sidebar from "../components/Sidebar";
 import { useChat } from "../hooks/useChat";
+import { useVisualizer } from "../hooks/useVisualizer";
+import ConceptVisualizer from "../components/Visualizer/ConceptVisualizer";
 
 const Home = () => {
-  const chatHook = useChat();
+  const {
+    isOpen: isVisualizerOpen,
+    visualizerData,
+    openVisualizer,
+    closeVisualizer,
+  } = useVisualizer();
+
+  const chatHook = useChat({
+    onVisualizer: openVisualizer,
+  });
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -30,6 +42,11 @@ const Home = () => {
             <span className="ml-2 font-semibold">LearnBase</span>
           </div>
           <ChatContainer chatHook={chatHook} />
+          <ConceptVisualizer
+            isOpen={isVisualizerOpen}
+            data={visualizerData}
+            onClose={closeVisualizer}
+          />
         </div>
       </div>
     </div>

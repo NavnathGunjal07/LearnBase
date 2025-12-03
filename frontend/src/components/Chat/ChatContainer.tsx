@@ -35,7 +35,6 @@ export default function ChatContainer({
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    console.log("📜 Messages updated:", messages);
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
@@ -242,6 +241,9 @@ export default function ChatContainer({
                   options={chatHook.inputConfig?.options}
                   suggestions={chatHook.inputConfig?.suggestions}
                   language={chatHook.inputConfig?.language}
+                  visualizerData={chatHook.inputConfig?.visualizerData}
+                  onVisualizerClick={chatHook.triggerVisualizer}
+                  isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
                 />
               </div>
             </div>

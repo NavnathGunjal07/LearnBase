@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import prisma from "../config/prisma";
 import { LEARNING_PROMPT } from "../prompts/learning";
+import { VISUALIZER_PROMPT } from "../prompts/visualizer";
 import { streamChatCompletion } from "../utils/ai";
 import { handleWebSocketError } from "../utils/errorHandler";
 
@@ -170,6 +171,12 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
     const topicName = session?.userTopic.masterTopic.name || "Coding";
     const subtopicName = session?.subtopic?.title || "General";
 
+    // Check for visualizer mode
+    if (message.mode === "visualizer") {
+      await generateVisualizer(ws, content);
+      return;
+    }
+
     // Check if this is the first user reply (response to the level question)
     // History will have: [Assistant (Initial Question), User (Current Message)] if it's the first reply
     const isFirstReply = history.length <= 2;
@@ -283,7 +290,6 @@ async function generateAIResponse(
     ];
 
     // We can use streamChatCompletion but just ignore onDelta and capture onJson
-    // Or we could use a non-streaming call if we had one, but reusing streamChatCompletion is fine
     await streamChatCompletion({
       messages: metadataMessages,
       onJson: async (data) => {
@@ -295,6 +301,7 @@ async function generateAIResponse(
             data.progress_update
           );
         }
+        console.log(data);
         if (data.code_request) {
           ws.send(
             JSON.stringify({
@@ -310,6 +317,10 @@ async function generateAIResponse(
               suggestions: data.suggestions,
             })
           );
+        }
+        // Step 3: Generate Visualizer (if requested)
+        if (data.visualizer_request && data.visualizer_request.description) {
+          await generateVisualizer(ws, data.visualizer_request.description);
         }
       },
     });
@@ -411,5 +422,52 @@ async function handleProgressUpdate(
     }
   } catch (error) {
     console.error("Failed to update progress:", error);
+  }
+}
+
+async function generateVisualizer(
+  ws: AuthenticatedWebSocket,
+  description: string
+) {
+  try {
+    console.log(`🎨 Generating visualization for: ${description}`);
+
+    const messages = [
+      {
+        role: "system",
+        content: VISUALIZER_PROMPT,
+      },
+      {
+        role: "user",
+        content: `Visualize this concept: ${description}`,
+      },
+    ];
+
+    await streamChatCompletion({
+      messages,
+      onDelta: (content) => {
+        ws.send(JSON.stringify({ type: "visualizer_progress", content }));
+      },
+      onJson: (data) => {
+        if (data.type === "visualizer" && data.payload) {
+          ws.send(
+            JSON.stringify({
+              type: "visualizer",
+              payload: data.payload,
+            })
+          );
+        }
+      },
+    });
+  } catch (error) {
+    console.error("Failed to generate visualization:", error);
+    ws.send(
+      JSON.stringify({
+        type: "error",
+        content: "Failed to generate visualization",
+      })
+    );
+  } finally {
+    ws.send(JSON.stringify({ type: "visualizer_complete" }));
   }
 }
