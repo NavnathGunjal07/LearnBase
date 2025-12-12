@@ -4,6 +4,27 @@ import { chatService, onboardingService } from "@/api";
 
 const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
 
+// Helper to map backend steps to frontend IDs
+const getStepId = (backendStep: string) => {
+  switch (backendStep) {
+    case "AUTH_EMAIL":
+    case "AUTH_PASSWORD":
+    case "AUTH_SIGNUP_PASSWORD":
+      return "auth";
+    case "ASK_NAME":
+      return "identity";
+    case "ASK_INTERESTS":
+      return "interests";
+    case "ASK_GOALS":
+    case "ASK_EDUCATION":
+      return "goals";
+    case "COMPLETE":
+      return "complete";
+    default:
+      return "auth";
+  }
+};
+
 export interface UseChatOptions {
   isAuthMode?: boolean;
   onAuthenticated?: (token: string, user: any) => void;
@@ -32,6 +53,7 @@ export const useChat = (
     null
   );
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<string>("auth"); // Default to auth
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
@@ -120,6 +142,11 @@ export const useChat = (
             ...(data.options ? { options: data.options } : {}),
             ...(data.suggestions ? { suggestions: data.suggestions } : {}),
           }));
+        }
+
+        // Update onboarding step if present
+        if (data.currentStep) {
+          setOnboardingStep(getStepId(data.currentStep));
         } else if (data.type === "auth_required") {
           // Default to email for auth_required if not specified (though we added it in backend)
           if (!data.inputType) {
@@ -468,5 +495,6 @@ export const useChat = (
     inputConfig,
     triggerVisualizer,
     isGeneratingVisualizer,
+    onboardingStep,
   };
 };

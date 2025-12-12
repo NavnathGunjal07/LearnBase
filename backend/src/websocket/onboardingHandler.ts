@@ -1,10 +1,6 @@
 import { WebSocket } from "ws";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import prisma from "../config/prisma";
 import {
-  isValidEmail,
-  isValidPassword,
   isValidInput,
   isValidInterests,
   isLocked,
@@ -14,21 +10,48 @@ import { handleWebSocketError } from "../utils/errorHandler";
 
 export interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
-  userEmail?: string;
+  userEmail?: string; // Kept for logging/reference
   isAlive?: boolean;
   currentSessionId?: string;
   currentTopicId?: number;
   currentSubtopicId?: number;
   isAuthenticated?: boolean;
-  isOnboarding?: boolean;
+  hasCompletedOnboarding?: boolean; // Added this
   onboardingMessages?: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
 /**
- * Handle authentication and onboarding flow for unauthenticated users
+ * Handle onboarding flow for authenticated but incomplete users
  */
-export async function handleAuthFlow(ws: AuthenticatedWebSocket, message: any) {
+export async function handleOnboardingFlow(
+  ws: AuthenticatedWebSocket,
+  message: any
+) {
   try {
+    // Handle start_onboarding trigger
+    if (message.type === "start_onboarding") {
+      // Fetch user to get current step
+      if (!ws.userId) return; // Should be handled by chatServer
+      const user = await prisma.user.findUnique({
+        where: { id: ws.userId },
+      });
+
+      if (!user) return;
+
+      // Handle special Google Auth case
+      let step = user.onboardingStep;
+      if (step.startsWith("AUTH_")) {
+        step = "ASK_INTERESTS";
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { onboardingStep: step },
+        });
+      }
+
+      await sendOnboardingPrompt(ws, step);
+      return;
+    }
+
     if (message.type !== "message" || !message.content) {
       ws.send(
         JSON.stringify({
@@ -41,37 +64,48 @@ export async function handleAuthFlow(ws: AuthenticatedWebSocket, message: any) {
 
     const content = message.content.trim();
 
-    // If we don't have a userEmail yet, we're at AUTH_EMAIL step
-    if (!ws.userEmail) {
-      await handleAuthEmail(ws, content);
-      return;
-    }
-
-    // If we have an email, fetch or create user and handle based on their onboardingStep
-    const user = await prisma.user.findUnique({
-      where: { email: ws.userEmail },
-    });
-
-    if (!user) {
-      // This shouldn't happen, but handle it
-      ws.userEmail = undefined;
+    // Ensure user is authenticated using userId
+    if (!ws.userId) {
       ws.send(
         JSON.stringify({
           type: "error",
-          message: "Session error. Please provide your email again.",
+          message: "Authentication required.",
         })
       );
       return;
     }
 
+    // Fetch user to get current step
+    const user = await prisma.user.findUnique({
+      where: { id: ws.userId },
+    });
+
+    if (!user) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "User not found.",
+        })
+      );
+      return;
+    }
+
+    // Since we skipped email/password, we only handle these steps
+    // Google Auth sets onboardingStep to "ASK_INTERESTS" or "ASK_NAME" if name is missing?
+    // Let's assume Google Auth users start at ASK_INTERESTS (if name provided) or ASK_NAME.
+
+    // Safety check: if user is somehow in an AUTH step, fast-forward them
+    if (user.onboardingStep.startsWith("AUTH_")) {
+      // Should not happen for Google Auth users, but if previously started with email...
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { onboardingStep: "ASK_INTERESTS" }, // or ASK_NAME if name is just "Temporary"
+      });
+      user.onboardingStep = "ASK_INTERESTS";
+    }
+
     // Route to appropriate handler based on onboarding step
     switch (user.onboardingStep) {
-      case "AUTH_PASSWORD":
-        await handleAuthPassword(ws, user, content);
-        break;
-      case "AUTH_SIGNUP_PASSWORD":
-        await handleAuthSignupPassword(ws, user, content);
-        break;
       case "ASK_NAME":
       case "ASK_INTERESTS":
       case "ASK_GOALS":
@@ -79,255 +113,93 @@ export async function handleAuthFlow(ws: AuthenticatedWebSocket, message: any) {
         await handleOnboardingStep(ws, user, content);
         break;
       case "COMPLETE":
-        // User has completed onboarding, authenticate them
-        await authenticateUser(ws, user);
+        // Should have been routed to learning handler, but if we are here, correct it.
+        // Update WS state
+        ws.hasCompletedOnboarding = true;
+        ws.send(JSON.stringify({ type: "onboarding_complete" }));
         break;
       default:
-        ws.send(
-          JSON.stringify({
-            type: "error",
-            message: "Invalid state. Please reconnect.",
-          })
-        );
+        // Attempt to recover from weird states (like AUTH_EMAIL)
+        await handleOnboardingStep(ws, user, content);
     }
   } catch (error) {
-    handleWebSocketError(error, ws, "handleAuthFlow");
+    handleWebSocketError(error, ws, "handleOnboardingFlow");
   }
 }
 
 /**
- * Step: AUTH_EMAIL - Validate email and determine if login or signup
+ * Send the prompt for a specific onboarding step
  */
-async function handleAuthEmail(ws: AuthenticatedWebSocket, email: string) {
-  try {
-    console.log(`📧 Processing email: ${email}`);
+async function sendOnboardingPrompt(ws: AuthenticatedWebSocket, step: string) {
+  let message = "";
+  let options: string[] | undefined;
+  let inputType = "text";
+  let suggestions: string[] | undefined;
 
-    // Validate email format
-    if (!isValidEmail(email)) {
-      ws.send(
-        JSON.stringify({
-          type: "message",
-          content:
-            "Hmm, that email looks a bit... suspicious 🕶️ Try again with a real one!",
-          inputType: "email",
-        })
-      );
-      return;
-    }
-
-    // Store email temporarily
-    ws.userEmail = email;
-
-    // Check if user exists
-    let user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (user) {
-      console.log(`✅ Existing user found: ${email}`);
-      // Existing user - login flow
-      // Check if locked
-      if (isLocked(user.lockedUntil)) {
-        const lockMinutes = Math.ceil(
-          (new Date(user.lockedUntil!).getTime() - Date.now()) / 60000
-        );
-        ws.send(
-          JSON.stringify({
-            type: "message",
-            content: `Too many failed login attempts. Please try again in ${lockMinutes} minute(s).`,
-          })
-        );
-        ws.userEmail = undefined;
-        return;
-      }
-
-      // Update to AUTH_PASSWORD step
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { onboardingStep: "AUTH_PASSWORD" },
-      });
-
-      ws.send(
-        JSON.stringify({
-          type: "message",
-          content: `Yo! Long time no see 🕶️ Drop that password and let's roll!`,
-          inputType: "password",
-        })
-      );
-    } else {
-      console.log(`🆕 Creating new user: ${email}`);
-      // New user - signup flow
-      // Create user with temporary data
-      user = await prisma.user.create({
-        data: {
-          email,
-          name: "Temporary", // Will be updated during onboarding
-          passwordHash: "temporary", // Will be updated in next step
-          onboardingStep: "AUTH_SIGNUP_PASSWORD",
-        },
-      });
-      console.log(`✅ User created with ID: ${user.id}`);
-
-      ws.send(
-        JSON.stringify({
-          type: "message",
-          content: `Welcome to LearnBase AI! 🎉 Let's create your account.\n\nPlease create a secure password with:\n• At least 8 characters\n• At least one number\n• At least one special character (!@#$%, etc.)`,
-          inputType: "password",
-        })
-      );
-    }
-  } catch (error) {
-    handleWebSocketError(error, ws, "handleAuthEmail");
+  switch (step) {
+    case "ASK_NAME":
+      message = "Welcome! Let's get started. What should I call you?";
+      break;
+    case "ASK_INTERESTS":
+      message =
+        "What topics or technologies are you interested in learning? (Select multiple)";
+      inputType = "select";
+      options = [
+        "React",
+        "Node.js",
+        "Python",
+        "JavaScript",
+        "TypeScript",
+        "AI/ML",
+        "DevOps",
+        "System Design",
+        "Algorithms",
+        "CSS/Tailwind",
+        "Database",
+      ];
+      break;
+    case "ASK_GOALS":
+      message = "Awesome! What are your main learning goals?";
+      suggestions = [
+        "Become a Full Stack Developer",
+        "Master Backend Engineering",
+        "Learn AI and Machine Learning",
+        "Improve System Design Skills",
+        "Prepare for Technical Interviews",
+      ];
+      break;
+    case "ASK_EDUCATION":
+      message =
+        "Tell me a bit about your educational or professional background.";
+      suggestions = [
+        "Computer Science Student",
+        "Self-taught Developer",
+        "Bootcamp Graduate",
+        "Junior Developer",
+        "Senior Developer",
+      ];
+      break;
+    case "COMPLETE":
+      message = "You are all set! Let's start learning.";
+      break;
+    default:
+      message = "Let's continue setting up your profile.";
   }
+
+  ws.send(
+    JSON.stringify({
+      type: "message",
+      content: message,
+      currentStep: step,
+      inputType,
+      options,
+      suggestions,
+    })
+  );
 }
-
-/**
- * Step: AUTH_PASSWORD - Login with password
- */
-async function handleAuthPassword(
-  ws: AuthenticatedWebSocket,
-  user: any,
-  password: string
-) {
-  try {
-    console.log(`🔑 Verifying password for user: ${user.email}`);
-
-    // Check if locked
-    if (isLocked(user.lockedUntil)) {
-      const lockMinutes = Math.ceil(
-        (new Date(user.lockedUntil!).getTime() - Date.now()) / 60000
-      );
-      ws.send(
-        JSON.stringify({
-          type: "message",
-          content: `Too many failed attempts. Please try again in ${lockMinutes} minute(s).`,
-        })
-      );
-      return;
-    }
-
-    // Verify password
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-
-    if (isValid) {
-      console.log(`✅ Password correct for user: ${user.email}`);
-      // Success - reset failed attempts
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts: 0,
-          lockedUntil: null,
-        },
-      });
-
-      ws.send(
-        JSON.stringify({
-          type: "message",
-          content: `Yesss! ${user.name} is back in the game! 😎🔥`,
-        })
-      );
-
-      // Authenticate the user
-      await authenticateUser(ws, user);
-    } else {
-      console.log(`❌ Incorrect password for user: ${user.email}`);
-      // Failed login
-      const newAttempts = user.failedLoginAttempts + 1;
-      const updateData: any = { failedLoginAttempts: newAttempts };
-
-      if (newAttempts >= 5) {
-        updateData.lockedUntil = getLockoutTime();
-        await prisma.user.update({
-          where: { id: user.id },
-          data: updateData,
-        });
-
-        ws.send(
-          JSON.stringify({
-            type: "message",
-            content:
-              "Whoa whoa whoa! Too many wrong tries, chief 😤 Take a 30-minute break and come back when you remember it!",
-          })
-        );
-        ws.userEmail = undefined;
-      } else {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: updateData,
-        });
-
-        const attemptsLeft = 5 - newAttempts;
-        const wittyMessages = [
-          `Nope! That's not it 🙅 ${attemptsLeft} more shots left!`,
-          `Bzzt! Wrong password, buddy 😬 You've got ${attemptsLeft} attempts before I get grumpy!`,
-          `Oops! Try again! ${attemptsLeft} chances remaining before timeout 🕶️`,
-          `Not quite! Maybe try the one you use for everything? 😏 ${attemptsLeft} left!`,
-          `Nah, that ain't it! ${attemptsLeft} more tries before lockout 🔒`,
-        ];
-        const randomMessage =
-          wittyMessages[Math.floor(Math.random() * wittyMessages.length)];
-        ws.send(
-          JSON.stringify({
-            type: "message",
-            content: randomMessage,
-            inputType: "password",
-          })
-        );
-      }
-    }
-  } catch (error) {
-    handleWebSocketError(error, ws, "handleAuthPassword");
-  }
-}
-
-/**
- * Step: AUTH_SIGNUP_PASSWORD - Create new account password
- */
-async function handleAuthSignupPassword(
-  ws: AuthenticatedWebSocket,
-  user: any,
-  password: string
-) {
-  try {
-    console.log(`🔐 Setting password for new user: ${user.email}`);
-
-    // Validate password strength
-    const validation = isValidPassword(password);
-
-    if (!validation.valid) {
-      ws.send(
-        JSON.stringify({
-          type: "message",
-          content: validation.message,
-          inputType: "password",
-        })
-      );
-      return;
-    }
-
-    // Hash password and update user
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash,
-        onboardingStep: "ASK_NAME",
-      },
-    });
-
-    console.log(`✅ Password set for user: ${user.email}, moving to ASK_NAME`);
-
-    ws.send(
-      JSON.stringify({
-        type: "message",
-        content: `Boom! Password locked and loaded 🔒😎\n\nNow let's get personal! What should I call you?`,
-      })
-    );
-  } catch (error) {
-    handleWebSocketError(error, ws, "handleAuthSignupPassword");
-  }
-}
+// Removed handleAuthEmail
+// Removed handleAuthPassword
+// Removed handleAuthSignupPassword
 
 /**
  * Handle onboarding steps (ASK_NAME, ASK_INTERESTS, ASK_GOALS, ASK_EDUCATION)
@@ -339,7 +211,7 @@ async function handleOnboardingStep(
 ) {
   try {
     console.log(
-      `📝 Processing onboarding step ${user.onboardingStep} for user: ${user.email}`
+      `📝 Processing onboarding step ${user.onboardingStep} for user: ${user.id}`
     );
 
     // Check if onboarding locked
@@ -371,8 +243,7 @@ async function handleOnboardingStep(
           responseMessage = `Nice to meet you, ${input.trim()}! 👋\n\nWhat topics or technologies are you interested in learning? (Select multiple)`;
           console.log(`✅ Name saved: ${input.trim()}`);
         } else {
-          responseMessage =
-            "C'mon, give me a real name! At least 2 letters 😅 Unless you're just 'X' or 'Y'?";
+          responseMessage = "C'mon, give me a real name! At least 2 letters 😅";
         }
         break;
 
@@ -407,13 +278,24 @@ async function handleOnboardingStep(
         if (isValid) {
           updateData.background = input.trim();
           nextStep = "COMPLETE";
-          responseMessage = `Perfect! You're all set! 🎉\n\nYou can now start your learning journey. Let me authenticate you...`;
+          responseMessage = `Perfect! You're all set! 🎉\n\nYou can now start your learning journey.`;
           console.log(`✅ Background saved: ${input.trim()}`);
         } else {
           responseMessage =
             "Gimme more details! Where're you coming from? 🤓 (Need at least 10 chars)";
         }
         break;
+
+      default:
+        // Fallback if user is in an AUTH step (should be skipped)
+        if (step.startsWith("AUTH_")) {
+          // Force move to ASK_INTERESTS
+          isValid = true;
+          updateData.onboardingStep = "ASK_INTERESTS";
+          nextStep = "ASK_INTERESTS";
+          responseMessage =
+            "Let's set up your profile. What are you interested in learning? 🚀";
+        }
     }
 
     if (isValid) {
@@ -437,14 +319,8 @@ async function handleOnboardingStep(
         JSON.stringify({
           type: "message",
           content: responseMessage,
-          inputType:
-            nextStep === "ASK_INTERESTS"
-              ? "select"
-              : nextStep === "ASK_GOALS" ||
-                nextStep === "ASK_EDUCATION" ||
-                nextStep === "COMPLETE"
-              ? "text"
-              : "text",
+          currentStep: nextStep, // Send the Next Step so UI knows what to show
+          inputType: nextStep === "ASK_INTERESTS" ? "select" : "text",
           options:
             nextStep === "ASK_INTERESTS"
               ? [
@@ -463,6 +339,7 @@ async function handleOnboardingStep(
               : undefined,
         })
       );
+
       let suggestions: string[] = [];
       if (nextStep === "ASK_GOALS") {
         suggestions = [
@@ -501,14 +378,12 @@ async function handleOnboardingStep(
         );
       }
 
-      // If completed, authenticate the user
+      // If completed, update WS status
       if (nextStep === "COMPLETE") {
-        const updatedUser = await prisma.user.findUnique({
-          where: { id: user.id },
-        });
-        if (updatedUser) {
-          await authenticateUser(ws, updatedUser);
-        }
+        ws.hasCompletedOnboarding = true;
+        // Note: We don't need to call authenticateUser anymore as they are already authenticated.
+        // Just notify them to refresh or handle it?
+        // Actually, front-end will see "COMPLETE" via ws message above and redirect/reload.
       }
     } else {
       // Invalid input - increment attempts
@@ -528,7 +403,6 @@ async function handleOnboardingStep(
             content: "Too many invalid inputs. Please try again later.",
           })
         );
-        ws.userEmail = undefined;
       } else {
         await prisma.user.update({
           where: { id: user.id },
@@ -547,69 +421,6 @@ async function handleOnboardingStep(
     handleWebSocketError(error, ws, "handleOnboardingStep");
   }
 }
-
-/**
- * Authenticate user and generate JWT
- */
-export async function authenticateUser(ws: AuthenticatedWebSocket, user: any) {
-  try {
-    console.log(`🔓 Authenticating user: ${user.email}`);
-
-    ws.userId = user.id;
-    ws.isAuthenticated = true;
-
-    // Mark onboarding as complete if not already
-    if (!user.hasCompletedOnboarding) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          hasCompletedOnboarding: true,
-          onboardingStep: "COMPLETE",
-        },
-      });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "7d" }
-    );
-
-    console.log(`✅ JWT token generated for user: ${user.email}`);
-
-    // Fetch fresh user data from database to ensure all fields are current
-    const freshUser = await prisma.user.findUnique({
-      where: { id: user.id },
-    });
-
-    console.log(`📤 Sending authentication response with user data and token`);
-
-    ws.send(
-      JSON.stringify({
-        type: "authenticated",
-        userId: freshUser!.id,
-        token,
-        user: {
-          id: freshUser!.id,
-          name: freshUser!.name,
-          email: freshUser!.email,
-          skillLevel: freshUser!.skillLevel,
-          currentLanguage: freshUser!.currentLanguage,
-          totalPoints: freshUser!.totalPoints,
-          streakDays: freshUser!.streakDays,
-          background: freshUser!.background,
-          goals: freshUser!.goals,
-          learningInterests: freshUser!.learningInterests,
-          hasCompletedOnboarding: freshUser!.hasCompletedOnboarding,
-          createdAt: freshUser!.createdAt,
-        },
-        message: "Authentication successful! 🎉",
-      })
-    );
-
-    console.log(`✅ User authenticated successfully: ${freshUser!.email}`);
-  } catch (error) {
-    handleWebSocketError(error, ws, "authenticateUser");
-  }
-}
+// Remove authenticateUser function as it's no longer needed for login,
+// though we might want a lightweight version to send initial data?
+// Actually chatServer handles initial "authenticated" message.

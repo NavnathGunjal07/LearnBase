@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
 import { Request, Response, NextFunction } from "express";
 
 import dotenv from "dotenv";
@@ -15,24 +14,6 @@ export interface JwtPayload {
 
 export interface AuthRequest extends Request {
   user?: JwtPayload;
-}
-
-/**
- * Hash a password using bcrypt
- */
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
-}
-
-/**
- * Verify a password against its hash
- */
-export async function verifyPassword(
-  password: string,
-  hash: string,
-): Promise<boolean> {
-  return bcrypt.compare(password, hash);
 }
 
 /**
@@ -53,9 +34,9 @@ export function verifyToken(token: string): JwtPayload {
  * Middleware to authenticate requests
  */
 export function authenticateToken(
-  req: AuthRequest,
+  req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -66,7 +47,7 @@ export function authenticateToken(
 
   try {
     const payload = verifyToken(token);
-    req.user = payload;
+    (req as AuthRequest).user = payload;
     return next();
   } catch (error) {
     return res.status(403).json({ error: "Invalid or expired token" });

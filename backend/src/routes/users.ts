@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router, Response, Request } from "express";
 import { validationResult } from "express-validator";
 import prisma from "../config/prisma";
 import { authenticateToken, AuthRequest } from "../utils/auth";
@@ -11,8 +11,9 @@ router.patch(
   "/me",
   authenticateToken,
   updateUserValidation,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     const errors = validationResult(req);
+    const { user } = req as AuthRequest;
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
@@ -26,8 +27,8 @@ router.patch(
       if (currentLanguage !== undefined)
         updateData.currentLanguage = currentLanguage;
 
-      const user = await prisma.user.update({
-        where: { id: req.user!.userId },
+      const updatedUser = await prisma.user.update({
+        where: { id: user!.userId },
         data: updateData,
         select: {
           id: true,
@@ -42,7 +43,7 @@ router.patch(
         },
       });
 
-      return res.json(user);
+      return res.json(updatedUser);
     } catch (error) {
       console.error("Update user error:", error);
       return res.status(500).json({ error: "Internal server error" });
@@ -54,9 +55,10 @@ router.patch(
 router.get(
   "/me/last-session",
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const userId = req.user!.userId;
+      const { user } = req as AuthRequest;
+      const userId = user!.userId;
 
       // Get the most recent chat session with topic info
       const lastSession = await prisma.chatSession.findFirst({
@@ -92,21 +94,18 @@ router.get(
 );
 
 // Delete current user
-router.delete(
-  "/me",
-  authenticateToken,
-  async (req: AuthRequest, res: Response) => {
-    try {
-      await prisma.user.delete({
-        where: { id: req.user!.userId },
-      });
+router.delete("/me", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { user } = req as AuthRequest;
+    await prisma.user.delete({
+      where: { id: user!.userId },
+    });
 
-      return res.status(204).send();
-    } catch (error) {
-      console.error("Delete user error:", error);
-      return res.status(500).json({ error: "Internal server error" });
-    }
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Delete user error:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
-);
+});
 
 export default router;

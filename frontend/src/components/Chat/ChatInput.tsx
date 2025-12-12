@@ -13,6 +13,7 @@ interface ChatInputProps {
   visualizerData?: any;
   onVisualizerClick?: () => void;
   isGeneratingVisualizer?: boolean;
+  hideModeSwitcher?: boolean;
 }
 
 export default function ChatInput({
@@ -25,6 +26,7 @@ export default function ChatInput({
   visualizerData,
   onVisualizerClick,
   isGeneratingVisualizer = false,
+  hideModeSwitcher = false,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"chat" | "visualizer">("chat");
@@ -249,31 +251,33 @@ export default function ChatInput({
         </div>
       )}
 
-      {/* Tool Selector */}
-      <div className="flex gap-2 px-1">
-        <button
-          type="button"
-          onClick={() => setMode("chat")}
-          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
-            mode === "chat"
-              ? "bg-blue-100 text-blue-700 border-blue-200"
-              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-          }`}
-        >
-          💬 Chat
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("visualizer")}
-          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
-            mode === "visualizer"
-              ? "bg-purple-100 text-purple-700 border-purple-200"
-              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-          }`}
-        >
-          ✨ Visualizer
-        </button>
-      </div>
+      {/* Tool Selector - Hidden during onboarding */}
+      {!hideModeSwitcher && (
+        <div className="flex gap-2 px-1">
+          <button
+            type="button"
+            onClick={() => setMode("chat")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
+              mode === "chat"
+                ? "bg-blue-100 text-blue-700 border-blue-200"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            💬 Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("visualizer")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
+              mode === "visualizer"
+                ? "bg-purple-100 text-purple-700 border-purple-200"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            ✨ Visualizer
+          </button>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}

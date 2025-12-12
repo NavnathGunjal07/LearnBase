@@ -37,11 +37,12 @@ router.get(
   "/user",
   authenticateToken,
   apiLimiter,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
+      const { user } = req.user as AuthRequest;
       const userTopics = await prisma.userTopic.findMany({
         where: {
-          userId: req.user!.userId,
+          userId: user?.userId,
           isActive: true,
         },
         include: {
@@ -124,13 +125,17 @@ router.post(
   "/enroll",
   createLimiter,
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { topicId } = req.body;
-      const userId = req.user!.userId;
+      const { user } = req.user as AuthRequest;
 
       if (!topicId) {
         return res.status(400).json({ error: "Topic ID is required" });
+      }
+
+      if (!user?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
 
       // Check if  topic exists
@@ -151,7 +156,7 @@ router.post(
       const existingEnrollment = await prisma.userTopic.findUnique({
         where: {
           userId_masterTopicId: {
-            userId,
+            userId: user?.userId,
             masterTopicId: topicId,
           },
         },
@@ -166,7 +171,7 @@ router.post(
       // Create user topic enrollment
       const userTopic = await prisma.userTopic.create({
         data: {
-          userId,
+          userId: user?.userId,
           masterTopicId: topicId,
         },
         include: {
@@ -208,7 +213,8 @@ router.delete(
   "/:userTopicId",
   authenticateToken,
   apiLimiter,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
+    const { user } = req.user as AuthRequest;
     const userTopicId = parseInt(req.params.userTopicId);
 
     if (isNaN(userTopicId)) {
@@ -219,7 +225,7 @@ router.delete(
       const userTopic = await prisma.userTopic.findFirst({
         where: {
           id: userTopicId,
-          userId: req.user!.userId,
+          userId: user?.userId,
         },
       });
 

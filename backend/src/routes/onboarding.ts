@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router, Response, Request } from "express";
 import prisma from "../config/prisma";
 import { authenticateToken, AuthRequest } from "../utils/auth";
 
@@ -8,10 +8,11 @@ const router = Router();
 router.get(
   "/status",
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user!.userId },
+      const { user } = req as AuthRequest;
+      const userData = await prisma.user.findUnique({
+        where: { id: user!.userId },
         select: {
           hasCompletedOnboarding: true,
           background: true,
@@ -21,17 +22,17 @@ router.get(
         },
       });
 
-      if (!user) {
+      if (!userData) {
         return res.status(404).json({ error: "User not found" });
       }
 
       return res.json({
-        hasCompletedOnboarding: user.hasCompletedOnboarding,
+        hasCompletedOnboarding: userData.hasCompletedOnboarding,
         onboardingData: {
-          background: user.background,
-          goals: user.goals,
-          learningInterests: user.learningInterests,
-          skillLevel: user.skillLevel,
+          background: userData.background,
+          goals: userData.goals,
+          learningInterests: userData.learningInterests,
+          skillLevel: userData.skillLevel,
         },
       });
     } catch (error) {
@@ -45,7 +46,7 @@ router.get(
 router.patch(
   "/update",
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const {
         background,
@@ -54,6 +55,7 @@ router.patch(
         skillLevel,
         hasCompletedOnboarding,
       } = req.body;
+      const { user } = req as AuthRequest;
 
       const updateData: any = {};
       if (background !== undefined) updateData.background = background;
@@ -64,8 +66,8 @@ router.patch(
       if (hasCompletedOnboarding !== undefined)
         updateData.hasCompletedOnboarding = hasCompletedOnboarding;
 
-      const user = await prisma.user.update({
-        where: { id: req.user!.userId },
+      const userData = await prisma.user.update({
+        where: { id: user!.userId },
         data: updateData,
         select: {
           id: true,
@@ -84,7 +86,7 @@ router.patch(
         },
       });
 
-      return res.json(user);
+      return res.json({ user: userData });
     } catch (error) {
       console.error("Update onboarding error:", error);
       return res.status(500).json({ error: "Internal server error" });
@@ -96,9 +98,10 @@ router.patch(
 router.post(
   "/complete",
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { background, goals, learningInterests, skillLevel } = req.body;
+      const { user } = req as AuthRequest;
 
       const updateData: any = {
         hasCompletedOnboarding: true,
@@ -109,8 +112,8 @@ router.post(
       if (learningInterests) updateData.learningInterests = learningInterests;
       if (skillLevel) updateData.skillLevel = skillLevel;
 
-      const user = await prisma.user.update({
-        where: { id: req.user!.userId },
+      const userData = await prisma.user.update({
+        where: { id: user!.userId },
         data: updateData,
         select: {
           id: true,
@@ -129,7 +132,7 @@ router.post(
         },
       });
 
-      return res.json({ success: true, user });
+      return res.json({ success: true, user: userData });
     } catch (error) {
       console.error("Complete onboarding error:", error);
       return res.status(500).json({ error: "Internal server error" });

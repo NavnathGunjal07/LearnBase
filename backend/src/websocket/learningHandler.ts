@@ -445,6 +445,8 @@ async function generateVisualizer(
 
     await streamChatCompletion({
       messages,
+      model: "groq/compound",
+      maxTokens: 4096,
       onDelta: (content) => {
         ws.send(JSON.stringify({ type: "visualizer_progress", content }));
       },

@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router, Response, Request } from "express";
 import prisma from "../config/prisma";
 import { authenticateToken, AuthRequest } from "../utils/auth";
 import { apiLimiter } from "../middleware/rateLimiter";
@@ -10,10 +10,11 @@ router.patch(
   "/:userTopicId/:subtopicId/progress",
   authenticateToken,
   apiLimiter,
-  async (req: AuthRequest, res: Response) => {
+  async (req: Request, res: Response) => {
+    const { user } = req.user as AuthRequest;
     const userTopicId = parseInt(req.params.userTopicId);
     const subtopicId = parseInt(req.params.subtopicId);
-    const { completedPercent } = req.body;
+    const { completedPercent } = req.body as any;
 
     if (isNaN(userTopicId) || isNaN(subtopicId)) {
       return res.status(400).json({ error: "Invalid IDs" });
@@ -28,7 +29,7 @@ router.patch(
     }
 
     try {
-      const userId = req.user!.userId;
+      const userId = user!.userId;
 
       // Verify user topic exists and belongs to user
       const userTopic = await prisma.userTopic.findFirst({

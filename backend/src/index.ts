@@ -7,6 +7,7 @@ import { NextFunction, urlencoded, json, Request, Response } from "express";
 import prisma from "./config/prisma";
 import { setupWebSocketServer } from "./websocket/chatServer";
 import { apiLimiter } from "./middleware/rateLimiter";
+import passport from "./config/passport";
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,9 @@ app.use(
 app.use(json());
 app.use(urlencoded({ extended: true }));
 
+// Initialize Passport
+app.use(passport.initialize());
+
 // Apply rate limiting to all API routes
 app.use("/api", apiLimiter);
 
@@ -34,7 +38,13 @@ app.get("/", (req: Request, res: Response) => {
   res.json({ message: "Welcome to LearnBase API", status: "running" });
 });
 
+import googleAuthRoutes from "./routes/googleAuth";
+// ... (imports)
+
+// Routes
+// ...
 app.use("/api", apiRoutes);
+app.use("/auth", googleAuthRoutes);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

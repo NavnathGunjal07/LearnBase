@@ -18,7 +18,7 @@ interface ChatCompletionOptions {
  */
 export async function streamChatCompletion({
   messages,
-  model = "llama-3.1-8b-instant",
+  model = "groq/compound",
   temperature = 0.7,
   maxTokens = 1024,
   onDelta,

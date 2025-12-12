@@ -1,8 +1,12 @@
 import { WebSocketServer } from "ws";
 import { Server } from "http";
 import jwt from "jsonwebtoken";
-import { wsLogger, authLogger } from "../utils/logger";
-import { handleAuthFlow, AuthenticatedWebSocket } from "./onboardingHandler";
+import prisma from "../config/prisma";
+import { wsLogger } from "../utils/logger";
+import {
+  handleOnboardingFlow,
+  AuthenticatedWebSocket,
+} from "./onboardingHandler";
 import { handleLearningFlow } from "./learningHandler";
 import { handleWebSocketError } from "../utils/errorHandler";
 
@@ -52,21 +56,42 @@ export function setupWebSocketServer(server: Server) {
             token,
             process.env.JWT_SECRET || "your-secret-key"
           ) as { userId: string };
+
           ws.userId = decoded.userId;
-          ws.isAuthenticated = true;
 
-          wsLogger.info("WebSocket authenticated with token", {
-            userId: ws.userId,
+          // Fetch user to check onboarding status
+          const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
           });
-          console.log(`✅ WebSocket authenticated: User ${ws.userId}`);
 
-          // Send authenticated welcome message
-          ws.send(
-            JSON.stringify({
-              type: "authenticated",
-              message: "Welcome back! You are authenticated.",
-            })
-          );
+          if (user) {
+            ws.isAuthenticated = true;
+            ws.hasCompletedOnboarding = user.hasCompletedOnboarding;
+            ws.userEmail = user.email;
+
+            wsLogger.info("WebSocket authenticated with token", {
+              userId: ws.userId,
+              completedOnboarding: ws.hasCompletedOnboarding,
+            });
+            console.log(
+              `✅ WebSocket authenticated: User ${ws.userId} (Onboarding: ${
+                ws.hasCompletedOnboarding ? "Done" : "Pending"
+              })`
+            );
+
+            // Send authenticated welcome message
+            ws.send(
+              JSON.stringify({
+                type: "authenticated",
+                message: ws.hasCompletedOnboarding
+                  ? "Welcome back! You are authenticated."
+                  : "Welcome! Let's finish setting up your profile.",
+                userId: user.id,
+              })
+            );
+          } else {
+            throw new Error("User not found");
+          }
         } catch (error) {
           wsLogger.error("Token authentication failed", { error });
           console.error("❌ Token authentication failed:", error);
@@ -78,18 +103,15 @@ export function setupWebSocketServer(server: Server) {
           );
         }
       } else {
-        // Unauthenticated user - start auth flow
-        wsLogger.info("Unauthenticated connection - starting auth flow");
-        authLogger.info("New auth flow initiated");
-        console.log("⚠️ New unauthenticated connection - starting auth flow");
+        // Unauthenticated user - strictly rejected in new flow
+        wsLogger.info("Unauthenticated connection rejected");
+        console.log("⚠️ Unauthenticated connection attempt rejected");
 
-        // Send auth_required message to prompt user
+        // Send auth_required message to prompt user to login via Google
         ws.send(
           JSON.stringify({
             type: "auth_required",
-            message:
-              "Welcome to LearnBase! 👋\\n\\nTo get started, please provide your email address.",
-            inputType: "email",
+            message: "Please log in to continue.",
           })
         );
       }
@@ -121,16 +143,25 @@ export function setupWebSocketServer(server: Server) {
           contentLength: message.content?.length || 0,
         });
 
-        // Route based on authentication status
-        if (!ws.isAuthenticated) {
-          // Handle authentication/onboarding flow
-          wsLogger.info("Routing to auth flow");
-          await handleAuthFlow(ws, message);
-        } else {
-          // Handle authenticated user messages
-          wsLogger.info("Handling authenticated user message");
+        // Strict Authenticated-Only flow
+        if (!ws.isAuthenticated || !ws.userId) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Authentication required. Please log in.",
+            })
+          );
+          return;
+        }
 
-          // Route to learning handler
+        // Route based on onboarding status
+        if (!ws.hasCompletedOnboarding) {
+          // Handle authenticated onboarding flow
+          wsLogger.info("Routing to onboarding flow");
+          await handleOnboardingFlow(ws, message);
+        } else {
+          // Handle authenticated learning flow
+          wsLogger.info("Routing to learning flow");
           await handleLearningFlow(ws, message);
         }
       } catch (error) {

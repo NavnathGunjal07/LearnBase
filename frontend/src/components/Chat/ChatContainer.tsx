@@ -5,6 +5,8 @@ import ChatInput from "./ChatInput";
 import TopicSelector from "./TopicSelector";
 import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
+import { OnboardingLayout } from "../Onboarding/OnboardingLayout";
+import { GoogleAuthButton } from "../Auth/GoogleAuthButton";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -24,6 +26,7 @@ export default function ChatContainer({
     isOnboarding,
     hasCompletedOnboarding,
     currentTopicId,
+    onboardingStep,
   } = chatHook;
   const [isLoadingSession, setIsLoadingSession] = useState(!isAuthMode);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(!isAuthMode);
@@ -33,10 +36,49 @@ export default function ChatContainer({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Auto-scroll to bottom when messages change
+  // Scroll refs and state
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const prevMessagesLength = useRef(messages.length);
+
+  // Handle scroll events to detect if user is at bottom
+  // Handle scroll events to detect if user is at bottom
+  const handleScroll = () => {
+    const div = scrollViewportRef.current;
+    if (!div) return;
+
+    const threshold = 100; // Increased threshold for better UX
+    const newIsAtBottom =
+      div.scrollHeight - div.scrollTop - div.clientHeight < threshold;
+    setIsAtBottom(newIsAtBottom);
+  };
+
+  // Auto-scroll logic
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+    const div = scrollViewportRef.current;
+    if (!div) return;
+
+    const isNewMessage = messages.length > prevMessagesLength.current;
+    const lastMessage = messages[messages.length - 1];
+    const isUserMessage = lastMessage?.sender === "user";
+
+    // Always use smooth scrolling as requested by user
+    // Now that layout is stable (min-h-0), this should work without flickering
+    const behavior = "smooth";
+
+    // Scroll if:
+    // 1. User is already close to bottom (following stream)
+    // 2. It's a new message (jump to bottom to show it)
+    // 3. Specifically if it's a user message (always follow user own input)
+    if (isAtBottom || isNewMessage || isUserMessage) {
+      div.scrollTo({
+        top: div.scrollHeight,
+        behavior: behavior,
+      });
+    }
+
+    prevMessagesLength.current = messages.length;
+  }, [messages, isTyping, isAtBottom]);
 
   // Check onboarding status on mount and start onboarding if needed (skip in auth mode)
   useEffect(() => {
@@ -169,6 +211,72 @@ export default function ChatContainer({
     );
   }
 
+  // --- Onboarding / Auth View ---
+  if (isAuthMode || isOnboarding) {
+    return (
+      <OnboardingLayout currentStep={onboardingStep as any}>
+        <div className="flex flex-col h-full w-full">
+          {/* Content Container with max-width and padding */}
+          <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+            {/* Google Auth Button (Only in Auth Step) - Fixed at top */}
+            {onboardingStep === "auth" && (
+              <div className="flex-shrink-0 pt-4 sm:pt-6 pb-4 flex justify-center">
+                <GoogleAuthButton />
+              </div>
+            )}
+
+            {/* Chat Messages (Scrollable) */}
+            <div
+              ref={scrollViewportRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 pr-2 min-h-0"
+            >
+              {messages.length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                  {isAuthMode ? "Connecting..." : "Starting conversation..."}
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <ChatMessage key={i} message={msg} />
+              ))}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-white rounded-2xl rounded-tl-none py-3 px-4 shadow-sm border border-gray-100">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-0" />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input (Fixed at Bottom) */}
+            {onboardingStep !== "auth" && (
+              <div className="flex-shrink-0 py-4 sm:py-6">
+                <ChatInput
+                  onSend={sendMessage}
+                  placeholder="Type your answer..."
+                  inputType={chatHook.inputConfig?.inputType}
+                  options={chatHook.inputConfig?.options}
+                  suggestions={chatHook.inputConfig?.suggestions}
+                  language={chatHook.inputConfig?.language}
+                  visualizerData={chatHook.inputConfig?.visualizerData}
+                  onVisualizerClick={chatHook.triggerVisualizer}
+                  isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
+                  hideModeSwitcher={true}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </OnboardingLayout>
+    );
+  }
+
+  // --- Main Chat View ---
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-gray-50">
       {/* Connection Status */}
@@ -181,11 +289,7 @@ export default function ChatContainer({
       )}
 
       {/* Chat Messages or Topic Selector */}
-      {!isAuthMode &&
-      hasCompletedOnboarding &&
-      !isOnboarding &&
-      messages.length === 0 &&
-      !currentTopicId ? (
+      {hasCompletedOnboarding && messages.length === 0 && !currentTopicId ? (
         // Show topic selector after onboarding is complete, no messages, and no topic selected
         <div className="flex-1 overflow-y-auto bg-gray-50">
           <TopicSelector
@@ -214,13 +318,12 @@ export default function ChatContainer({
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50 scroll-smooth">
-            <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6 pb-4">
-              {messages.length === 0 && (isOnboarding || isAuthMode) && (
-                <div className="text-center text-gray-500 py-8">
-                  {isAuthMode ? "Connecting..." : "Starting conversation..."}
-                </div>
-              )}
+          <div
+            ref={scrollViewportRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-12 pr-2 sm:pr-4 md:pr-6 lg:pr-8 bg-gray-50 scroll-smooth min-h-0"
+          >
+            <div className="w-full max-w-3xl md:max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
               {messages.map((msg, i) => (
                 <ChatMessage key={i} message={msg} />
               ))}
@@ -233,7 +336,7 @@ export default function ChatContainer({
             !hasCompletedOnboarding ||
             messages.length > 0) && (
             <div className="w-full bg-gray-50 border-t border-gray-100">
-              <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 <ChatInput
                   onSend={sendMessage}
                   placeholder={isAuthMode ? "Type here..." : undefined}

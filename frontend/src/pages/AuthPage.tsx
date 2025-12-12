@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import ChatContainer from "../components/Chat/ChatContainer";
 import { useChat } from "../hooks/useChat";
 import { useNavigate } from "react-router-dom";
@@ -11,18 +12,13 @@ export default function AuthPage() {
   const handleAuthenticated = async (token: string, user: any) => {
     try {
       console.log("✅ Authentication callback triggered");
-      console.log("🔑 Saving token:", token ? "present" : "missing");
-      console.log("👤 User data:", user);
 
       // Store token in localStorage
       localStorage.setItem("token", token);
-      console.log("💾 Token saved to localStorage");
 
       // Refresh user in context
       await refreshUser();
-      console.log("🔄 User context refreshed");
 
-      console.log("🚀 Navigating to /home");
       // Redirect to home
       navigate("/home");
     } catch (error) {
@@ -31,10 +27,22 @@ export default function AuthPage() {
     }
   };
 
+  // Handle URL params from Google Auth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const userId = params.get("userId");
+
+    if (token) {
+      // Create a minimal user object since we'll fetch full profile in handleAuthenticated
+      handleAuthenticated(token, { id: userId });
+    }
+  }, []);
+
   const chatHook = useChat(true, handleAuthenticated);
 
   return (
-    <div className="flex h-screen bg-[var(--bg-default)]">
+    <div className="h-screen bg-[var(--bg-default)]">
       <ChatContainer chatHook={chatHook} isAuthMode={true} />
     </div>
   );
