@@ -38,13 +38,11 @@ app.get("/", (req: Request, res: Response) => {
   res.json({ message: "Welcome to LearnBase API", status: "running" });
 });
 
-import googleAuthRoutes from "./routes/googleAuth";
 // ... (imports)
 
 // Routes
 // ...
 app.use("/api", apiRoutes);
-app.use("/auth", googleAuthRoutes);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

@@ -25,7 +25,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL:
           process.env.GOOGLE_CALLBACK_URL ||
-          "http://localhost:8080/auth/google/callback",
+          "http://localhost:8080/api/auth/google/callback",
       },
       async (
         accessToken: string,
@@ -55,9 +55,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               data: {
                 email,
                 name: profile.displayName,
-                passwordHash: "google-auth", // Placeholder
+                googleId: profile.id,
+                profilePicture: profile.photos?.[0]?.value,
                 onboardingStep: "ASK_INTERESTS", // Skip password/name steps for Google Auth
-                // If we had a googleId field we'd save it, but email is unique enough for now
               },
             });
           } else {

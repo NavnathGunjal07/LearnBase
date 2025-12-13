@@ -30,9 +30,12 @@ export const onboardingService = {
    * Get onboarding status
    */
   async getStatus(): Promise<OnboardingStatus> {
-    const response =
-      await axiosInstance.get<OnboardingStatus>("/onboarding/status");
-    return response.data;
+    const response = await axiosInstance.get<OnboardingStatus>(
+      "/onboarding/status",
+      // @ts-ignore
+      { skipToast: true }
+    );
+    return response.data as OnboardingStatus;
   },
 
   /**
@@ -47,7 +50,7 @@ export const onboardingService = {
    * Complete onboarding
    */
   async complete(
-    data: CompleteOnboardingData,
+    data: CompleteOnboardingData
   ): Promise<{ success: boolean; user: any }> {
     const response = await axiosInstance.post("/onboarding/complete", data);
     return response.data;

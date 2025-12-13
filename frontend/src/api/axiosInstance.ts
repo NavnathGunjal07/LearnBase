@@ -35,6 +35,12 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
+      // Check for skipToast flag
+      // @ts-ignore
+      if (error.config?.skipToast) {
+        return Promise.reject(error);
+      }
+
       // Handle different HTTP status codes
       const { status, data } = error.response;
 

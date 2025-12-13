@@ -251,11 +251,8 @@ export const useChat = (
           setInputConfig({ inputType: "text" }); // Reset input
         } else if (data.type === "authenticated") {
           // Authentication successful - only in auth mode
-          console.log("🔐 Received authenticated message:", data);
           if (isAuthMode && onAuthenticated) {
             const { token, user } = data;
-            console.log("🔑 Token:", token ? "present" : "missing");
-            console.log("👤 User:", user);
             onAuthenticated(token, user);
           } else {
             console.warn("⚠️ Authenticated message received but:", {

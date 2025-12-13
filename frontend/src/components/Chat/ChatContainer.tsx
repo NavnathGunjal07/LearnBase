@@ -7,6 +7,7 @@ import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { OnboardingLayout } from "../Onboarding/OnboardingLayout";
 import { GoogleAuthButton } from "../Auth/GoogleAuthButton";
+import { GoogleOneTap } from "../Auth/GoogleOneTap";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -215,13 +216,19 @@ export default function ChatContainer({
   if (isAuthMode || isOnboarding) {
     return (
       <OnboardingLayout currentStep={onboardingStep as any}>
+        {onboardingStep === "auth" && <GoogleOneTap />}
         <div className="flex flex-col h-full w-full">
           {/* Content Container with max-width and padding */}
           <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
             {/* Google Auth Button (Only in Auth Step) - Fixed at top */}
             {onboardingStep === "auth" && (
-              <div className="flex-shrink-0 pt-4 sm:pt-6 pb-4 flex justify-center">
-                <GoogleAuthButton />
+              <div className="flex-shrink-0 pt-10 sm:pt-12 pb-4 flex flex-col items-center justify-center space-y-4">
+                <p className="text-gray-600 font-medium text-lg">
+                  Please log in to continue
+                </p>
+                <div className="w-full max-w-sm">
+                  <GoogleAuthButton />
+                </div>
               </div>
             )}
 

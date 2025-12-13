@@ -5,6 +5,7 @@ import subtopicRoutes from "./subtopic";
 import userRoutes from "./users";
 import chatRoutes from "./chat";
 import onboardingRoutes from "./onboarding";
+import googleAuthRoutes from "./googleAuth";
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.use("/subtopics", subtopicRoutes);
 router.use("/users", userRoutes);
 router.use("/chat", chatRoutes);
 router.use("/onboarding", onboardingRoutes);
+router.use("/auth", googleAuthRoutes);
 
 export default router;

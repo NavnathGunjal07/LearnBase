@@ -20,7 +20,8 @@ model User {
   id                    String   @id @default(uuid())
   name                  String
   email                 String   @unique
-  passwordHash          String   @map("password_hash")
+  googleId              String?  @unique @map("google_id")
+  profilePicture        String?  @map("profile_picture")
   skillLevel            String   @default("beginner") @map("skill_level")
   currentLanguage       String?  @default("English") @map("current_language")
   totalPoints           Int      @default(0) @map("total_points")
