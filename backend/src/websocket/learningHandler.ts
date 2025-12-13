@@ -20,6 +20,20 @@ interface ProgressUpdate {
   reasoning: string;
 }
 
+// Export this function to be used primarily by chatServer
+export async function initLearningSession(ws: AuthenticatedWebSocket) {
+  // If user has no active session or topic, send the initial greeting
+  if (!ws.currentSessionId && !ws.currentTopicId) {
+    ws.send(
+      JSON.stringify({
+        type: "message",
+        content: "What do you want to learn today?",
+        sender: "assistant",
+      })
+    );
+  }
+}
+
 export async function handleLearningFlow(
   ws: AuthenticatedWebSocket,
   message: any
@@ -37,7 +51,12 @@ export async function handleLearningFlow(
     } else if (type === "session_resumed") {
       await handleSessionResumed(ws, message);
     } else if (type === "message") {
-      await handleUserMessage(ws, message);
+      // If no session ID, handle as topic generation/negotiation
+      if (!ws.currentSessionId) {
+        await handleTopicGeneration(ws, message.content);
+      } else {
+        await handleUserMessage(ws, message);
+      }
     }
   } catch (error) {
     console.error("Error in learning flow:", error);
@@ -471,5 +490,131 @@ async function generateVisualizer(
     );
   } finally {
     ws.send(JSON.stringify({ type: "visualizer_complete" }));
+  }
+}
+
+async function handleTopicGeneration(
+  ws: AuthenticatedWebSocket,
+  content: string
+) {
+  try {
+    ws.send(JSON.stringify({ type: "typing" }));
+
+    // 1. Analyze request and generate topic structure
+    const { streamChatCompletion } = await import("../utils/ai");
+    const { TOPIC_GENERATION_PROMPT } = await import(
+      "../prompts/topicGeneration"
+    );
+
+    const prompt = TOPIC_GENERATION_PROMPT.replace("{{user_content}}", content);
+
+    let jsonHandled = false;
+
+    const fullResponse = await streamChatCompletion({
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content },
+      ],
+      // Don't stream to user to avoid showing raw JSON or partial thoughts.
+      onJson: async (data: any) => {
+        if (data.topic_generation) {
+          jsonHandled = true;
+          const { masterTopic, subtopics } = data.topic_generation;
+
+          // 2. Create in DB
+          try {
+            // Create MasterTopic
+            const newTopic = await prisma.masterTopic.create({
+              data: {
+                name: masterTopic.name,
+                slug: masterTopic.slug + "-" + Date.now(), // Ensure uniqueness
+                description: masterTopic.description,
+                category: masterTopic.category,
+                iconUrl: masterTopic.iconUrl,
+                weightage: masterTopic.weightage,
+                createdById: ws.userId,
+                subtopics: {
+                  create: subtopics.map((st: any, index: number) => ({
+                    title: st.title,
+                    difficultyLevel: st.difficultyLevel,
+                    weightage: st.weightage,
+                    orderIndex: index + 1,
+                  })),
+                },
+              },
+              include: { subtopics: true },
+            });
+
+            // 3. Enroll User
+            const userTopic = await prisma.userTopic.create({
+              data: {
+                userId: ws.userId!,
+                masterTopicId: newTopic.id,
+                isActive: true,
+              },
+            });
+
+            // 4. Start Session (similar to handleTopicSelected)
+            // Trigger logic as if topic was selected
+            await handleTopicSelected(ws, {
+              type: "topic_selected",
+              topic: {
+                topicId: userTopic.id, // We need UserTopic ID here for session?
+                // Wait, handleTopicSelected expects { topicId, subtopicId, name, subtopic }
+                // It creates session with userTopicId.
+                // Actually handleTopicSelected logic uses `topicId` as UserTopicId?
+                // Looking at handleTopicSelected:
+                // data: { userTopicId: topicId }
+                // So yes, it expects userTopicId.
+
+                name: newTopic.name,
+                subtopic: newTopic.subtopics[0].title,
+                subtopicId: newTopic.subtopics[0].id,
+              },
+            });
+          } catch (dbError) {
+            console.error("DB Error creating topic:", dbError);
+            ws.send(
+              JSON.stringify({
+                type: "message",
+                sender: "assistant",
+                content:
+                  "I couldn't create that course right now. Could you try a different name?",
+              })
+            );
+          }
+        }
+      },
+    });
+
+    // If we didn't get JSON, send the text response to the user
+    if (!jsonHandled && fullResponse) {
+      ws.send(
+        JSON.stringify({
+          type: "message",
+          sender: "assistant",
+          content: fullResponse,
+        })
+      );
+      ws.send(JSON.stringify({ type: "done" }));
+    }
+
+    // If we didn't get JSON, it might have been a conversational message (handled by onDelta if we enabled it,
+    // or we need to capture full response and send it if no JSON).
+    // Since we disabled onDelta above, we need to handle "just chat" case.
+    // Let's refactor slightly to allow dual mode or checking.
+
+    // REFACTOR: Use a standard simple completion first to check intent?
+    // Or just let the stream flow?
+    // If the AI is instructed to ONLY output JSON for topics, it might be silent if we don't handle 'text'.
+    // Let's change the prompt to allow text response for clarification.
+  } catch (error) {
+    console.error("Topic Gen Error", error);
+    ws.send(
+      JSON.stringify({
+        type: "error",
+        content: "Something went wrong generating the course.",
+      })
+    );
   }
 }

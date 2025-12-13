@@ -289,70 +289,40 @@ export default function ChatContainer({
       )}
 
       {/* Chat Messages or Topic Selector */}
-      {hasCompletedOnboarding && messages.length === 0 && !currentTopicId ? (
-        // Show topic selector after onboarding is complete, no messages, and no topic selected
-        <div className="flex-1 overflow-y-auto bg-gray-50">
-          <TopicSelector
-            onTopicSelected={async (
-              topicId,
-              topicName,
-              subtopicId,
-              subtopicName
-            ) => {
-              // Update URL params on selection
-              setSearchParams({
-                topic: topicName,
-                topicId: topicId.toString(),
-                ...(subtopicName && { subtopic: subtopicName }),
-                ...(subtopicId && { subtopicId: subtopicId.toString() }),
-              });
-
-              await sendTopicSelection(
-                topicName,
-                subtopicName || "",
-                topicId,
-                subtopicId
-              );
-            }}
-          />
+      {/* Chat Messages or Topic Selector */}
+      <>
+        <div
+          ref={scrollViewportRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-12 pr-2 sm:pr-4 md:pr-6 lg:pr-8 bg-gray-50 scroll-smooth min-h-0"
+        >
+          <div className="w-full max-w-3xl md:max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
+            {messages.map((msg, i) => (
+              <ChatMessage key={i} message={msg} />
+            ))}
+            {/* Auto-scroll target */}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      ) : (
-        <>
-          <div
-            ref={scrollViewportRef}
-            onScroll={handleScroll}
-            className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-12 pr-2 sm:pr-4 md:pr-6 lg:pr-8 bg-gray-50 scroll-smooth min-h-0"
-          >
-            <div className="w-full max-w-3xl md:max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
-              {messages.map((msg, i) => (
-                <ChatMessage key={i} message={msg} />
-              ))}
-              {/* Auto-scroll target */}
-              <div ref={messagesEndRef} />
+        {(isAuthMode || isOnboarding || !hasCompletedOnboarding || true) && ( // Always show input
+          <div className="w-full bg-gray-50 border-t border-gray-100">
+            <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <ChatInput
+                onSend={sendMessage}
+                placeholder={isAuthMode ? "Type here..." : undefined}
+                inputType={chatHook.inputConfig?.inputType}
+                options={chatHook.inputConfig?.options}
+                suggestions={chatHook.inputConfig?.suggestions}
+                language={chatHook.inputConfig?.language}
+                visualizerData={chatHook.inputConfig?.visualizerData}
+                onVisualizerClick={chatHook.triggerVisualizer}
+                isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
+              />
             </div>
           </div>
-          {(isAuthMode ||
-            isOnboarding ||
-            !hasCompletedOnboarding ||
-            messages.length > 0) && (
-            <div className="w-full bg-gray-50 border-t border-gray-100">
-              <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <ChatInput
-                  onSend={sendMessage}
-                  placeholder={isAuthMode ? "Type here..." : undefined}
-                  inputType={chatHook.inputConfig?.inputType}
-                  options={chatHook.inputConfig?.options}
-                  suggestions={chatHook.inputConfig?.suggestions}
-                  language={chatHook.inputConfig?.language}
-                  visualizerData={chatHook.inputConfig?.visualizerData}
-                  onVisualizerClick={chatHook.triggerVisualizer}
-                  isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
-                />
-              </div>
-            </div>
-          )}
-        </>
-      )}
+        )}
+      </>
+      {/* Removed dedicated TopicSelector block */}
     </div>
   );
 }

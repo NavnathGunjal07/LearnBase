@@ -145,17 +145,155 @@ async function sendOnboardingPrompt(ws: AuthenticatedWebSocket, step: string) {
         "What topics or technologies are you interested in learning? (Select multiple)";
       inputType = "select";
       options = [
-        "React",
-        "Node.js",
-        "Python",
-        "JavaScript",
-        "TypeScript",
-        "AI/ML",
-        "DevOps",
-        "System Design",
-        "Algorithms",
-        "CSS/Tailwind",
-        "Database",
+        // 🎨 Creative & Artistic
+        "Drawing / Sketching",
+        "Painting",
+        "Digital Art / Illustration",
+        "Graphic Design",
+        "Animation",
+        "Photography",
+        "Videography / Filmmaking",
+        "Music Production",
+        "Playing Instruments",
+        "Singing / Vocal Training",
+        "Acting / Theatre",
+        "Creative Writing / Poetry",
+        "Calligraphy",
+        "Crafting / DIY",
+        "Pottery / Sculpting",
+        "Fashion Design",
+        "Cosplay",
+        "Interior Design",
+
+        // 🧠 Knowledge & Learning
+        "Reading",
+        "Philosophy",
+        "Psychology",
+        "History",
+        "Science Exploration",
+        "Technology",
+        "Astronomy",
+        "Learning Languages",
+        "Self-Improvement",
+        "Math Puzzles",
+        "Chess / Strategy Games",
+        "Debate",
+        "Research",
+        "Studying Cultures",
+
+        // 💻 Tech & Digital
+        "Web Development",
+        "App Development",
+        "AI / Machine Learning",
+        "Cybersecurity",
+        "Robotics",
+        "Building Bots",
+        "3D Printing",
+        "AR / VR",
+        "Blockchain / Crypto",
+        "UI/UX Design",
+        "Game Development",
+
+        // 💼 Business & Productivity
+        "Startups",
+        "Investing / Trading",
+        "Personal Finance",
+        "Real Estate",
+        "Entrepreneurship",
+        "Side Projects",
+        "Online Teaching",
+        "Freelancing",
+        "Building Automations",
+        "Product Design",
+        "Branding & Marketing",
+
+        // 🧩 Games & Entertainment
+        "Video Gaming",
+        "Board Games",
+        "Puzzle Solving",
+        "Trading Card Games",
+        "Fantasy Sports",
+        "Esports",
+        "Collectibles",
+
+        // 🌿 Outdoors & Nature
+        "Camping",
+        "Trekking",
+        "Bird Watching",
+        "Gardening",
+        "Stargazing",
+        "Nature Photography",
+        "Fishing",
+        "Exploring Wildlife",
+
+        // ✈️ Travel & Exploration
+        "Backpacking",
+        "Solo Travel",
+        "Road Trips",
+        "Cultural Exploration",
+        "Travel Photography",
+        "Travel Vlogging",
+
+        // 🏋️ Fitness & Physical
+        "Gym / Workout",
+        "Running",
+        "Cycling",
+        "Hiking",
+        "Swimming",
+        "Yoga",
+        "Meditation",
+        "Dancing",
+        "CrossFit",
+        "Martial Arts",
+        "Calisthenics",
+        "Rock Climbing",
+        "Pilates",
+        "Sports (Football/Cricket/etc)",
+
+        // 🍳 Food & Lifestyle
+        "Cooking",
+        "Baking",
+        "Trying New Cuisines",
+        "Cafe Hopping",
+        "Nutrition",
+        "Food Blogging",
+        "Mixology",
+
+        // 🛠️ Building & Craft
+        "Woodworking",
+        "Electronics",
+        "PC Building",
+        "Car Modification",
+        "Model Making",
+        "Restoration Projects",
+
+        // 🧘 Mind & Well-Being
+        "Journaling",
+        "Mindfulness",
+        "Minimalism",
+        "Spiritual Practices",
+        "Habit Tracking",
+
+        // 🐾 Animals
+        "Pet Care",
+        "Wildlife Conservation",
+        "Horse Riding",
+        "Aquarium Keeping",
+
+        // 🎉 Social
+        "Event Planning",
+        "Volunteering",
+        "Public Speaking",
+        "Networking",
+        "Community Building",
+
+        // 🎶 Pop Culture
+        "Movies",
+        "TV Shows",
+        "Anime",
+        "K-Pop",
+        "Podcasts",
+        "Comics / Manga",
       ];
       break;
     case "ASK_GOALS":

@@ -44,6 +44,7 @@ model User {
   chatSessions ChatSession[]
   userBadges   UserBadge[]
   aiLogs       AILog[]
+  createdTopics MasterTopic[] @relation("CreatedTopics")
 
   @@map("users")
 }
@@ -61,8 +62,10 @@ model MasterTopic {
   weightage   Int      @default(100) // Relative weight for progress calculation
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String?  @map("created_by_id")
 
   // Relationships
+  createdBy    User?        @relation("CreatedTopics", fields: [createdById], references: [id])
   userTopics   UserTopic[]
   subtopics    Subtopic[]
 

@@ -33,6 +33,7 @@ export default function ChatInput({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function ChatInput({
     setValidationError(null);
     setSelectedOptions([]);
     setIsDropdownOpen(false);
+    setSearchTerm("");
   }, [inputType]);
 
   useEffect(() => {
@@ -137,22 +139,45 @@ export default function ChatInput({
 
         {isDropdownOpen && (
           <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto z-50 p-2">
-            {options.map((option) => (
-              <div
-                key={option}
-                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
-                  selectedOptions.includes(option)
-                    ? "bg-blue-50 text-blue-700"
-                    : "hover:bg-gray-50 text-gray-700"
-                }`}
-                onClick={() => toggleOption(option)}
-              >
-                <span>{option}</span>
-                {selectedOptions.includes(option) && (
-                  <Check className="w-4 h-4 text-blue-600" />
-                )}
+            {/* Search Input */}
+            <div className="sticky top-0 bg-white pb-2 border-b border-gray-100 mb-1">
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search interests..."
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            {options
+              .filter((opt) =>
+                opt.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map((option) => (
+                <div
+                  key={option}
+                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                    selectedOptions.includes(option)
+                      ? "bg-blue-50 text-blue-700"
+                      : "hover:bg-gray-50 text-gray-700"
+                  }`}
+                  onClick={() => toggleOption(option)}
+                >
+                  <span>{option}</span>
+                  {selectedOptions.includes(option) && (
+                    <Check className="w-4 h-4 text-blue-600" />
+                  )}
+                </div>
+              ))}
+            {options.filter((opt) =>
+              opt.toLowerCase().includes(searchTerm.toLowerCase())
+            ).length === 0 && (
+              <div className="p-4 text-center text-gray-400 text-sm">
+                No matches found
               </div>
-            ))}
+            )}
           </div>
         )}
 
