@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import logo from "@/assets/learnbaselogo.png";
 
 type Mood =
   | "idle"
@@ -40,9 +41,8 @@ const DEFAULT_QUOTES = [
   "Every accomplishment starts with the decision to try.",
   "Your limitation—it's only your imagination.",
 ];
-
 // Default pixel art wolf GIF - replace with your actual GIF URL
-const DEFAULT_GIF_URL = "src/assets/learnbaselogo.png";
+const DEFAULT_GIF_URL = logo;
 
 const Avatar: React.FC<AvatarProps> = ({
   mood: propMood,
