@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Check, X, Play } from "lucide-react";
 import { APP_NAME } from "@/utils/constants";
 import ChatCodeEditor from "./ChatCodeEditor";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ChatInputProps {
   onSend: (msg: string, mode?: "chat" | "visualizer") => void;
@@ -11,9 +12,15 @@ interface ChatInputProps {
   suggestions?: string[];
   language?: string;
   visualizerData?: any;
+  visualizerSuggestions?: string[];
   onVisualizerClick?: () => void;
+  onModeChange?: (mode: "chat" | "visualizer") => void;
   isGeneratingVisualizer?: boolean;
   hideModeSwitcher?: boolean;
+  visualizerAvailability?: {
+    status: "idle" | "loading" | "available" | "unavailable";
+    message?: string;
+  };
 }
 
 export default function ChatInput({
@@ -24,9 +31,12 @@ export default function ChatInput({
   suggestions = [],
   language = "javascript",
   visualizerData,
+  visualizerSuggestions = [],
   onVisualizerClick,
+  onModeChange,
   isGeneratingVisualizer = false,
   hideModeSwitcher = false,
+  visualizerAvailability,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"chat" | "visualizer">("chat");
@@ -35,6 +45,17 @@ export default function ChatInput({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const effectiveInputType =
+    mode === "visualizer" &&
+    (visualizerAvailability?.status === "available" ||
+      visualizerSuggestions.length > 0)
+      ? "select"
+      : inputType;
+
+  const effectiveOptions =
+    mode === "visualizer" ? visualizerSuggestions : options;
 
   useEffect(() => {
     // Reset state when inputType changes
@@ -43,7 +64,7 @@ export default function ChatInput({
     setSelectedOptions([]);
     setIsDropdownOpen(false);
     setSearchTerm("");
-  }, [inputType]);
+  }, [inputType, effectiveInputType]);
 
   useEffect(() => {
     // Close dropdown when clicking outside
@@ -59,14 +80,33 @@ export default function ChatInput({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Handle visualizer availability
+  useEffect(() => {
+    if (
+      mode === "visualizer" &&
+      visualizerAvailability?.status === "unavailable"
+    ) {
+      setMode("chat");
+      toast({
+        title: "Cannot visualize",
+        description:
+          visualizerAvailability.message || "Cannot visualize this topic",
+        variant: "destructive",
+      });
+    }
+  }, [mode, visualizerAvailability, toast]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputType === "select") {
+    if (effectiveInputType === "select") {
       if (selectedOptions.length === 0) return;
-      onSend(selectedOptions.join(", "));
+      onSend(
+        selectedOptions.join(", "),
+        mode === "visualizer" ? "visualizer" : undefined
+      );
       setSelectedOptions([]);
       setIsDropdownOpen(false);
-    } else if (inputType === "code") {
+    } else if (effectiveInputType === "code") {
       if (!input.trim()) return;
       // Prefix with CODE_EXECUTION_REQUEST: for the backend to recognize it
       onSend(`CODE_EXECUTION_REQUEST:\n${input}`);
@@ -74,7 +114,7 @@ export default function ChatInput({
     } else {
       if (!input.trim()) return;
 
-      if (inputType === "email") {
+      if (effectiveInputType === "email") {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(input)) {
           setValidationError("Please enter a valid email address");
@@ -93,11 +133,18 @@ export default function ChatInput({
   };
 
   const toggleOption = (option: string) => {
-    setSelectedOptions((prev) =>
-      prev.includes(option)
-        ? prev.filter((item) => item !== option)
-        : [...prev, option]
-    );
+    if (mode === "visualizer") {
+      // Single select for visualizer
+      setSelectedOptions([option]);
+      setIsDropdownOpen(false); // Close dropdown on selection for better UX
+      // Optional: Auto-submit could go here if requested, but let's stick to select first
+    } else {
+      setSelectedOptions((prev) =>
+        prev.includes(option)
+          ? prev.filter((item) => item !== option)
+          : [...prev, option]
+      );
+    }
   };
 
   const removeOption = (option: string, e: React.MouseEvent) => {
@@ -105,7 +152,7 @@ export default function ChatInput({
     setSelectedOptions((prev) => prev.filter((item) => item !== option));
   };
 
-  if (inputType === "select") {
+  if (effectiveInputType === "select") {
     return (
       <div className="w-full relative" ref={dropdownRef}>
         <div
@@ -144,14 +191,14 @@ export default function ChatInput({
               <input
                 type="text"
                 autoFocus
-                placeholder="Search interests..."
+                placeholder="Search..."
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
-            {options
+            {effectiveOptions
               .filter((opt) =>
                 opt.toLowerCase().includes(searchTerm.toLowerCase())
               )
@@ -171,7 +218,7 @@ export default function ChatInput({
                   )}
                 </div>
               ))}
-            {options.filter((opt) =>
+            {effectiveOptions.filter((opt) =>
               opt.toLowerCase().includes(searchTerm.toLowerCase())
             ).length === 0 && (
               <div className="p-4 text-center text-gray-400 text-sm">
@@ -262,7 +309,25 @@ export default function ChatInput({
           </button>
         </div>
       )}
-      {suggestions.length > 0 && (
+      {mode === "visualizer" && visualizerSuggestions.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-1">
+          {visualizerSuggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                // Auto-send the suggestion as a visualization request
+                onSend(suggestion, "visualizer");
+              }}
+              className="px-3 py-1.5 bg-purple-50 text-purple-600 text-xs font-medium rounded-full hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer flex items-center gap-1"
+            >
+              <span>✨</span>
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {mode !== "visualizer" && suggestions.length > 0 && (
         <div className="flex flex-wrap gap-2 px-1">
           {suggestions.map((suggestion, index) => (
             <button
@@ -283,7 +348,11 @@ export default function ChatInput({
         {!hideModeSwitcher && (
           <button
             type="button"
-            onClick={() => setMode(mode === "chat" ? "visualizer" : "chat")}
+            onClick={() => {
+              const newMode = mode === "chat" ? "visualizer" : "chat";
+              setMode(newMode);
+              if (onModeChange) onModeChange(newMode);
+            }}
             className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
               mode === "visualizer"
                 ? "bg-purple-100 text-purple-600 hover:bg-purple-200"

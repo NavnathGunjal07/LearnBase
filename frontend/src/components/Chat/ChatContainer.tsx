@@ -272,7 +272,10 @@ export default function ChatContainer({
                   visualizerData={chatHook.inputConfig?.visualizerData}
                   onVisualizerClick={chatHook.triggerVisualizer}
                   isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
-                  hideModeSwitcher={true}
+                  hideModeSwitcher={isOnboarding}
+                  visualizerSuggestions={
+                    chatHook.inputConfig?.visualizerSuggestions
+                  }
                 />
               </div>
             )}
@@ -323,6 +326,12 @@ export default function ChatContainer({
                 visualizerData={chatHook.inputConfig?.visualizerData}
                 onVisualizerClick={chatHook.triggerVisualizer}
                 isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
+                onModeChange={(mode) => {
+                  if (mode === "visualizer") {
+                    chatHook.checkVisualizerAvailability();
+                  }
+                }}
+                visualizerAvailability={chatHook.visualizerAvailability}
               />
             </div>
           </div>

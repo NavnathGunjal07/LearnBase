@@ -48,6 +48,13 @@ Must ALWAYS return strictly valid JSON:
   }
 }
 
+OR (if the request cannot be visualized, e.g., abstract concept, poetry, opinion):
+{
+  "type": "error",
+  "message": "I cannot visualize this because..."
+}
+
+
 ### ❗ RULES
 - **NEVER wrap JSON in \`\`\` code fences**
 - **STRICTLY valid JSON** — double quotes only

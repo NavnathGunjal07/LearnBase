@@ -20,9 +20,6 @@ You must output **ONLY** a valid JSON object. Do not include any text outside th
   "progress_update": { // Optional: Include ONLY when the user demonstrates understanding or completes a concept
     "score": 40, // The NEW total percentage (Current Progress + Weightage, max 100)
     "reasoning": "Brief explanation of why progress was updated"
-  },
-  "visualizer_request": { // Optional: Include ONLY if the concept can be effectively visualized (e.g., CSS layouts, animations, algorithms)
-    "description": "Description of what to visualize (e.g., 'A flexbox container with 3 items')"
   }
 }
 \`\`\`
@@ -33,11 +30,6 @@ You must output **ONLY** a valid JSON object. Do not include any text outside th
    - If the mentor asked a quiz question, these MUST be the answer options.
    - If the mentor explained a concept, suggestions should be follow-up questions or "I understand".
    - **IMPORTANT**: If the mentor has just finished explaining a concept, ALWAYS include a suggestion like "Give me a challenge" or "Let's practice" to invite the user to code.
-2. **Progress**:
-   - Calculate \`new_score = current_progress + weightage\`.
    - Cap the score at 100.
    - Only include \`progress_update\` if the user has actually learned something or completed a step in the latest turn.
-3. **Visualizer**:
-   - If the mentor's explanation describes a concept that can be effectively visualized (e.g., CSS layouts, animations, algorithms, data structures), include \`visualizer_request\` with a description of what to visualize.
-   - Do NOT request visualization for simple text-based concepts or if the user just said "hello".
 `;

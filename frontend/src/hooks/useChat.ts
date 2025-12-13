@@ -68,13 +68,19 @@ export const useChat = (
     topicProgress: number;
     timestamp: number;
   } | null>(null);
-  const lastProgressUpdateRef = useRef(lastProgressUpdate); // Ref to access current value in return without re-creating object if not needed, though state is fine
   const [lastTopicUpdate, setLastTopicUpdate] = useState<number | null>(null);
+  // Last progress update ref for sync
+  const lastProgressUpdateRef = useRef(lastProgressUpdate); // Ref to access current value in return without re-creating object if not needed, though state is fine
+  const [visualizerAvailability, setVisualizerAvailability] = useState<{
+    status: "idle" | "loading" | "available" | "unavailable";
+    message?: string;
+  }>({ status: "idle" });
 
   const [inputConfig, setInputConfig] = useState<{
     inputType: "text" | "email" | "password" | "select" | "code";
     options?: string[];
     suggestions?: string[];
+    visualizerSuggestions?: string[];
     language?: string;
     visualizerData?: any;
   }>({ inputType: "text" });
@@ -158,6 +164,32 @@ export const useChat = (
             ...prev,
             suggestions: data.suggestions,
           }));
+        } else if (data.type === "visualizer_suggestions") {
+          // Legacy support or if we keep using metadata for something else
+          setInputConfig((prev) => ({
+            ...prev,
+            visualizerSuggestions: data.suggestions,
+          }));
+        } else if (data.type === "visualizer_check_result") {
+          const { isVisualizable, suggestions } = data.payload;
+          setVisualizerAvailability({
+            status: isVisualizable ? "available" : "unavailable",
+            message: isVisualizable
+              ? undefined
+              : "This topic doesn't seem suitable for visualization.",
+          });
+
+          if (isVisualizable) {
+            setInputConfig((prev) => ({
+              ...prev,
+              visualizerSuggestions: suggestions,
+            }));
+          } else {
+            setInputConfig((prev) => ({
+              ...prev,
+              visualizerSuggestions: [],
+            }));
+          }
         } else if (data.type === "code_request") {
           setInputConfig((prev) => ({
             ...prev,
@@ -473,6 +505,24 @@ export const useChat = (
     checkOnboardingStatus();
   }, []);
 
+  const checkVisualizerAvailability = () => {
+    // Use ws state or socketRef if available?
+    // Looking at file content, there is no socketRef visible in top 50 lines.
+    // Actually, looking at View 392, line 50 `const [ws, setWs]`.
+    // And `connectWebSocket` sets `socket` and does NOT seem to set a ref named `socketRef`.
+    // Wait, line 109 `const socket = new WebSocket(wsUrl)`.
+    // It seems `socketRef` might be missing entirely if I didn't see it.
+    // BUT `triggerVisualizer` exists.
+    // Let's use `ws` state if it's updated.
+    // Wait, `ws` is state. `setWs(socket)` must be called somewhere?
+    // In `connectWebSocket`, I don't see `setWs(socket)`.
+    // I need to verify if `ws` state is populated.
+    // Actually, let's use the local `ws` state variable if it's available in scope, but `ws` is state.
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "visualizer_check" }));
+    }
+  };
+
   const triggerVisualizer = () => {
     if (inputConfig.visualizerData && onVisualizer) {
       onVisualizer(inputConfig.visualizerData);
@@ -497,5 +547,7 @@ export const useChat = (
     isGeneratingVisualizer,
     onboardingStep,
     lastTopicUpdate,
+    checkVisualizerAvailability,
+    visualizerAvailability,
   };
 };

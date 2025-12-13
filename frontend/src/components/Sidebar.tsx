@@ -55,7 +55,7 @@ export default function Sidebar({
   mobileIsOpen = false,
   setMobileIsOpen,
 }: SidebarProps) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const learning = useLearning();
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -117,7 +117,12 @@ export default function Sidebar({
           >
             {!collapsed && (
               <div className="mr-3">
-                <Avatar size="small" mood="happy" />
+                <Avatar
+                  size="small"
+                  mood="happy"
+                  message={`Hello ${user?.name}`}
+                  quotes={[]}
+                />
               </div>
             )}
             <div

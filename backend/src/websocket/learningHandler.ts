@@ -57,6 +57,8 @@ export async function handleLearningFlow(
       } else {
         await handleUserMessage(ws, message);
       }
+    } else if (type === "visualizer_check") {
+      await handleVisualizerCheck(ws);
     }
   } catch (error) {
     console.error("Error in learning flow:", error);
@@ -337,6 +339,17 @@ async function generateAIResponse(
             })
           );
         }
+        if (
+          data.visualizer_suggestions &&
+          Array.isArray(data.visualizer_suggestions)
+        ) {
+          ws.send(
+            JSON.stringify({
+              type: "visualizer_suggestions",
+              suggestions: data.visualizer_suggestions.slice(0, 3), // Ensure max 3
+            })
+          );
+        }
         // Step 3: Generate Visualizer (if requested)
         if (data.visualizer_request && data.visualizer_request.description) {
           await generateVisualizer(ws, data.visualizer_request.description);
@@ -477,6 +490,16 @@ async function generateVisualizer(
               payload: data.payload,
             })
           );
+        } else if (data.type === "error" && data.message) {
+          ws.send(
+            JSON.stringify({
+              type: "message",
+              sender: "assistant", // System message or assistant?
+              content: `To create a visualization, I need a concrete request. ${data.message}`,
+            })
+          );
+          // Also hide the loading state
+          ws.send(JSON.stringify({ type: "visualizer_complete" }));
         }
       },
     });
@@ -628,6 +651,74 @@ async function handleTopicGeneration(
       JSON.stringify({
         type: "error",
         content: "Something went wrong generating the course.",
+      })
+    );
+  }
+}
+
+// Handler for on-demand visualizer check
+export async function handleVisualizerCheck(ws: AuthenticatedWebSocket) {
+  try {
+    const sessionId = ws.currentSessionId;
+    if (!sessionId) {
+      ws.send(
+        JSON.stringify({
+          type: "visualizer_check_result",
+          payload: { isVisualizable: false, suggestions: [] },
+        })
+      );
+      return;
+    }
+
+    // Fetch recent history
+    const history = await prisma.chatMessage.findMany({
+      where: { chatId: sessionId },
+      orderBy: { createdAt: "desc" }, // Get latest first
+      take: 6, // Analyze last few messages
+    });
+
+    // Reverse to chronological order for AI
+    const recentMessages = history.reverse();
+
+    const { VISUALIZER_CHECK_PROMPT } = await import(
+      "../prompts/visualizerCheck"
+    );
+
+    const messages = [
+      { role: "system", content: VISUALIZER_CHECK_PROMPT },
+      ...recentMessages.map((m) => ({
+        role: "user", // Simplified role mapping since we just need context
+        content: `${m.role === "user" ? "User" : "Mentor"}: ${m.content}`,
+      })),
+    ];
+
+    console.log("🔍 Checking visualizability...");
+
+    await streamChatCompletion({
+      messages,
+      model: "llama-3.3-70b-versatile", // Fast model for check
+      onJson: (data) => {
+        console.log("Visualizer Check Result:", data);
+        ws.send(
+          JSON.stringify({
+            type: "visualizer_check_result",
+            payload: {
+              isVisualizable: !!data.isVisualizable,
+              suggestions: Array.isArray(data.suggestions)
+                ? data.suggestions.slice(0, 3)
+                : [],
+            },
+          })
+        );
+      },
+    });
+  } catch (error) {
+    console.error("Visualizer check error:", error);
+    // Fail silently/gracefully
+    ws.send(
+      JSON.stringify({
+        type: "visualizer_check_result",
+        payload: { isVisualizable: false, suggestions: [] },
       })
     );
   }

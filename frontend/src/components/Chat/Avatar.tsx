@@ -42,7 +42,7 @@ const DEFAULT_QUOTES = [
 ];
 
 // Default pixel art wolf GIF - replace with your actual GIF URL
-const DEFAULT_GIF_URL = "https://ezgif.com/images/loadcat.gif";
+const DEFAULT_GIF_URL = "src/assets/learnbaselogo.png";
 
 const Avatar: React.FC<AvatarProps> = ({
   mood: propMood,
