@@ -4,6 +4,7 @@ import AuthPage from "./pages/AuthPage";
 import Home from "./pages/Home";
 import LandingPage from "./pages/LandingPage";
 import { Toaster } from "./components/ui/toaster";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <Toaster />
       </AuthProvider>
