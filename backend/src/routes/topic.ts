@@ -58,7 +58,7 @@ router.get(
         orderBy: { lastAccessedAt: "desc" },
       });
 
-      const topicsWithProgress = userTopics.map((ut) => ({
+      const topicsWithProgress = userTopics.map((ut: any) => ({
         id: ut.id,
         masterTopicId: ut.masterTopicId,
         name: ut.masterTopic.name,
@@ -68,9 +68,9 @@ router.get(
         enrolledAt: ut.enrolledAt,
         lastAccessedAt: ut.lastAccessedAt,
         progress: ut.completedPercent,
-        subtopics: ut.masterTopic.subtopics.map((s) => {
+        subtopics: ut.masterTopic.subtopics.map((s: any) => {
           const subtopicProgress = ut.progress.find(
-            (p) => p.subtopicId === s.id
+            (p: any) => p.subtopicId === s.id
           );
           return {
             id: s.id,
@@ -192,7 +192,7 @@ router.post(
         iconUrl: userTopic.masterTopic.iconUrl,
         enrolledAt: userTopic.enrolledAt,
         progress: userTopic.completedPercent,
-        subtopics: userTopic.masterTopic.subtopics.map((s) => ({
+        subtopics: userTopic.masterTopic.subtopics.map((s: any) => ({
           id: s.id,
           name: s.title,
           description: s.description,

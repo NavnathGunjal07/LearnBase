@@ -233,7 +233,7 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
         role: "system",
         content: systemPromptContext,
       },
-      ...history.map((m) => ({
+      ...history.map((m: any) => ({
         role: m.role as "user" | "assistant" | "system",
         content: m.content,
       })),
@@ -423,7 +423,9 @@ async function handleProgressUpdate(
       let totalMaxWeight = 0;
 
       for (const subtopic of subtopics) {
-        const progress = allProgress.find((p) => p.subtopicId === subtopic.id);
+        const progress = allProgress.find(
+          (p: any) => p.subtopicId === subtopic.id
+        );
         const score = progress ? progress.completedPercent : 0;
 
         totalWeightedScore += score * subtopic.weightage;
@@ -686,7 +688,7 @@ export async function handleVisualizerCheck(ws: AuthenticatedWebSocket) {
 
     const messages = [
       { role: "system", content: VISUALIZER_CHECK_PROMPT },
-      ...recentMessages.map((m) => ({
+      ...recentMessages.map((m: any) => ({
         role: "user", // Simplified role mapping since we just need context
         content: `${m.role === "user" ? "User" : "Mentor"}: ${m.content}`,
       })),

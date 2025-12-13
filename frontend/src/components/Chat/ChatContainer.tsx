@@ -25,7 +25,6 @@ export default function ChatContainer({
     sendTopicSelection,
     isOnboarding,
     hasCompletedOnboarding,
-    currentTopicId,
     onboardingStep,
   } = chatHook;
   const [isLoadingSession, setIsLoadingSession] = useState(!isAuthMode);

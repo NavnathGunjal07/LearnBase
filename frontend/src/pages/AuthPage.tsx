@@ -9,7 +9,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
 
-  const handleAuthenticated = async (token: string, user: any) => {
+  const handleAuthenticated = async (token: string) => {
     try {
       console.log("✅ Authentication callback triggered");
 
@@ -31,11 +31,10 @@ export default function AuthPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
-    const userId = params.get("userId");
 
     if (token) {
       // Create a minimal user object since we'll fetch full profile in handleAuthenticated
-      handleAuthenticated(token, { id: userId });
+      handleAuthenticated(token);
     }
   }, []);
 

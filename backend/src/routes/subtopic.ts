@@ -88,7 +88,7 @@ router.patch(
 
         for (const subtopic of subtopics) {
           const progress = allProgress.find(
-            (p) => p.subtopicId === subtopic.id
+            (p: any) => p.subtopicId === subtopic.id
           );
           const score = progress ? progress.completedPercent : 0;
 

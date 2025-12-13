@@ -84,7 +84,7 @@ router.get("/history", authenticateToken, async (req, res) => {
     });
 
     // Transform messages to frontend format
-    const formattedMessages = messages.map((msg) => ({
+    const formattedMessages = messages.map((msg: any) => ({
       sender: msg.role === "user" ? "user" : "assistant",
       content: msg.content,
       timestamp: msg.createdAt.toISOString(),
