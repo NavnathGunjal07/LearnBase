@@ -276,38 +276,26 @@ export default function ChatInput({
         </div>
       )}
 
-      {/* Tool Selector - Hidden during onboarding */}
-      {!hideModeSwitcher && (
-        <div className="flex gap-2 px-1">
-          <button
-            type="button"
-            onClick={() => setMode("chat")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
-              mode === "chat"
-                ? "bg-blue-100 text-blue-700 border-blue-200"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            💬 Chat
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("visualizer")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ${
-              mode === "visualizer"
-                ? "bg-purple-100 text-purple-700 border-purple-200"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            ✨ Visualizer
-          </button>
-        </div>
-      )}
-
       <form
         onSubmit={handleSubmit}
         className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white border border-gray-200 rounded-xl shadow-sm w-full"
       >
+        {!hideModeSwitcher && (
+          <button
+            type="button"
+            onClick={() => setMode(mode === "chat" ? "visualizer" : "chat")}
+            className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
+              mode === "visualizer"
+                ? "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            }`}
+            title={
+              mode === "visualizer" ? "Switch to Chat" : "Switch to Visualizer"
+            }
+          >
+            <span className="text-lg">✨</span>
+          </button>
+        )}
         <input
           type={inputType}
           className="flex-1 bg-transparent text-gray-900 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md"
