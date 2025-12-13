@@ -69,6 +69,7 @@ export const useChat = (
     timestamp: number;
   } | null>(null);
   const lastProgressUpdateRef = useRef(lastProgressUpdate); // Ref to access current value in return without re-creating object if not needed, though state is fine
+  const [lastTopicUpdate, setLastTopicUpdate] = useState<number | null>(null);
 
   const [inputConfig, setInputConfig] = useState<{
     inputType: "text" | "email" | "password" | "select" | "code";
@@ -246,7 +247,7 @@ export const useChat = (
           // Onboarding completed
           setIsOnboarding(false);
           setHasCompletedOnboarding(true);
-          // Clear messages to show topic selector
+          // Clear messages to show topic selector / fresh chat
           setMessages([]);
           setInputConfig({ inputType: "text" }); // Reset input
         } else if (data.type === "authenticated") {
@@ -278,6 +279,8 @@ export const useChat = (
             topicProgress: data.topicProgress,
             timestamp: Date.now(),
           });
+        } else if (data.type === "topics_updated") {
+          setLastTopicUpdate(Date.now());
         } else if (data.type === "visualizer_progress") {
           setIsGeneratingVisualizer(true);
         } else if (data.type === "visualizer") {
@@ -493,5 +496,6 @@ export const useChat = (
     triggerVisualizer,
     isGeneratingVisualizer,
     onboardingStep,
+    lastTopicUpdate,
   };
 };

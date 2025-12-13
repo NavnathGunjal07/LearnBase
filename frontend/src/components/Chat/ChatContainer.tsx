@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import TopicSelector from "./TopicSelector";
 import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { OnboardingLayout } from "../Onboarding/OnboardingLayout";

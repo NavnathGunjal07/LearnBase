@@ -64,10 +64,10 @@ export default function Sidebar({
 
   // Listen for progress updates from chat
   useEffect(() => {
-    if (lastProgressUpdate) {
+    if (lastProgressUpdate || chatHook.lastTopicUpdate) {
       learning.refreshTopics();
     }
-  }, [lastProgressUpdate]);
+  }, [lastProgressUpdate, chatHook.lastTopicUpdate]);
 
   const groupedSubtopicsByLevel = useMemo(() => {
     const map: Record<
@@ -153,6 +153,7 @@ export default function Sidebar({
           <div className="p-2">
             <TopicSearch
               onTopicAdded={() => learning.addTopic()}
+              onNewChat={() => learning.clearSelection()}
               collapsed={collapsed}
             />
           </div>

@@ -92,14 +92,14 @@ export function useLearning() {
 
   const selectedTopic: Topic | null = useMemo(
     () => state.topics.find((t) => t.id === state.selection.topicId) ?? null,
-    [state.topics, state.selection.topicId],
+    [state.topics, state.selection.topicId]
   );
   const selectedSubtopic: Subtopic | null = useMemo(
     () =>
       selectedTopic?.subtopics.find(
-        (s) => s.id === state.selection.subtopicId,
+        (s) => s.id === state.selection.subtopicId
       ) ?? null,
-    [selectedTopic, state.selection.subtopicId],
+    [selectedTopic, state.selection.subtopicId]
   );
 
   const breadcrumb: Breadcrumb = useMemo(
@@ -107,7 +107,7 @@ export function useLearning() {
       topicName: selectedTopic?.name,
       subtopicName: selectedSubtopic?.title,
     }),
-    [selectedTopic?.name, selectedSubtopic?.title],
+    [selectedTopic?.name, selectedSubtopic?.title]
   );
 
   function selectTopic(topicId: string) {
@@ -125,17 +125,24 @@ export function useLearning() {
     setState((prev) => ({ ...prev, selection: { topicId, subtopicId } }));
   }
 
+  function clearSelection() {
+    setState((prev) => ({
+      ...prev,
+      selection: { topicId: null, subtopicId: null },
+    }));
+  }
+
   async function updateSubtopicProgress(
     topicId: string,
     subtopicId: string,
-    progress: number,
+    progress: number
   ) {
     try {
       await axiosInstance.patch(
         `/topics/${topicId}/subtopics/${subtopicId}/progress`,
         {
           completedPercent: progress,
-        },
+        }
       );
 
       // Update local state
@@ -149,9 +156,9 @@ export function useLearning() {
                 subtopics: t.subtopics.map((s) =>
                   s.id === subtopicId
                     ? { ...s, progress, completed: progress >= 100 }
-                    : s,
+                    : s
                 ),
-              },
+              }
         ),
       }));
     } catch (error) {
@@ -190,6 +197,7 @@ export function useLearning() {
     selectSubtopic,
     updateSubtopicProgress,
     addTopic,
+    clearSelection,
     loading,
     isTopicModalOpen,
     openTopicModal,

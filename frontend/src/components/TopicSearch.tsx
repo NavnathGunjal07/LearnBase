@@ -6,11 +6,13 @@ import { Topic } from "@/utils/types";
 
 interface TopicSearchProps {
   onTopicAdded: (topicId: string, topicName: string) => void;
+  onNewChat: () => void;
   collapsed?: boolean;
 }
 
 export default function TopicSearch({
   onTopicAdded,
+  onNewChat,
   collapsed,
 }: TopicSearchProps) {
   const [query, setQuery] = useState("");
@@ -118,42 +120,57 @@ export default function TopicSearch({
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
               Loading...
             </div>
-          ) : filteredTopics.length === 0 ? (
-            <div className="p-3 text-sm text-gray-500 text-center">
-              {query ? "No matching topics found" : "Type to search topics"}
-            </div>
           ) : (
             <div className="py-1">
-              {filteredTopics.map((topic) => (
-                <button
-                  key={topic.id}
-                  onClick={() => handleEnroll(topic)}
-                  disabled={!!enrolling}
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-lg flex-shrink-0">
-                      {topic.iconUrl ? (
-                        <img
-                          src={topic.iconUrl}
-                          alt=""
-                          className="w-5 h-5 object-contain"
-                        />
-                      ) : (
-                        "📚"
-                      )}
-                    </span>
-                    <span className="truncate font-medium text-gray-700">
-                      {topic.name}
-                    </span>
-                  </div>
-                  {enrolling === topic.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
-                  ) : (
-                    <Plus className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100" />
-                  )}
-                </button>
-              ))}
+              {/* New Chat Option */}
+              <button
+                onClick={() => {
+                  onNewChat();
+                  setIsOpen(false);
+                  setQuery("");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors text-blue-600 font-medium border-b border-gray-100"
+              >
+                <span className="text-lg">✨</span>
+                <span>New Chat</span>
+              </button>
+
+              {filteredTopics.length === 0 ? (
+                <div className="p-3 text-sm text-gray-500 text-center">
+                  {query ? "No matching topics found" : "Type to search topics"}
+                </div>
+              ) : (
+                filteredTopics.map((topic) => (
+                  <button
+                    key={topic.id}
+                    onClick={() => handleEnroll(topic)}
+                    disabled={!!enrolling}
+                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="text-lg flex-shrink-0">
+                        {topic.iconUrl ? (
+                          <img
+                            src={topic.iconUrl}
+                            alt=""
+                            className="w-5 h-5 object-contain"
+                          />
+                        ) : (
+                          "📚"
+                        )}
+                      </span>
+                      <span className="truncate font-medium text-gray-700">
+                        {topic.name}
+                      </span>
+                    </div>
+                    {enrolling === topic.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                    ) : (
+                      <Plus className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100" />
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>

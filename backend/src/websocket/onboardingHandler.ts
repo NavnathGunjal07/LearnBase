@@ -7,6 +7,7 @@ import {
   getLockoutTime,
 } from "../utils/validation";
 import { handleWebSocketError } from "../utils/errorHandler";
+import { initLearningSession } from "./learningHandler";
 
 export interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
@@ -519,9 +520,12 @@ async function handleOnboardingStep(
       // If completed, update WS status
       if (nextStep === "COMPLETE") {
         ws.hasCompletedOnboarding = true;
-        // Note: We don't need to call authenticateUser anymore as they are already authenticated.
-        // Just notify them to refresh or handle it?
-        // Actually, front-end will see "COMPLETE" via ws message above and redirect/reload.
+
+        // Notify frontend to clear onboarding UI
+        ws.send(JSON.stringify({ type: "onboarding_complete" }));
+
+        // Trigger the learning session initialization immediately
+        await initLearningSession(ws);
       }
     } else {
       // Invalid input - increment attempts

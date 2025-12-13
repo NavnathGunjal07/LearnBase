@@ -7,7 +7,7 @@ import {
   handleOnboardingFlow,
   AuthenticatedWebSocket,
 } from "./onboardingHandler";
-import { handleLearningFlow } from "./learningHandler";
+import { handleLearningFlow, initLearningSession } from "./learningHandler";
 import { handleWebSocketError } from "../utils/errorHandler";
 
 export function setupWebSocketServer(server: Server) {
@@ -89,6 +89,14 @@ export function setupWebSocketServer(server: Server) {
                 userId: user.id,
               })
             );
+
+            if (
+              ws.hasCompletedOnboarding &&
+              ws.isAuthenticated &&
+              !ws.currentSessionId
+            ) {
+              await initLearningSession(ws);
+            }
           } else {
             throw new Error("User not found");
           }

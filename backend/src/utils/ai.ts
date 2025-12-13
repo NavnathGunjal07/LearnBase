@@ -18,7 +18,7 @@ interface ChatCompletionOptions {
  */
 export async function streamChatCompletion({
   messages,
-  model = "groq/compound",
+  model = "llama-3.3-70b-versatile",
   temperature = 0.7,
   maxTokens = 1024,
   onDelta,
@@ -43,8 +43,6 @@ export async function streamChatCompletion({
         fullResponse += content;
       }
     }
-
-    console.log("Full response:", fullResponse);
 
     // After streaming is complete, try to parse JSON if onJson callback is provided
     if (onJson && fullResponse.trim()) {

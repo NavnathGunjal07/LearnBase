@@ -509,7 +509,7 @@ async function handleTopicGeneration(
     const prompt = TOPIC_GENERATION_PROMPT.replace("{{user_content}}", content);
 
     let jsonHandled = false;
-
+    console.log("here");
     const fullResponse = await streamChatCompletion({
       messages: [
         { role: "system", content: prompt },
@@ -517,9 +517,20 @@ async function handleTopicGeneration(
       ],
       // Don't stream to user to avoid showing raw JSON or partial thoughts.
       onJson: async (data: any) => {
+        console.log("JSON data received:", data);
         if (data.topic_generation) {
           jsonHandled = true;
           const { masterTopic, subtopics } = data.topic_generation;
+
+          // Notify user about plan creation
+          ws.send(
+            JSON.stringify({
+              type: "message",
+              sender: "assistant", // or 'system' depending on how you want it styled? Assistant is fine.
+              content:
+                "Creating personalized plan for your topic, please wait...",
+            })
+          );
 
           // 2. Create in DB
           try {
@@ -553,6 +564,9 @@ async function handleTopicGeneration(
                 isActive: true,
               },
             });
+
+            // Notify frontend to refresh topic list
+            ws.send(JSON.stringify({ type: "topics_updated" }));
 
             // 4. Start Session (similar to handleTopicSelected)
             // Trigger logic as if topic was selected
