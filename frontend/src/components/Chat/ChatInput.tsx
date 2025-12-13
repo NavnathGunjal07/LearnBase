@@ -47,15 +47,9 @@ export default function ChatInput({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const effectiveInputType =
-    mode === "visualizer" &&
-    (visualizerAvailability?.status === "available" ||
-      visualizerSuggestions.length > 0)
-      ? "select"
-      : inputType;
+  const effectiveInputType = inputType;
 
-  const effectiveOptions =
-    mode === "visualizer" ? visualizerSuggestions : options;
+  const effectiveOptions = options;
 
   useEffect(() => {
     // Reset state when inputType changes

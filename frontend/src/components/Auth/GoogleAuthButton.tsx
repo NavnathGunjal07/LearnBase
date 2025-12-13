@@ -3,9 +3,7 @@ import { FC } from "react";
 export const GoogleAuthButton: FC<{ className?: string }> = ({ className }) => {
   const handleGoogleLogin = () => {
     // Redirect to backend Google Auth route
-    window.location.href = `${
-      import.meta.env.VITE_API_BASE_URL
-    }/api/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
   };
 
   return (
