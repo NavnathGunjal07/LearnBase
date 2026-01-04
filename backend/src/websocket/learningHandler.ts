@@ -559,7 +559,6 @@ async function handleTopicGeneration(
     const prompt = TOPIC_GENERATION_PROMPT.replace("{{user_content}}", content);
 
     let jsonHandled = false;
-    console.log("here");
     const fullResponse = await streamChatCompletion({
       messages: [
         { role: "system", content: prompt },

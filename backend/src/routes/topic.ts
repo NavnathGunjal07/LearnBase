@@ -39,7 +39,7 @@ router.get(
   apiLimiter,
   async (req: Request, res: Response) => {
     try {
-      const { user } = req.user as AuthRequest;
+      const user = (req as AuthRequest).user;
       const userTopics = await prisma.userTopic.findMany({
         where: {
           userId: user?.userId,
@@ -128,7 +128,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { topicId } = req.body;
-      const { user } = req.user as AuthRequest;
+      const user = (req as AuthRequest).user;
 
       if (!topicId) {
         return res.status(400).json({ error: "Topic ID is required" });
@@ -214,7 +214,7 @@ router.delete(
   authenticateToken,
   apiLimiter,
   async (req: Request, res: Response) => {
-    const { user } = req.user as AuthRequest;
+    const user = (req as AuthRequest).user;
     const userTopicId = parseInt(req.params.userTopicId);
 
     if (isNaN(userTopicId)) {

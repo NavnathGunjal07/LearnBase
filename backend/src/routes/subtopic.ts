@@ -11,7 +11,7 @@ router.patch(
   authenticateToken,
   apiLimiter,
   async (req: Request, res: Response) => {
-    const { user } = req.user as AuthRequest;
+    const user = (req as AuthRequest).user;
     const userTopicId = parseInt(req.params.userTopicId);
     const subtopicId = parseInt(req.params.subtopicId);
     const { completedPercent } = req.body as any;
