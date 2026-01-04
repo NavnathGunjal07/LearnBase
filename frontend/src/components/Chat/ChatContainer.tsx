@@ -242,7 +242,11 @@ export default function ChatContainer({
                 </div>
               )}
               {messages.map((msg, i) => (
-                <ChatMessage key={i} message={msg} />
+                <ChatMessage
+                  key={i}
+                  message={msg}
+                  onQuizAnswer={chatHook.submitQuizAnswer}
+                />
               ))}
               {isTyping && (
                 <div className="flex justify-start">
@@ -306,7 +310,11 @@ export default function ChatContainer({
         >
           <div className="w-full max-w-3xl md:max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
             {messages.map((msg, i) => (
-              <ChatMessage key={i} message={msg} />
+              <ChatMessage
+                key={i}
+                message={msg}
+                onQuizAnswer={chatHook.submitQuizAnswer}
+              />
             ))}
             {/* Auto-scroll target */}
             <div ref={messagesEndRef} />

@@ -196,6 +196,20 @@ export const useChat = (
             inputType: "code",
             language: data.language || "javascript",
           }));
+        } else if (data.type === "quiz") {
+          // Handle quiz card - add as a message
+          setMessages((prev) => [
+            ...prev,
+            {
+              sender: "assistant",
+              content: "Quiz Time!", // Fallback content
+              messageType: "quiz",
+              quiz: data.quiz,
+              isComplete: true,
+            },
+          ]);
+        } else if (data.type === "quiz_result") {
+          // Quiz answer result received
         }
 
         if (data.type === "typing") {
@@ -544,6 +558,18 @@ export const useChat = (
     }
   };
 
+  const submitQuizAnswer = (selectedIndex: number, correctIndex: number) => {
+    if (ws?.readyState !== WebSocket.OPEN) return;
+
+    ws.send(
+      JSON.stringify({
+        type: "quiz_answer",
+        selectedIndex,
+        correctIndex,
+      })
+    );
+  };
+
   return {
     messages,
     isTyping,
@@ -565,5 +591,6 @@ export const useChat = (
     checkVisualizerAvailability,
     visualizerAvailability,
     resetChat,
+    submitQuizAnswer,
   };
 };

@@ -4,13 +4,41 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import Avatar from "./Avatar";
+import { QuizCard } from "../QuizCard";
 
-export default function ChatMessage({ message }: { message: ChatMessageType }) {
+interface ChatMessageProps {
+  message: ChatMessageType;
+  onQuizAnswer?: (selectedIndex: number, correctIndex: number) => void;
+}
+
+export default function ChatMessage({
+  message,
+  onQuizAnswer,
+}: ChatMessageProps) {
   const isUser = message.sender === "user";
   const rawContent = message.content?.trim() || "";
 
   // Convert literal \n to actual newlines for proper rendering
   const content = rawContent.replace(/\\n/g, "\n");
+
+  // Check for quiz
+  if (message.messageType === "quiz" && message.quiz) {
+    return (
+      <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
+        <Avatar message="Quiz Time!" size="small" />
+        <div className="w-[90%] max-w-[90%]">
+          <QuizCard
+            question={message.quiz.question}
+            options={message.quiz.options}
+            correctIndex={message.quiz.correctIndex}
+            onAnswer={(selectedIndex) =>
+              onQuizAnswer?.(selectedIndex, message.quiz!.correctIndex)
+            }
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (!content) {
     return (

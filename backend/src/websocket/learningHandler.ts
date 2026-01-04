@@ -72,6 +72,8 @@ export async function handleLearningFlow(
       } else {
         await handleUserMessage(ws, message);
       }
+    } else if (type === "quiz_answer") {
+      await handleQuizAnswer(ws, message);
     } else if (type === "visualizer_check") {
       await handleVisualizerCheck(ws);
     } else if (type === "new_chat") {
@@ -167,6 +169,81 @@ async function handleSessionResumed(ws: AuthenticatedWebSocket, message: any) {
     }
   } catch (error) {
     handleWebSocketError(error, ws, "handleSessionResumed");
+  }
+}
+
+async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
+  try {
+    const { selectedIndex, correctIndex } = message;
+    const sessionId = ws.currentSessionId;
+
+    if (!sessionId) {
+      ws.send(JSON.stringify({ type: "error", content: "No active session" }));
+      return;
+    }
+
+    const isCorrect = selectedIndex === correctIndex;
+
+    // Get session details for progress update
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        userTopic: { include: { masterTopic: true } },
+        subtopic: true,
+      },
+    });
+
+    if (!session) {
+      ws.send(JSON.stringify({ type: "error", content: "Session not found" }));
+      return;
+    }
+
+    // Send result to user
+    ws.send(
+      JSON.stringify({
+        type: "quiz_result",
+        isCorrect,
+      })
+    );
+
+    // Update progress if correct
+    if (isCorrect && session.userTopicId && session.subtopicId) {
+      const progressRecord = await prisma.progress.findUnique({
+        where: {
+          userId_userTopicId_subtopicId: {
+            userId: ws.userId!,
+            userTopicId: session.userTopicId,
+            subtopicId: session.subtopicId,
+          },
+        },
+      });
+
+      const currentProgress = progressRecord?.completedPercent || 0;
+      const weightage = session.subtopic?.weightage || 10;
+      const newProgress = Math.min(currentProgress + weightage, 100);
+
+      await handleProgressUpdate(ws, session.userTopicId, session.subtopicId, {
+        score: newProgress,
+        reasoning: "Answered quiz question correctly",
+      });
+    }
+
+    // Send AI encouragement message
+    const encouragement = isCorrect
+      ? "🎉🌈 *Excellent!* You got it right! 🚀"
+      : "🤔🐢 *Not quite, young coder.* Let's review that concept again! 💡";
+
+    ws.send(
+      JSON.stringify({
+        type: "message",
+        content: encouragement,
+        sender: "assistant",
+      })
+    );
+
+    ws.send(JSON.stringify({ type: "done" }));
+  } catch (error) {
+    handleWebSocketError(error, ws, "handleQuizAnswer");
   }
 }
 
@@ -348,6 +425,38 @@ async function generateAIResponse(
           );
         }
         console.log(data);
+
+        // Handle quiz questions
+        if (data.quiz && data.quiz.question && data.quiz.options) {
+          const quizContent = JSON.stringify({
+            question: data.quiz.question,
+            options: data.quiz.options,
+            correctIndex: data.quiz.correctIndex,
+          });
+
+          // Save quiz to database
+          await prisma.chatMessage.create({
+            data: {
+              chatId: sessionId,
+              userId: ws.userId,
+              role: "assistant",
+              content: quizContent,
+              messageType: "quiz",
+            },
+          });
+
+          ws.send(
+            JSON.stringify({
+              type: "quiz",
+              quiz: {
+                question: data.quiz.question,
+                options: data.quiz.options,
+                correctIndex: data.quiz.correctIndex,
+              },
+            })
+          );
+        }
+
         if (data.code_request) {
           ws.send(
             JSON.stringify({
@@ -356,7 +465,9 @@ async function generateAIResponse(
             })
           );
         }
-        if (data.suggestions && Array.isArray(data.suggestions)) {
+
+        // Only send suggestions if no quiz is present
+        if (data.suggestions && Array.isArray(data.suggestions) && !data.quiz) {
           ws.send(
             JSON.stringify({
               type: "suggestions",
@@ -364,6 +475,7 @@ async function generateAIResponse(
             })
           );
         }
+
         if (
           data.visualizer_suggestions &&
           Array.isArray(data.visualizer_suggestions)

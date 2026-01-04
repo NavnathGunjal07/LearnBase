@@ -1,8 +1,16 @@
 export interface ChatMessageType {
+  id?: string;
   sender: "user" | "assistant";
   content: string;
   timestamp?: string;
   isComplete?: boolean; // For streaming messages
+  messageType?: "text" | "quiz" | "code";
+  quiz?: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+    userAnswer?: number;
+  };
 }
 
 export type LearningLevel = "basic" | "intermediate" | "advanced";
