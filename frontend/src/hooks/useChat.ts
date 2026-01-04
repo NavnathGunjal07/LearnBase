@@ -215,6 +215,18 @@ export const useChat = (
             challenge: data.challenge,
             executionResult: null,
           });
+          // Also add a message to the chat history
+          setMessages((prev) => [
+            ...prev,
+            {
+              sender: "assistant",
+              content:
+                "Coding Challenge: " + (data.challenge.title || "Untitled"),
+              messageType: "coding_challenge",
+              codingChallenge: data.challenge,
+              isComplete: true,
+            },
+          ]);
         } else if (data.type === "code_execution_result") {
           setCodingWorkspace((prev) => ({
             ...prev,

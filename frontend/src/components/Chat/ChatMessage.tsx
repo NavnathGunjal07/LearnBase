@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChatMessageType } from "../../utils/types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -5,21 +6,56 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import Avatar from "./Avatar";
 import { QuizCard } from "../QuizCard";
+import { ChevronDown, ChevronRight, Play, Terminal } from "lucide-react";
 
 interface ChatMessageProps {
   message: ChatMessageType;
   onQuizAnswer?: (selectedIndex: number, correctIndex: number) => void;
+  onOpenCodingChallenge?: (challenge: any) => void;
 }
 
 export default function ChatMessage({
   message,
   onQuizAnswer,
+  onOpenCodingChallenge,
 }: ChatMessageProps) {
   const isUser = message.sender === "user";
   const rawContent = message.content?.trim() || "";
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Convert literal \n to actual newlines for proper rendering
   const content = rawContent.replace(/\\n/g, "\n");
+
+  // Check for coding challenge
+  if (message.messageType === "coding_challenge" && message.codingChallenge) {
+    return (
+      <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
+        <Avatar message="Challenge!" size="small" />
+        <div className="w-[90%] max-w-[90%]">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
+                <Terminal size={20} />
+              </div>
+              <h3 className="font-semibold text-gray-800">
+                {message.codingChallenge.title}
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+              {message.codingChallenge.description}
+            </p>
+            <button
+              onClick={() => onOpenCodingChallenge?.(message.codingChallenge)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors w-full sm:w-auto justify-center"
+            >
+              <Play size={16} />
+              Open Coding Workspace
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Check for quiz
   if (message.messageType === "quiz" && message.quiz) {
@@ -27,14 +63,50 @@ export default function ChatMessage({
       <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
         <Avatar message="Quiz Time!" size="small" />
         <div className="w-[90%] max-w-[90%]">
-          <QuizCard
-            question={message.quiz.question}
-            options={message.quiz.options}
-            correctIndex={message.quiz.correctIndex}
-            onAnswer={(selectedIndex) =>
-              onQuizAnswer?.(selectedIndex, message.quiz!.correctIndex)
-            }
-          />
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+            {/* Header / Summary View */}
+            <div
+              onClick={() => setIsExpanded(!isExpanded)}
+              className={`p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors ${
+                isExpanded ? "border-b border-gray-100" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 text-blue-600 p-1.5 rounded-md">
+                  <span className="text-lg leading-none">🎯</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">
+                    Quiz
+                  </span>
+                  <span className="font-medium text-gray-800 text-sm line-clamp-1">
+                    {message.quiz.question}
+                  </span>
+                </div>
+              </div>
+              <div className="text-gray-400">
+                {isExpanded ? (
+                  <ChevronDown size={20} />
+                ) : (
+                  <ChevronRight size={20} />
+                )}
+              </div>
+            </div>
+
+            {/* Expanded Content */}
+            {isExpanded && (
+              <div className="p-4 bg-gray-50/30">
+                <QuizCard
+                  question={message.quiz.question}
+                  options={message.quiz.options}
+                  correctIndex={message.quiz.correctIndex}
+                  onAnswer={(selectedIndex) =>
+                    onQuizAnswer?.(selectedIndex, message.quiz!.correctIndex)
+                  }
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );

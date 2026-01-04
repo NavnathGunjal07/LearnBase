@@ -4,12 +4,19 @@ export interface ChatMessageType {
   content: string;
   timestamp?: string;
   isComplete?: boolean; // For streaming messages
-  messageType?: "text" | "quiz" | "code";
+  messageType?: "text" | "quiz" | "code" | "coding_challenge";
   quiz?: {
     question: string;
     options: string[];
     correctIndex: number;
     userAnswer?: number;
+  };
+  codingChallenge?: {
+    title: string;
+    description: string;
+    starterCode: string;
+    language: string;
+    testCases: any[];
   };
 }
 

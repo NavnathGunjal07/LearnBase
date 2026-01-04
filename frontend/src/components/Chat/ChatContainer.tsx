@@ -246,6 +246,13 @@ export default function ChatContainer({
                   key={i}
                   message={msg}
                   onQuizAnswer={chatHook.submitQuizAnswer}
+                  onOpenCodingChallenge={(challenge) =>
+                    chatHook.setCodingWorkspace({
+                      isOpen: true,
+                      challenge,
+                      executionResult: null,
+                    })
+                  }
                 />
               ))}
               {isTyping && (
@@ -314,6 +321,13 @@ export default function ChatContainer({
                 key={i}
                 message={msg}
                 onQuizAnswer={chatHook.submitQuizAnswer}
+                onOpenCodingChallenge={(challenge) =>
+                  chatHook.setCodingWorkspace({
+                    isOpen: true,
+                    challenge,
+                    executionResult: null,
+                  })
+                }
               />
             ))}
             {/* Auto-scroll target */}
