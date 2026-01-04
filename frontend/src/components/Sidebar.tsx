@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -61,6 +62,7 @@ export default function Sidebar({
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const { sendTopicSelection, lastProgressUpdate } = chatHook;
+  const [, setSearchParams] = useSearchParams();
 
   // Listen for progress updates from chat
   useEffect(() => {
@@ -158,7 +160,11 @@ export default function Sidebar({
           <div className="p-2">
             <TopicSearch
               onTopicAdded={() => learning.addTopic()}
-              onNewChat={() => learning.clearSelection()}
+              onNewChat={() => {
+                learning.clearSelection();
+                chatHook.resetChat();
+                setSearchParams({});
+              }}
               collapsed={collapsed}
             />
           </div>

@@ -529,6 +529,21 @@ export const useChat = (
     }
   };
 
+  const resetChat = () => {
+    // Clear local state immediately for UI responsiveness
+    setMessages([]);
+    setCurrentTopicId(null);
+    setCurrentSubtopicId(null);
+    setInputConfig({ inputType: "text" });
+    setIsGeneratingVisualizer(false);
+    setIsTyping(false);
+
+    // Notify backend to reset session and send greeting
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "new_chat" }));
+    }
+  };
+
   return {
     messages,
     isTyping,
@@ -549,5 +564,6 @@ export const useChat = (
     lastTopicUpdate,
     checkVisualizerAvailability,
     visualizerAvailability,
+    resetChat,
   };
 };

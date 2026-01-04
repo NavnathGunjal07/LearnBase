@@ -22,16 +22,31 @@ interface ProgressUpdate {
 
 // Export this function to be used primarily by chatServer
 export async function initLearningSession(ws: AuthenticatedWebSocket) {
-  // If user has no active session or topic, send the initial greeting
-  if (!ws.currentSessionId && !ws.currentTopicId) {
-    ws.send(
-      JSON.stringify({
-        type: "message",
-        content: "What do you want to learn today?",
-        sender: "assistant",
-      })
-    );
+  // Close previous session if exists
+  if (ws.currentSessionId) {
+    try {
+      await prisma.chatSession.update({
+        where: { id: ws.currentSessionId },
+        data: { lastActivity: new Date() },
+      });
+    } catch (error) {
+      console.error("Error closing previous session:", error);
+    }
   }
+
+  // Clear current session state to start fresh
+  ws.currentSessionId = undefined;
+  ws.currentTopicId = undefined;
+  ws.currentSubtopicId = undefined;
+
+  // Send the initial greeting for a new session
+  ws.send(
+    JSON.stringify({
+      type: "message",
+      content: "What do you want to learn today?",
+      sender: "assistant",
+    })
+  );
 }
 
 export async function handleLearningFlow(
@@ -59,6 +74,8 @@ export async function handleLearningFlow(
       }
     } else if (type === "visualizer_check") {
       await handleVisualizerCheck(ws);
+    } else if (type === "new_chat") {
+      await initLearningSession(ws);
     }
   } catch (error) {
     console.error("Error in learning flow:", error);
@@ -103,6 +120,7 @@ async function handleTopicSelected(ws: AuthenticatedWebSocket, message: any) {
     await prisma.chatMessage.create({
       data: {
         chatId: session.id,
+        userId: ws.userId, // Track which user this assistant message is for
         role: "assistant",
         content: initialQuestion,
         messageType: "text",
@@ -171,6 +189,12 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
         content: content,
         messageType: "text",
       },
+    });
+
+    // Update session last activity
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { lastActivity: new Date() },
     });
 
     // Fetch history for context
@@ -281,6 +305,7 @@ async function generateAIResponse(
     await prisma.chatMessage.create({
       data: {
         chatId: sessionId,
+        userId: ws.userId, // Track which user this assistant message is for
         role: "assistant",
         content: fullResponse,
         messageType: "text",
