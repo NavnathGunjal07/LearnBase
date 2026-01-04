@@ -74,6 +74,8 @@ export async function handleLearningFlow(
       }
     } else if (type === "quiz_answer") {
       await handleQuizAnswer(ws, message);
+    } else if (type === "code_execution") {
+      await handleCodeExecution(ws, message);
     } else if (type === "visualizer_check") {
       await handleVisualizerCheck(ws);
     } else if (type === "new_chat") {
@@ -169,6 +171,76 @@ async function handleSessionResumed(ws: AuthenticatedWebSocket, message: any) {
     }
   } catch (error) {
     handleWebSocketError(error, ws, "handleSessionResumed");
+  }
+}
+
+async function handleCodeExecution(ws: AuthenticatedWebSocket, message: any) {
+  try {
+    const { code, language, challenge } = message;
+    ws.send(
+      JSON.stringify({ type: "code_execution_result", status: "running" })
+    );
+
+    const { generateEvalPrompt } = await import("../prompts/eval");
+    const EVAL_PROMPT = generateEvalPrompt(language, code, challenge.testCases);
+
+    const { streamChatCompletion } = await import("../utils/ai");
+
+    await streamChatCompletion({
+      messages: [{ role: "system", content: EVAL_PROMPT }],
+      onJson: async (result) => {
+        ws.send(
+          JSON.stringify({
+            type: "code_execution_result",
+            status: "completed",
+            result,
+          })
+        );
+
+        if (result.passedCount === result.totalCount && result.totalCount > 0) {
+          ws.send(
+            JSON.stringify({
+              type: "message",
+              sender: "assistant",
+              content: "🎉 All test cases passed! Great job! 🚀",
+            })
+          );
+        }
+
+        // Save submission to DB
+        // challenge.id corresponds to the Exercise ID if it was created
+        if (challenge?.id && typeof challenge.id === "number" && ws.userId) {
+          try {
+            await prisma.submission.create({
+              data: {
+                userId: ws.userId,
+                exerciseId: challenge.id,
+                code: code,
+                status:
+                  result.passedCount === result.totalCount
+                    ? "completed"
+                    : "failed",
+                score: result.passedCount || 0,
+                feedback: result.error || JSON.stringify(result.results),
+                runtime: 0, // We don't track runtime yet
+              },
+            });
+            console.log(`Saved submission for exercise ${challenge.id}`);
+          } catch (dbError) {
+            console.error("Failed to save submission:", dbError);
+          }
+        }
+      },
+    });
+  } catch (error) {
+    console.error("Code Eval Error", error);
+    ws.send(
+      JSON.stringify({
+        type: "code_execution_result",
+        status: "error",
+        error: "Execution failed",
+      })
+    );
   }
 }
 
@@ -457,7 +529,46 @@ async function generateAIResponse(
           );
         }
 
-        if (data.code_request) {
+        if (data.coding_challenge) {
+          let exerciseId: number | undefined;
+
+          // Perist the challenge as an Exercise in DB if subtopic context exists
+          if (subtopicId) {
+            try {
+              const exercise = await prisma.exercise.create({
+                data: {
+                  subtopicId: subtopicId,
+                  title: data.coding_challenge.title,
+                  prompt: data.coding_challenge.description, // prompt field stores description
+                  starterCode: data.coding_challenge.starterCode,
+                  difficulty: "intermediate",
+                  aiGenerated: true,
+                  testCases: {
+                    create:
+                      data.coding_challenge.testCases?.map((tc: any) => ({
+                        input: tc.input,
+                        expectedOutput: tc.expected,
+                        visible: true,
+                      })) || [],
+                  },
+                },
+              });
+              exerciseId = exercise.id;
+            } catch (err) {
+              console.error("Failed to persist exercise:", err);
+            }
+          }
+
+          ws.send(
+            JSON.stringify({
+              type: "coding_challenge",
+              challenge: {
+                ...data.coding_challenge,
+                id: exerciseId, // Pass ID to frontend so it can be sent back with submission
+              },
+            })
+          );
+        } else if (data.code_request) {
           ws.send(
             JSON.stringify({
               type: "code_request",

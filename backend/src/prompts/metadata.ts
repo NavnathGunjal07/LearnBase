@@ -19,8 +19,16 @@ You must output **ONLY** a valid JSON object. Do not include any text outside th
     "correctIndex": 1 // 0-based index of the correct answer
   },
   "suggestions": ["Option 1", "Option 2", "Option 3"], // 2-4 short, relevant follow-up options. DO NOT include if quiz is present.
-  "code_request": { // Optional: Include ONLY when the user explicitly asks to write code or for a challenge
-    "language": "javascript" // The programming language for the code editor
+"coding_challenge": { // Optional: Include ONLY when user asks for a challenge or practice
+    "title": "Sum of Array",
+    "description": "Write a function that calculates the sum of all numbers in an array.",
+    "language": "javascript",
+    "starterCode": "function sum(arr) {\n  // Write your code here\n}",
+    "testCases": [
+      { "input": "[1, 2, 3]", "expected": "6" },
+      { "input": "[-1, 5, 2]", "expected": "6" },
+      { "input": "[0, 0, 0]", "expected": "0" }
+    ]
   },
   "progress_update": { // Optional: Include ONLY when the user demonstrates understanding or completes a concept
     "score": 40, // The NEW total percentage (Current Progress + Weightage, max 100)

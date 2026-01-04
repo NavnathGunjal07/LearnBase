@@ -86,6 +86,12 @@ export const useChat = (
   }>({ inputType: "text" });
   const [isGeneratingVisualizer, setIsGeneratingVisualizer] = useState(false);
 
+  const [codingWorkspace, setCodingWorkspace] = useState<{
+    isOpen: boolean;
+    challenge?: any;
+    executionResult?: any;
+  }>({ isOpen: false });
+
   // Keep ref in sync
   useEffect(() => {
     lastProgressUpdateRef.current = lastProgressUpdate;
@@ -195,6 +201,28 @@ export const useChat = (
             ...prev,
             inputType: "code",
             language: data.language || "javascript",
+          }));
+        } else if (data.type === "code_request") {
+          // Defer to coding workspace logic if challenge is present
+          setInputConfig((prev) => ({
+            ...prev,
+            inputType: "code",
+            language: data.language || "javascript",
+          }));
+        } else if (data.type === "coding_challenge") {
+          setCodingWorkspace({
+            isOpen: true,
+            challenge: data.challenge,
+            executionResult: null,
+          });
+        } else if (data.type === "code_execution_result") {
+          setCodingWorkspace((prev) => ({
+            ...prev,
+            executionResult: {
+              status: data.status,
+              result: data.result,
+              error: data.error,
+            },
           }));
         } else if (data.type === "quiz") {
           // Handle quiz card - add as a message
@@ -570,6 +598,19 @@ export const useChat = (
     );
   };
 
+  const submitCode = (code: string, language: string) => {
+    if (!codingWorkspace.challenge || ws?.readyState !== WebSocket.OPEN) return;
+
+    ws.send(
+      JSON.stringify({
+        type: "code_execution",
+        code,
+        language,
+        challenge: codingWorkspace.challenge,
+      })
+    );
+  };
+
   return {
     messages,
     isTyping,
@@ -591,6 +632,10 @@ export const useChat = (
     checkVisualizerAvailability,
     visualizerAvailability,
     resetChat,
+
     submitQuizAnswer,
+    submitCode,
+    codingWorkspace,
+    setCodingWorkspace,
   };
 };
