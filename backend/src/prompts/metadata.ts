@@ -19,18 +19,20 @@ You must output **ONLY** a valid JSON object. Do not include any text outside th
     "correctIndex": 1 // 0-based index of the correct answer
   },
   "suggestions": ["Option 1", "Option 2", "Option 3"], // 2-4 short, relevant follow-up options. DO NOT include if quiz is present.
-"coding_challenge": { // Optional: Include ONLY when user asks for a challenge or practice
+  "coding_challenge": { // Optional: Include ONLY when user asks for a challenge or practice
     "title": "Sum of Array",
-    "description": "Write a function that calculates the sum of all numbers in an array.",
+    "description": "Write a function 'sum' that calculates the sum of all numbers in an array. \\n\\n**Constraints:**\\n- The array can contain positive and negative integers.\\n- If the array is empty, return 0.\\n- Input array length will be between 0 and 1000.",
     "language": "javascript",
-    "starterCode": "function sum(arr) {\n  // Write your code here\n}",
+    "starterCode": "// Function to calculate sum of array elements\n// @param {number[]} arr - Input array of numbers\n// @returns {number} Sum of all elements\nfunction sum(arr) {\n  // Write your code here\n  \n}",
     "testCases": [
       { "input": "[1, 2, 3]", "expected": "6" },
       { "input": "[-1, 5, 2]", "expected": "6" },
-      { "input": "[0, 0, 0]", "expected": "0" }
+      { "input": "[0, 0, 0]", "expected": "0" },
+      { "input": "[]", "expected": "0" },
+      { "input": "[10, -10]", "expected": "0" }
     ]
   },
-  "progress_update": { // Optional: Include ONLY when the user demonstrates understanding or completes a concept
+  "progress_update": { // Optional: Include ONLY when explicitly necessary (e.g., topic completion). DO NOT include in regular chat turns.
     "score": 40, // The NEW total percentage (Current Progress + Weightage, max 100)
     "reasoning": "Brief explanation of why progress was updated"
   }
