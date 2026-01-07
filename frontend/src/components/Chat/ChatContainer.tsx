@@ -37,19 +37,18 @@ export default function ChatContainer({
 
   // Scroll refs and state
   const scrollViewportRef = useRef<HTMLDivElement>(null);
-  const [isAtBottom, setIsAtBottom] = useState(true);
+  const isAtBottomRef = useRef(true); // Use ref instead of state to avoid render lag issues
   const prevMessagesLength = useRef(messages.length);
 
-  // Handle scroll events to detect if user is at bottom
   // Handle scroll events to detect if user is at bottom
   const handleScroll = () => {
     const div = scrollViewportRef.current;
     if (!div) return;
 
-    const threshold = 100; // Increased threshold for better UX
-    const newIsAtBottom =
+    const threshold = 50;
+    const isAtBottom =
       div.scrollHeight - div.scrollTop - div.clientHeight < threshold;
-    setIsAtBottom(newIsAtBottom);
+    isAtBottomRef.current = isAtBottom;
   };
 
   // Auto-scroll logic
@@ -61,15 +60,17 @@ export default function ChatContainer({
     const lastMessage = messages[messages.length - 1];
     const isUserMessage = lastMessage?.sender === "user";
 
-    // Always use smooth scrolling as requested by user
-    // Now that layout is stable (min-h-0), this should work without flickering
+    // If user sent a message, force "at bottom" state to true so we follow it
+    if (isNewMessage && isUserMessage) {
+      isAtBottomRef.current = true;
+    }
+
     const behavior = "smooth";
 
     // Scroll if:
-    // 1. User is already close to bottom (following stream)
-    // 2. It's a new message (jump to bottom to show it)
-    // 3. Specifically if it's a user message (always follow user own input)
-    if (isAtBottom || isNewMessage || isUserMessage) {
+    // 1. We were already at the bottom (isAtBottomRef.current)
+    // 2. OR we just forced it because it's a user message
+    if (isAtBottomRef.current) {
       div.scrollTo({
         top: div.scrollHeight,
         behavior: behavior,
@@ -77,7 +78,7 @@ export default function ChatContainer({
     }
 
     prevMessagesLength.current = messages.length;
-  }, [messages, isTyping, isAtBottom]);
+  }, [messages, isTyping]);
 
   // Check onboarding status on mount and start onboarding if needed (skip in auth mode)
   useEffect(() => {
