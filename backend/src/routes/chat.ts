@@ -15,10 +15,6 @@ router.get("/history", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Topic ID is required" });
     }
 
-    // Calculate date 2 days ago
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
     // Find the user topic
     const userTopic = await prisma.userTopic.findFirst({
       where: {
@@ -37,9 +33,6 @@ router.get("/history", authenticateToken, async (req, res) => {
         userId,
         userTopicId: userTopic.id,
         subtopicId: subtopicId ? parseInt(subtopicId as string) : null,
-        lastActivity: {
-          gte: twoDaysAgo,
-        },
       },
       orderBy: {
         lastActivity: "desc",
@@ -70,13 +63,10 @@ router.get("/history", authenticateToken, async (req, res) => {
       });
     }
 
-    // Get messages from the last 2 days
+    // Get all messages for this session
     const messages = await prisma.chatMessage.findMany({
       where: {
         chatId: chatSession.id,
-        createdAt: {
-          gte: twoDaysAgo,
-        },
       },
       orderBy: {
         createdAt: "asc",
