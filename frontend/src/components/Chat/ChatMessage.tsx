@@ -57,6 +57,76 @@ export default function ChatMessage({
     );
   }
 
+  // Check for coding submission
+  if (message.messageType === "coding_submission" && message.codingSubmission) {
+    const isSuccess = message.codingSubmission.status === "completed";
+    return (
+      <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
+        <Avatar
+          message={isSuccess ? "Great Job!" : "Keep Trying!"}
+          size="small"
+        />
+        <div className="w-[90%] max-w-[90%]">
+          <div
+            className={`bg-white border text-sm rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${
+              isSuccess ? "border-green-200" : "border-red-200"
+            }`}
+          >
+            <div
+              onClick={() => setIsExpanded(!isExpanded)}
+              className={`p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 ${
+                isExpanded ? "border-b border-gray-100" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`p-1.5 rounded-md ${
+                    isSuccess
+                      ? "bg-green-100 text-green-600"
+                      : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {isSuccess ? (
+                    <span className="text-lg">✅</span>
+                  ) : (
+                    <span className="text-lg">❌</span>
+                  )}
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    {isSuccess ? "Solution Accepted" : "Solution Failed"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Passed: {message.codingSubmission.passedCount} /{" "}
+                    {message.codingSubmission.totalCount} Test Cases
+                  </div>
+                </div>
+              </div>
+              <div className="text-gray-400">
+                {isExpanded ? (
+                  <ChevronDown size={16} />
+                ) : (
+                  <ChevronRight size={16} />
+                )}
+              </div>
+            </div>
+
+            {isExpanded && (
+              <div className="p-0">
+                <div className="bg-gray-900 p-3 pt-2 text-xs font-mono text-gray-300 overflow-x-auto">
+                  <div className="flex justify-between items-center mb-2 border-b border-gray-700 pb-1">
+                    <span>{message.codingSubmission.language}</span>
+                  </div>
+                  <pre>{message.codingSubmission.code}</pre>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Check for quiz
   if (message.messageType === "quiz" && message.quiz) {
     return (

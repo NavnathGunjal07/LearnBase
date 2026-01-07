@@ -88,6 +88,12 @@ router.get("/history", authenticateToken, async (req, res) => {
       sender: msg.role === "user" ? "user" : "assistant",
       content: msg.content,
       timestamp: msg.createdAt.toISOString(),
+      messageType: msg.messageType,
+      quiz: msg.messageType === "quiz" ? msg.metadata : undefined,
+      codingChallenge:
+        msg.messageType === "coding_challenge" ? msg.metadata : undefined,
+      codingSubmission:
+        msg.messageType === "coding_submission" ? msg.metadata : undefined,
     }));
 
     return res.json({

@@ -226,6 +226,32 @@ async function handleCodeExecution(ws: AuthenticatedWebSocket, message: any) {
               },
             });
             console.log(`Saved submission for exercise ${challenge.id}`);
+
+            // Also save a chat message to record the submission
+            if (ws.currentSessionId) {
+              await prisma.chatMessage.create({
+                data: {
+                  chatId: ws.currentSessionId,
+                  userId: ws.userId,
+                  role: "user",
+                  content: `Submitted solution for ${
+                    challenge.title || "Coding Challenge"
+                  }`,
+                  messageType: "coding_submission",
+                  metadata: {
+                    code,
+                    language,
+                    status:
+                      result.passedCount === result.totalCount
+                        ? "completed"
+                        : "failed",
+                    passedCount: result.passedCount,
+                    totalCount: result.totalCount,
+                    exerciseId: challenge.id,
+                  },
+                },
+              });
+            }
           } catch (dbError) {
             console.error("Failed to save submission:", dbError);
           }
@@ -500,20 +526,19 @@ async function generateAIResponse(
 
         // Handle quiz questions
         if (data.quiz && data.quiz.question && data.quiz.options) {
-          const quizContent = JSON.stringify({
-            question: data.quiz.question,
-            options: data.quiz.options,
-            correctIndex: data.quiz.correctIndex,
-          });
-
           // Save quiz to database
           await prisma.chatMessage.create({
             data: {
               chatId: sessionId,
               userId: ws.userId,
               role: "assistant",
-              content: quizContent,
+              content: `Quiz: ${data.quiz.question}`,
               messageType: "quiz",
+              metadata: {
+                question: data.quiz.question,
+                options: data.quiz.options,
+                correctIndex: data.quiz.correctIndex,
+              },
             },
           });
 
@@ -559,13 +584,27 @@ async function generateAIResponse(
             }
           }
 
+          const challengePayload = {
+            ...data.coding_challenge,
+            id: exerciseId,
+          };
+
+          // Save coding challenge message to chat history
+          await prisma.chatMessage.create({
+            data: {
+              chatId: sessionId,
+              userId: ws.userId,
+              role: "assistant",
+              content: `Coding Challenge: ${data.coding_challenge.title}`,
+              messageType: "coding_challenge",
+              metadata: challengePayload,
+            },
+          });
+
           ws.send(
             JSON.stringify({
               type: "coding_challenge",
-              challenge: {
-                ...data.coding_challenge,
-                id: exerciseId, // Pass ID to frontend so it can be sent back with submission
-              },
+              challenge: challengePayload,
             })
           );
         } else if (data.code_request) {
