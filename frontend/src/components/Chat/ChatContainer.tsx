@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
+import Avatar from "./Avatar";
 import { onboardingService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { OnboardingLayout } from "../Onboarding/OnboardingLayout";
@@ -246,6 +247,11 @@ export default function ChatContainer({
                 <ChatMessage
                   key={i}
                   message={msg}
+                  isLoading={
+                    i === messages.length - 1 &&
+                    (chatHook.generationStatus?.status === "loading" ||
+                      isTyping)
+                  }
                   onQuizAnswer={chatHook.submitQuizAnswer}
                   onOpenCodingChallenge={(challenge) =>
                     chatHook.setCodingWorkspace({
@@ -256,14 +262,37 @@ export default function ChatContainer({
                   }
                 />
               ))}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-white rounded-2xl rounded-tl-none py-3 px-4 shadow-sm border border-gray-100">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-0" />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300" />
+              {/* Only show dots if there's no active message being streamed? Actually isTyping usually means thinking before stream. 
+                  But now we want the loader on the avatar. 
+                  If we have a "Thinking..." message (empty content) it will show there.
+                  If `isTyping` is true and no partial message, we might need a placeholder.
+              */}
+              {isTyping &&
+                messages.length > 0 &&
+                messages[messages.length - 1].sender === "user" && (
+                  // If last message was user, we typically wait for backend to send an empty assistant message or we show a placeholder.
+                  // The `useChat` hook usually appends an empty assistant message when stream starts.
+                  // If `isTyping` is true but no assistant message yet, we can show a placeholder.
+                  // However, let's rely on useChat appending the message.
+                  // If `useChat` DOES NOT append placeholder immediately, we'd need one here.
+                  // Let's assume useChat appends it or we just show the placeholder below.
+                  <div className="flex justify-start items-start gap-3 w-full opacity-60">
+                    <div className="relative inline-block">
+                      <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-blue-500 border-r-purple-500 animate-spin z-10 pointer-events-none" />
+                      <Avatar isTyping={true} size="small" />
                     </div>
+                    <div className="max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 bg-gray-50">
+                      Thinking...
+                    </div>
+                  </div>
+                )}
+
+              {chatHook.generationStatus?.status === "loading" && (
+                <div className="flex justify-center my-2 animate-fade-in">
+                  <div className="bg-blue-50 text-blue-600 text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-blue-100">
+                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    {chatHook.generationStatus.message ||
+                      "Generating content..."}
                   </div>
                 </div>
               )}
@@ -287,6 +316,7 @@ export default function ChatContainer({
                   visualizerSuggestions={
                     chatHook.inputConfig?.visualizerSuggestions
                   }
+                  generationStatus={chatHook.generationStatus}
                 />
               </div>
             )}
@@ -321,6 +351,10 @@ export default function ChatContainer({
               <ChatMessage
                 key={i}
                 message={msg}
+                isLoading={
+                  i === messages.length - 1 &&
+                  (chatHook.generationStatus?.status === "loading" || isTyping)
+                }
                 onQuizAnswer={chatHook.submitQuizAnswer}
                 onOpenCodingChallenge={(challenge) =>
                   chatHook.setCodingWorkspace({
@@ -331,6 +365,35 @@ export default function ChatContainer({
                 }
               />
             ))}
+
+            {/* Immediate loading state for user message */}
+            {isTyping &&
+              messages.length > 0 &&
+              messages[messages.length - 1].sender === "user" && (
+                <div className="flex justify-start items-start gap-3 w-full opacity-60">
+                  <div className="relative inline-block">
+                    <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-blue-500 border-r-purple-500 animate-spin z-10 pointer-events-none" />
+                    <Avatar isTyping={true} size="small" />
+                  </div>
+                  <div className="max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 bg-gray-50">
+                    Thinking...
+                  </div>
+                </div>
+              )}
+
+            {chatHook.generationStatus?.status === "loading" && (
+              <div className="flex justify-center my-2 animate-fade-in">
+                <div className="bg-blue-50 text-blue-600 text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-blue-100">
+                  <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  {chatHook.generationStatus.message ||
+                    (chatHook.generationStatus.type === "quiz"
+                      ? "Generating Quiz..."
+                      : chatHook.generationStatus.type === "coding_challenge"
+                      ? "Generating Coding Challenge..."
+                      : "Generating content...")}
+                </div>
+              </div>
+            )}
             {/* Auto-scroll target */}
             <div ref={messagesEndRef} />
           </div>
@@ -353,7 +416,7 @@ export default function ChatContainer({
                     chatHook.checkVisualizerAvailability();
                   }
                 }}
-                visualizerAvailability={chatHook.visualizerAvailability}
+                generationStatus={chatHook.generationStatus}
               />
             </div>
           </div>

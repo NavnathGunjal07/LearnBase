@@ -488,6 +488,14 @@ async function generateAIResponse(
     });
 
     // Step 2: Generate Metadata (Suggestions & Progress)
+    // Notify frontend that we are generating interactive content
+    ws.send(
+      JSON.stringify({
+        type: "activity_status",
+        status: "generating_content",
+      })
+    );
+
     // Create a new context for the metadata prompt
     const { METADATA_PROMPT } = await import("../prompts/metadata");
 
@@ -643,6 +651,12 @@ async function generateAIResponse(
         }
       },
     });
+    ws.send(
+      JSON.stringify({
+        type: "activity_status",
+        status: "idle",
+      })
+    );
     ws.send(JSON.stringify({ type: "done" }));
   } catch (error) {
     console.error("GROQ API error:", error);
@@ -753,6 +767,13 @@ async function generateVisualizer(
   try {
     console.log(`🎨 Generating visualization for: ${description}`);
 
+    ws.send(
+      JSON.stringify({
+        type: "activity_status",
+        status: "generating_visualizer",
+      })
+    );
+
     const messages = [
       {
         role: "system",
@@ -772,6 +793,14 @@ async function generateVisualizer(
         ws.send(JSON.stringify({ type: "visualizer_progress", content }));
       },
       onJson: (data) => {
+        // Reset status
+        ws.send(
+          JSON.stringify({
+            type: "activity_status",
+            status: "idle",
+          })
+        );
+
         if (data.type === "visualizer" && data.payload) {
           ws.send(
             JSON.stringify({

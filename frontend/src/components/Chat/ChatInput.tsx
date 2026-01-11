@@ -17,7 +17,8 @@ interface ChatInputProps {
   onModeChange?: (mode: "chat" | "visualizer") => void;
   isGeneratingVisualizer?: boolean;
   hideModeSwitcher?: boolean;
-  visualizerAvailability?: {
+  generationStatus?: {
+    type: "idle" | "visualizer" | "content" | "quiz" | "coding_challenge";
     status: "idle" | "loading" | "available" | "unavailable";
     message?: string;
   };
@@ -36,7 +37,7 @@ export default function ChatInput({
   onModeChange,
   isGeneratingVisualizer = false,
   hideModeSwitcher = false,
-  visualizerAvailability,
+  generationStatus,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"chat" | "visualizer">("chat");
@@ -78,17 +79,17 @@ export default function ChatInput({
   useEffect(() => {
     if (
       mode === "visualizer" &&
-      visualizerAvailability?.status === "unavailable"
+      generationStatus?.type === "visualizer" &&
+      generationStatus?.status === "unavailable"
     ) {
       setMode("chat");
       toast({
         title: "Cannot visualize",
-        description:
-          visualizerAvailability.message || "Cannot visualize this topic",
+        description: generationStatus.message || "Cannot visualize this topic",
         variant: "destructive",
       });
     }
-  }, [mode, visualizerAvailability, toast]);
+  }, [mode, generationStatus, toast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

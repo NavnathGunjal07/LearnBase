@@ -1,17 +1,14 @@
-import Editor from "@monaco-editor/react";
 import { useState, useEffect } from "react";
 import {
   X,
-  Play,
-  Terminal,
-  CheckCircle,
-  XCircle,
   Maximize2,
   Minimize2,
   ChevronLeft,
   ChevronRight,
   FileText,
+  Terminal,
 } from "lucide-react";
+import CodeEditor from "../CodeEditor/CodeEditor";
 
 interface CodingWorkspaceProps {
   isOpen: boolean;
@@ -26,30 +23,32 @@ interface CodingWorkspaceProps {
 export const CodingWorkspace = ({
   isOpen,
   challenge,
-  executionResult,
+  executionResult: initialExecutionResult, // Use this if provided initially, but we mostly track local runs
   onClose,
-  onRunCode,
   viewMode,
   onToggleViewMode,
 }: CodingWorkspaceProps) => {
-  const [code, setCode] = useState(challenge?.starterCode || "");
   const [activeTab, setActiveTab] = useState<"problem" | "console">("problem");
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [lastExecutionResult, setLastExecutionResult] = useState<any>(
+    initialExecutionResult
+  );
 
-  // Update code when challenge changes
-  useEffect(() => {
-    if (challenge?.starterCode) {
-      setCode(challenge.starterCode);
-    }
-  }, [challenge]);
+  // Switch to console on result
+  const handleExecutionResult = (result: any) => {
+    setLastExecutionResult(result);
+    setActiveTab("console");
+    if (isLeftPanelCollapsed) setIsLeftPanelCollapsed(false);
+    // You might want to parse 'result' here to match your expected 'executionResult' shape
+    // OneCompiler 'result' object vs your app's internal 'executionResult' shape might differ.
+    // Ideally update the state or call a parent handler if you want to save it.
+  };
 
-  // Switch to console on run
   useEffect(() => {
-    if (executionResult?.status === "running") {
-      setActiveTab("console");
-      if (isLeftPanelCollapsed) setIsLeftPanelCollapsed(false);
+    if (initialExecutionResult) {
+      setLastExecutionResult(initialExecutionResult);
     }
-  }, [executionResult, isLeftPanelCollapsed]);
+  }, [initialExecutionResult]);
 
   if (!isOpen || !challenge) return null;
 
@@ -88,18 +87,6 @@ export const CodingWorkspace = ({
             )}
           </button>
 
-          <div className="h-6 w-px bg-gray-300 mx-1" />
-
-          <button
-            onClick={() => onRunCode(code, challenge.language)}
-            disabled={executionResult?.status === "running"}
-            className="flex items-center gap-2 px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <Play className="w-4 h-4" />
-            <span className="hidden sm:inline">
-              {executionResult?.status === "running" ? "Running..." : "Run"}
-            </span>
-          </button>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-200 rounded-md transition-colors text-gray-500"
@@ -198,7 +185,7 @@ export const CodingWorkspace = ({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {!executionResult ? (
+                  {!lastExecutionResult ? (
                     <div className="text-center text-gray-500 py-10 flex flex-col items-center gap-2">
                       <Terminal className="w-8 h-8 opacity-20" />
                       <span className="italic">
@@ -206,83 +193,24 @@ export const CodingWorkspace = ({
                       </span>
                     </div>
                   ) : (
-                    <>
-                      {executionResult.status === "error" && (
-                        <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 text-sm font-mono whitespace-pre-wrap">
-                          <span className="font-bold">Error:</span>{" "}
-                          {executionResult.error}
+                    <div className="font-mono text-sm">
+                      {/* Raw output display for now - can be enhanced to parse test results if OneCompiler returns them structured */}
+                      <div className="whitespace-pre-wrap text-gray-800">
+                        {lastExecutionResult.stdout ||
+                          lastExecutionResult.result?.output ||
+                          "No output"}
+                      </div>
+                      {lastExecutionResult.stderr && (
+                        <div className="mt-2 text-red-600 whitespace-pre-wrap border-t pt-2">
+                          {lastExecutionResult.stderr}
                         </div>
                       )}
-
-                      {executionResult.result?.results?.map(
-                        (res: any, i: number) => (
-                          <div
-                            key={i}
-                            className={`p-4 rounded-lg border ${
-                              res.passed
-                                ? "bg-green-50 border-green-200"
-                                : "bg-red-50 border-red-200"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              {res.passed ? (
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                              ) : (
-                                <XCircle className="w-4 h-4 text-red-600" />
-                              )}
-                              <span
-                                className={`font-semibold text-sm ${
-                                  res.passed ? "text-green-800" : "text-red-800"
-                                }`}
-                              >
-                                Test Case {i + 1}
-                              </span>
-                            </div>
-                            <div className="text-xs font-mono space-y-1 ml-6">
-                              <div className="text-gray-600">
-                                Input:{" "}
-                                <span className="text-gray-900">
-                                  {res.input}
-                                </span>
-                              </div>
-                              <div className="text-gray-600">
-                                Expected:{" "}
-                                <span className="text-gray-900">
-                                  {res.expected}
-                                </span>
-                              </div>
-                              <div className="text-gray-600">
-                                Actual:{" "}
-                                <span
-                                  className={`${
-                                    res.passed
-                                      ? "text-green-700"
-                                      : "text-red-700"
-                                  }`}
-                                >
-                                  {res.actual}
-                                </span>
-                              </div>
-                              {res.consoleOutput && (
-                                <div className="mt-2 pt-2 border-t border-gray-200 text-gray-500 whitespace-pre-wrap">
-                                  <span className="font-semibold text-gray-400">
-                                    Console:
-                                  </span>{" "}
-                                  {res.consoleOutput}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      )}
-
-                      {executionResult.result?.passedCount !== undefined && (
-                        <div className="mt-4 p-3 bg-gray-100 rounded-lg text-center font-semibold text-gray-700">
-                          Result: {executionResult.result.passedCount} /{" "}
-                          {executionResult.result.totalCount} Passed
+                      {lastExecutionResult.exception && (
+                        <div className="mt-2 text-red-600 whitespace-pre-wrap border-t pt-2">
+                          {lastExecutionResult.exception}
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               )}
@@ -293,20 +221,12 @@ export const CodingWorkspace = ({
         {/* Right: Editor */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1">
-            <Editor
-              height="100%"
-              defaultLanguage="javascript"
-              language={challenge.language || "javascript"}
-              value={code}
-              onChange={(val) => setCode(val || "")}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                padding: { top: 16 },
-                wordWrap: "on",
-                automaticLayout: true,
-              }}
+            <CodeEditor
+              initialCode={challenge.starterCode || ""}
+              language={challenge.language || "python"}
+              onExecutionResult={handleExecutionResult}
+              showHeader={false} // CodingWorkspace has its own header
+              className="border-none"
             />
           </div>
         </div>

@@ -12,12 +12,14 @@ interface ChatMessageProps {
   message: ChatMessageType;
   onQuizAnswer?: (selectedIndex: number, correctIndex: number) => void;
   onOpenCodingChallenge?: (challenge: any) => void;
+  isLoading?: boolean;
 }
 
 export default function ChatMessage({
   message,
   onQuizAnswer,
   onOpenCodingChallenge,
+  isLoading,
 }: ChatMessageProps) {
   const isUser = message.sender === "user";
   const rawContent = message.content?.trim() || "";
@@ -26,11 +28,22 @@ export default function ChatMessage({
   // Convert literal \n to actual newlines for proper rendering
   const content = rawContent.replace(/\\n/g, "\n");
 
+  const AvatarWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative inline-block">
+      {isLoading && (
+        <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-blue-500 border-r-purple-500 animate-spin z-10 pointer-events-none" />
+      )}
+      {children}
+    </div>
+  );
+
   // Check for coding challenge
   if (message.messageType === "coding_challenge" && message.codingChallenge) {
     return (
       <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
-        <Avatar message="Challenge!" size="small" />
+        <AvatarWrapper>
+          <Avatar message="Challenge!" size="small" />
+        </AvatarWrapper>
         <div className="w-[90%] max-w-[90%]">
           <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
@@ -62,10 +75,12 @@ export default function ChatMessage({
     const isSuccess = message.codingSubmission.status === "completed";
     return (
       <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
-        <Avatar
-          message={isSuccess ? "Great Job!" : "Keep Trying!"}
-          size="small"
-        />
+        <AvatarWrapper>
+          <Avatar
+            message={isSuccess ? "Great Job!" : "Keep Trying!"}
+            size="small"
+          />
+        </AvatarWrapper>
         <div className="w-[90%] max-w-[90%]">
           <div
             className={`bg-white border text-sm rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${
@@ -131,7 +146,9 @@ export default function ChatMessage({
   if (message.messageType === "quiz" && message.quiz) {
     return (
       <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
-        <Avatar message="Quiz Time!" size="small" />
+        <AvatarWrapper>
+          <Avatar message="Quiz Time!" size="small" />
+        </AvatarWrapper>
         <div className="w-[90%] max-w-[90%]">
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
             {/* Header / Summary View */}
@@ -189,7 +206,9 @@ export default function ChatMessage({
           isUser ? "justify-end" : "justify-start items-start gap-3"
         } w-full opacity-60`}
       >
-        {!isUser && <Avatar isTyping={true} size="small" />}
+        {!isUser && (
+          <Avatar isTyping={true} size="small" isLoading={isLoading} />
+        )}
         <div
           className={`max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 ${
             isUser ? "bg-white border border-gray-200" : "bg-gray-50"
@@ -206,7 +225,9 @@ export default function ChatMessage({
         isUser ? "justify-end" : "justify-start items-end gap-3"
       } w-full animate-fade-in`}
     >
-      {!isUser && <Avatar message={content} size="small" />}
+      {!isUser && (
+        <Avatar message={content} size="small" isLoading={isLoading} />
+      )}
       <div
         className={`${
           isUser ? "max-w-[90%] md:max-w-[75%]" : "w-[90%] max-w-[90%]"

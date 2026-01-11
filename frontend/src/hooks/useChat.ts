@@ -71,15 +71,19 @@ export const useChat = (
   const [lastTopicUpdate, setLastTopicUpdate] = useState<number | null>(null);
   // Last progress update ref for sync
   const lastProgressUpdateRef = useRef(lastProgressUpdate); // Ref to access current value in return without re-creating object if not needed, though state is fine
-  const [visualizerAvailability, setVisualizerAvailability] = useState<{
+
+  // Generalized generation status state
+  const [generationStatus, setGenerationStatus] = useState<{
+    type: "idle" | "visualizer" | "content" | "quiz" | "coding_challenge";
     status: "idle" | "loading" | "available" | "unavailable";
     message?: string;
-  }>({ status: "idle" });
+  }>({ type: "idle", status: "idle" });
 
   const [inputConfig, setInputConfig] = useState<{
     inputType: "text" | "email" | "password" | "select" | "code";
     options?: string[];
     suggestions?: string[];
+    // Keep visualizerSuggestions for backward compat/legacy if needed, or map to it
     visualizerSuggestions?: string[];
     language?: string;
     visualizerData?: any;
@@ -176,9 +180,27 @@ export const useChat = (
             ...prev,
             visualizerSuggestions: data.suggestions,
           }));
+        } else if (data.type === "activity_status") {
+          // Handle generic activity status
+          if (data.status === "generating_content") {
+            setGenerationStatus({
+              type: "content",
+              status: "loading",
+              message: "Generating interactive content...",
+            });
+          } else if (data.status === "generating_visualizer") {
+            setGenerationStatus({
+              type: "visualizer",
+              status: "loading",
+              message: "Creating visualization...",
+            });
+          } else {
+            setGenerationStatus({ type: "idle", status: "idle" });
+          }
         } else if (data.type === "visualizer_check_result") {
           const { isVisualizable, suggestions } = data.payload;
-          setVisualizerAvailability({
+          setGenerationStatus({
+            type: "visualizer",
             status: isVisualizable ? "available" : "unavailable",
             message: isVisualizable
               ? undefined
@@ -642,7 +664,7 @@ export const useChat = (
     onboardingStep,
     lastTopicUpdate,
     checkVisualizerAvailability,
-    visualizerAvailability,
+    generationStatus,
     resetChat,
 
     submitQuizAnswer,
