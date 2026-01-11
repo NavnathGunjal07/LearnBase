@@ -65,14 +65,18 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[var(--bg-default)] text-[var(--fg-default)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-white">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 backdrop-blur-md bg-[var(--bg-default)]/80 border-b border-[var(--border-default)] transition-colors duration-500">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="LearnBase" className="h-8 w-8 opacity-90" />
-            <span className="text-xl font-bold tracking-tight text-[var(--fg-default)]">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3">
+            <img
+              src={logo}
+              alt="LearnBase"
+              className="h-6 w-6 md:h-8 md:w-8 opacity-90"
+            />
+            <span className="text-lg md:text-xl font-bold tracking-tight text-[var(--fg-default)]">
               LearnBase
             </span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 md:gap-6">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-[var(--bg-input)] transition-colors text-[var(--fg-muted)] hover:text-[var(--fg-default)]"
@@ -84,7 +88,7 @@ export default function LandingPage() {
                 <Moon className="w-5 h-5" />
               )}
             </button>
-            <Link to="/auth">
+            <Link to="/auth" className="hidden md:block">
               <Button
                 variant="ghost"
                 className="font-medium text-[var(--fg-muted)] hover:text-[var(--fg-default)] hover:bg-[var(--bg-input)]"
@@ -93,7 +97,7 @@ export default function LandingPage() {
               </Button>
             </Link>
             <Link to="/auth">
-              <Button className="bg-[var(--fg-default)] text-[var(--bg-default)] hover:opacity-90 transition-opacity rounded-full px-6">
+              <Button className="bg-[var(--fg-default)] text-[var(--bg-default)] hover:opacity-90 transition-opacity rounded-full px-4 md:px-6 h-9 md:h-10 text-sm md:text-base">
                 Get Started
               </Button>
             </Link>

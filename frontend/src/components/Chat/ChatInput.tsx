@@ -252,7 +252,7 @@ export default function ChatInput({
         </div>
       )}
       {isGeneratingVisualizer && (
-        <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2">
+        <div className="absolute bottom-full left-0 right-0 flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2 z-10">
           <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-full shadow-sm">
             <div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
             <span>Generating visualization...</span>
@@ -260,7 +260,7 @@ export default function ChatInput({
         </div>
       )}
       {!isGeneratingVisualizer && visualizerData && (
-        <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2">
+        <div className="absolute bottom-full left-0 right-0 flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2 z-10">
           <button
             onClick={onVisualizerClick}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
@@ -271,7 +271,7 @@ export default function ChatInput({
         </div>
       )}
       {mode === "visualizer" && visualizerSuggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-1">
+        <div className="absolute bottom-full left-0 right-0 mb-2 p-2 max-h-48 overflow-y-auto z-20 flex flex-wrap gap-2">
           {visualizerSuggestions.map((suggestion, index) => (
             <button
               key={index}
@@ -279,7 +279,7 @@ export default function ChatInput({
                 // Auto-send the suggestion as a visualization request
                 onSend(suggestion, "visualizer");
               }}
-              className="px-3 py-1.5 bg-purple-50 text-purple-600 text-xs font-medium rounded-full hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 bg-purple-50 text-purple-600 text-xs font-medium rounded-full hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer flex items-center gap-1 shadow-sm"
             >
               <span>✨</span>
               {suggestion}
@@ -289,12 +289,12 @@ export default function ChatInput({
       )}
 
       {mode !== "visualizer" && suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-1">
+        <div className="absolute bottom-full left-0 right-0 mb-2 p-2 max-h-48 overflow-y-auto z-20 flex flex-wrap gap-2">
           {suggestions.map((suggestion, index) => (
             <button
               key={index}
               onClick={() => handleSuggestionClick(suggestion)}
-              className="px-3 py-1.5 bg-orange-50 text-[var(--accent)] text-xs font-medium rounded-full hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer"
+              className="px-3 py-1.5 bg-orange-50 text-[var(--accent)] text-xs font-medium rounded-full hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer shadow-sm"
             >
               {suggestion}
             </button>

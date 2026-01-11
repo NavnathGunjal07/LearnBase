@@ -32,7 +32,7 @@ const Home = () => {
       <div className="flex h-dvh max-h-dvh">
         {/* Sidebar - Automatically collapse/hide when coding workspace is active */}
         <div
-          className={`flex-shrink-0 transition-all duration-300 ease-in-out ${
+          className={`flex-shrink-0 md:transition-all md:duration-300 md:ease-in-out ${
             isCodingOpen
               ? "w-0 -ml-[250px] md:ml-0 md:w-0 overflow-hidden opacity-0"
               : "w-auto opacity-100"
