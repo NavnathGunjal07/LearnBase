@@ -144,7 +144,7 @@ async function sendOnboardingPrompt(ws: AuthenticatedWebSocket, step: string) {
       break;
     case "ASK_INTERESTS":
       message =
-        "What topics or technologies are you interested in learning? (Select multiple)";
+        "What are your interests? (This helps us personalize your learning experience)";
       inputType = "select";
       options = [
         // 🎨 Creative & Artistic

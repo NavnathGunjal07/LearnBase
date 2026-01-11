@@ -30,6 +30,9 @@ export const CodingWorkspace = ({
 }: CodingWorkspaceProps) => {
   const [activeTab, setActiveTab] = useState<"problem" | "console">("problem");
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [activeMobileSection, setActiveMobileSection] = useState<
+    "info" | "code"
+  >("info");
   const [lastExecutionResult, setLastExecutionResult] = useState<any>(
     initialExecutionResult
   );
@@ -39,9 +42,10 @@ export const CodingWorkspace = ({
     setLastExecutionResult(result);
     setActiveTab("console");
     if (isLeftPanelCollapsed) setIsLeftPanelCollapsed(false);
-    // You might want to parse 'result' here to match your expected 'executionResult' shape
-    // OneCompiler 'result' object vs your app's internal 'executionResult' shape might differ.
-    // Ideally update the state or call a parent handler if you want to save it.
+    // Auto-switch to info view on mobile to see the console
+    if (window.innerWidth < 768) {
+      setActiveMobileSection("info");
+    }
   };
 
   useEffect(() => {
@@ -61,19 +65,44 @@ export const CodingWorkspace = ({
       }`}
     >
       {/* Header */}
-      <div className="h-14 border-b border-[var(--border-default)] flex items-center justify-between px-4 bg-[var(--bg-elevated)] flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="bg-orange-50 dark:bg-orange-900/20 text-[var(--accent)] p-1.5 rounded-lg">
+      <div className="h-14 border-b border-[var(--border-default)] flex items-center justify-between px-4 bg-[var(--bg-elevated)] flex-shrink-0 gap-4">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="bg-orange-50 dark:bg-orange-900/20 text-[var(--accent)] p-1.5 rounded-lg flex-shrink-0">
             <Terminal className="w-4 h-4" />
           </div>
-          <h2 className="font-semibold text-[var(--fg-default)] line-clamp-1">
+          <h2 className="font-semibold text-[var(--fg-default)] line-clamp-1 truncate">
             {challenge.title || "Coding Challenge"}
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Mobile View Toggle */}
+        <div className="flex md:hidden bg-[var(--bg-input)] rounded-lg p-1">
+          <button
+            onClick={() => setActiveMobileSection("info")}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              activeMobileSection === "info"
+                ? "bg-[var(--bg-elevated)] text-[var(--fg-default)] shadow-sm"
+                : "text-[var(--fg-muted)]"
+            }`}
+          >
+            Info
+          </button>
+          <button
+            onClick={() => setActiveMobileSection("code")}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              activeMobileSection === "code"
+                ? "bg-[var(--bg-elevated)] text-[var(--fg-default)] shadow-sm"
+                : "text-[var(--fg-muted)]"
+            }`}
+          >
+            Code
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={onToggleViewMode}
-            className="p-2 hover:bg-[var(--bg-input)] rounded-md transition-colors text-[var(--fg-muted)]"
+            className="hidden md:block p-2 hover:bg-[var(--bg-input)] rounded-md transition-colors text-[var(--fg-muted)]"
             title={
               viewMode === "split"
                 ? "Maximize (Full Screen)"
@@ -97,16 +126,30 @@ export const CodingWorkspace = ({
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left: Problem & Output (Collapsible) */}
+        {/* Left: Problem & Output */}
         <div
-          className={`${
-            isLeftPanelCollapsed ? "w-0" : "w-[40%]"
-          } flex flex-col bg-[var(--bg-default)] border-r border-[var(--border-default)] transition-all duration-300 relative`}
+          className={`
+            flex flex-col bg-[var(--bg-default)] border-r border-[var(--border-default)] transition-all duration-300 relative
+            ${
+              // Mobile visibility
+              activeMobileSection === "info" ? "w-full" : "hidden"
+            }
+            ${
+              // Desktop visibility & sizing
+              "md:flex md:w-[40%]"
+            }
+            ${
+              // Collapse state (desktop only)
+              isLeftPanelCollapsed
+                ? "md:w-0 md:opacity-0 md:invisible"
+                : "md:opacity-100 md:visible"
+            }
+          `}
         >
-          {/* Collapse Toggle Button */}
+          {/* Collapse Toggle Button (Desktop Only) */}
           <button
             onClick={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-full p-1 shadow-md hover:bg-[var(--bg-input)] text-[var(--fg-muted)]"
+            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-full p-1 shadow-md hover:bg-[var(--bg-input)] text-[var(--fg-muted)]"
             title={isLeftPanelCollapsed ? "Expand Panel" : "Collapse Panel"}
           >
             {isLeftPanelCollapsed ? (
@@ -116,13 +159,7 @@ export const CodingWorkspace = ({
             )}
           </button>
 
-          <div
-            className={`flex-1 flex flex-col overflow-hidden ${
-              isLeftPanelCollapsed
-                ? "opacity-0 invisible"
-                : "opacity-100 visible"
-            } transition-opacity duration-200`}
-          >
+          <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex border-b border-[var(--border-default)] bg-[var(--bg-elevated)]">
               <button
                 onClick={() => setActiveTab("problem")}
@@ -219,14 +256,26 @@ export const CodingWorkspace = ({
         </div>
 
         {/* Right: Editor */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1">
+        <div
+          className={`
+            flex-col min-w-0
+            ${
+              // Mobile visibility
+              activeMobileSection === "code" ? "flex w-full" : "hidden"
+            }
+            ${
+              // Desktop visibility
+              "md:flex md:flex-1"
+            }
+          `}
+        >
+          <div className="flex-1 flex flex-col">
             <CodeEditor
               initialCode={challenge.starterCode || ""}
               language={challenge.language || "python"}
               onExecutionResult={handleExecutionResult}
               showHeader={false} // CodingWorkspace has its own header
-              className="border-none"
+              className="border-none flex-1"
             />
           </div>
         </div>
