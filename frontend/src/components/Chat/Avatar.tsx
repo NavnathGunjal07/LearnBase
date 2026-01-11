@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import logo from "@/assets/learnbaselogo.png";
 
 type Mood =
@@ -45,15 +45,15 @@ const DEFAULT_QUOTES = [
 const DEFAULT_GIF_URL = logo;
 
 const Avatar: React.FC<AvatarProps> = ({
-  mood: propMood,
+  mood: _mood, // Unused
   isTyping = false,
   size = "small",
-  message = "",
+  message: _message, // Unused
   gifUrl = DEFAULT_GIF_URL,
   quotes = DEFAULT_QUOTES,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [clickCount, setClickCount] = useState(0);
+  // Unused click count removed
   const [currentQuote, setCurrentQuote] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -63,51 +63,10 @@ const Avatar: React.FC<AvatarProps> = ({
     left: number;
   } | null>(null);
 
-  // Auto-analyze mood from message if not provided
-  const analyzeMood = (text: string): Mood => {
-    const lower = text.toLowerCase();
-    if (lower.includes("?")) return "thinking";
-    if (
-      lower.includes("!") ||
-      lower.includes("wow") ||
-      lower.includes("amazing")
-    )
-      return "surprised";
-    if (
-      lower.includes("thanks") ||
-      lower.includes("great") ||
-      lower.includes("correct") ||
-      lower.includes("excellent")
-    )
-      return "happy";
-    if (
-      lower.includes("help") ||
-      lower.includes("problem") ||
-      lower.includes("worry") ||
-      lower.includes("incorrect")
-    )
-      return "concerned";
-    if (
-      lower.includes("wisdom") ||
-      lower.includes("learn") ||
-      lower.includes("remember")
-    )
-      return "wise";
-    return "idle";
-  };
+  // Unused mood analysis for visual effects (removed for simplicity)
+  // const analyzeMood = ...
 
-  const baseMood = propMood || analyzeMood(message);
-  const mood = clickCount >= 2 ? "angry" : baseMood;
-
-  // Reset click count after 3 seconds
-  useEffect(() => {
-    if (clickCount >= 2) {
-      const timer = setTimeout(() => setClickCount(0), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [clickCount]);
-
-  // Get random quote on hover
+  // Hover state only
   const handleMouseEnter = () => {
     setIsHovered(true);
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
@@ -128,9 +87,7 @@ const Avatar: React.FC<AvatarProps> = ({
     setShowTooltip(false);
   };
 
-  const handleClick = () => {
-    setClickCount((prev) => prev + 1);
-  };
+  /* Removed unused handleClick */
 
   const sizeMap = {
     small: 50,
@@ -142,70 +99,13 @@ const Avatar: React.FC<AvatarProps> = ({
 
   // Mood-specific filters and effects
   const getMoodStyles = (): React.CSSProperties => {
-    const baseStyles: React.CSSProperties = {
+    return {
       cursor: "pointer",
-      transition: "all 0.3s ease",
+      transition: "transform 0.3s ease",
       imageRendering: "pixelated",
-      transform: isHovered
-        ? "scale(1.1)"
-        : clickCount >= 2
-        ? "scale(0.95)"
-        : "scale(1)",
+      // Simple hover effect, no filters or wobbling
+      transform: isHovered ? "scale(1.05)" : "scale(1)",
     };
-
-    switch (mood) {
-      case "angry":
-        return {
-          ...baseStyles,
-          filter: isHovered
-            ? "brightness(1.3) saturate(1.5) hue-rotate(-10deg) drop-shadow(0 0 10px rgba(255, 0, 85, 0.8))"
-            : "brightness(1.1) saturate(1.3) hue-rotate(-10deg) drop-shadow(0 0 5px rgba(255, 0, 85, 0.6))",
-          animation: "shake 0.5s infinite",
-        };
-      case "happy":
-        return {
-          ...baseStyles,
-          filter: isHovered
-            ? "brightness(1.3) saturate(1.4) hue-rotate(20deg) drop-shadow(0 0 8px rgba(0, 255, 136, 0.7))"
-            : "brightness(1.2) saturate(1.2) hue-rotate(20deg) drop-shadow(0 0 4px rgba(0, 255, 136, 0.5))",
-        };
-      case "surprised":
-        return {
-          ...baseStyles,
-          filter: isHovered
-            ? "brightness(1.3) saturate(1.5) hue-rotate(30deg) drop-shadow(0 0 8px rgba(255, 170, 0, 0.7))"
-            : "brightness(1.2) saturate(1.3) hue-rotate(30deg) drop-shadow(0 0 4px rgba(255, 170, 0, 0.5))",
-          animation: "bounce 0.6s infinite",
-        };
-      case "wise":
-        return {
-          ...baseStyles,
-          filter: isHovered
-            ? "brightness(1.2) saturate(1.4) hue-rotate(270deg) drop-shadow(0 0 10px rgba(170, 0, 255, 0.7))"
-            : "brightness(1.1) saturate(1.2) hue-rotate(270deg) drop-shadow(0 0 5px rgba(170, 0, 255, 0.5))",
-        };
-      case "concerned":
-        return {
-          ...baseStyles,
-          filter: isHovered
-            ? "brightness(1.2) saturate(1.3) hue-rotate(15deg) drop-shadow(0 0 8px rgba(255, 136, 0, 0.7))"
-            : "brightness(1.1) saturate(1.2) hue-rotate(15deg) drop-shadow(0 0 4px rgba(255, 136, 0, 0.5))",
-        };
-      case "thinking":
-        return {
-          ...baseStyles,
-          filter: isHovered
-            ? "brightness(1.2) saturate(1.4) hue-rotate(180deg) drop-shadow(0 0 8px rgba(0, 170, 255, 0.7))"
-            : "brightness(1.1) saturate(1.2) hue-rotate(180deg) drop-shadow(0 0 4px rgba(0, 170, 255, 0.5))",
-        };
-      default: // idle
-        return {
-          ...baseStyles,
-          filter: isHovered
-            ? "brightness(1.2) drop-shadow(0 0 6px rgba(0, 136, 255, 0.6))"
-            : "brightness(1) drop-shadow(0 0 3px rgba(0, 136, 255, 0.4))",
-        };
-    }
   };
 
   const getMoodOpacity = () => {
@@ -249,7 +149,6 @@ const Avatar: React.FC<AvatarProps> = ({
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
       >
         {/* Tooltip */}
         {showTooltip && tooltipPos && (

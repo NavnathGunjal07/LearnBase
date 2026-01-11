@@ -4,6 +4,7 @@ import { useChat } from "../hooks/useChat";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { handleError } from "@/utils/errorHandler";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -41,7 +42,10 @@ export default function AuthPage() {
   const chatHook = useChat(true, handleAuthenticated);
 
   return (
-    <div className="h-screen bg-[var(--bg-default)]">
+    <div className="h-screen bg-[var(--bg-default)] relative">
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <ChatContainer chatHook={chatHook} isAuthMode={true} />
     </div>
   );

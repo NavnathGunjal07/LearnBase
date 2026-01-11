@@ -7,6 +7,7 @@ interface CodeEditorProps {
   className?: string;
   language?: string;
   showHeader?: boolean;
+  theme?: "light" | "dark";
 }
 
 export default function CodeEditor({
@@ -16,6 +17,7 @@ export default function CodeEditor({
   className = "",
   language = "python",
   showHeader = true,
+  theme = "dark",
 }: CodeEditorProps) {
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
@@ -60,24 +62,30 @@ export default function CodeEditor({
 
   const embedUrl = `https://onecompiler.com/embed/${getLanguageSlug(
     language
-  )}?code=${encodeURIComponent(initialCode)}&theme=light`;
+  )}?code=${encodeURIComponent(
+    initialCode
+  )}&theme=${theme}&hideNew=true&hideTitle=true&hideSidebar=true`;
 
   return (
-    <div className={`w-full h-full bg-white flex flex-col ${className}`}>
+    <div
+      className={`w-full h-full bg-[var(--bg-default)] flex flex-col ${className}`}
+    >
       {/* Header */}
       {showHeader && (
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)] bg-[var(--bg-elevated)] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-blue-600 font-mono text-sm uppercase">
+            <div className="w-8 h-8 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+              <span className="text-[var(--accent)] font-mono text-sm uppercase">
                 {getLanguageSlug(language).slice(0, 2)}
               </span>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-[var(--fg-default)]">
                 {language.charAt(0).toUpperCase() + language.slice(1)} Editor
               </h2>
-              <p className="text-sm text-gray-600">Powered by OneCompiler</p>
+              <p className="text-sm text-[var(--fg-muted)]">
+                Powered by OneCompiler
+              </p>
             </div>
           </div>
         </div>

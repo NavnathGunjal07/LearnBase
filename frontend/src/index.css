@@ -9,20 +9,35 @@
   --color-elevated: var(--bg-elevated);
   --color-input: var(--bg-input);
   --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
   --radius-sm: 0.375rem; /* 6px */
   --radius-md: 0.5rem; /* 8px */
   --radius-lg: 0.75rem; /* 12px */
 }
 
 /* Neutral white/grey theme (ChatGPT-like) */
+/* Light Mode (Orange & White Vibe) */
 :root {
-  --bg-default: #f9fafb; /* gray-50 */
-  --bg-elevated: #ffffff; /* surface */
-  --bg-input: #f9fafb; /* subtle */
-  --fg-default: #111827; /* text primary */
-  --fg-muted: #6b7280; /* text secondary */
-  --border-default: #e5e7eb; /* gray-200 */
-  --accent: #111827; /* neutral emphasis */
+  --bg-default: #ffffff;
+  --bg-elevated: #fafafa;
+  --bg-input: #f4f4f5;
+  --fg-default: #18181b; /* zinc-900 */
+  --fg-muted: #71717a;   /* zinc-500 */
+  --border-default: #e4e4e7; /* zinc-200 */
+  --accent: #f97316;     /* orange-500 - Calm Warm Orange */
+  --accent-foreground: #ffffff;
+}
+
+/* Clear Dark Mode */
+.dark {
+  --bg-default: #09090b; /* zinc-950 */
+  --bg-elevated: #18181b; /* zinc-900 */
+  --bg-input: #27272a;    /* zinc-800 */
+  --fg-default: #fafafa;  /* zinc-50 */
+  --fg-muted: #a1a1aa;    /* zinc-400 */
+  --border-default: #27272a; /* zinc-800 */
+  --accent: #f97316;      /* orange-500 */
+  --accent-foreground: #ffffff;
 }
 
 html,
@@ -79,19 +94,23 @@ body {
 }
 
 /* Custom scrollbars - visible and styled */
+/* Custom scrollbars - visible and styled */
 *::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #d1d5db; /* gray-300 - visible by default */
+  background: #d1d5db; /* gray-300 */
   border-radius: 9999px;
 }
+.dark *::-webkit-scrollbar-thumb {
+  background: #3f3f46; /* zinc-700 */
+}
 *:hover::-webkit-scrollbar-thumb {
-  background: #3b82f6; /* blue-500 on hover */
+  background: var(--accent); /* accent color on hover */
 }
 *::-webkit-scrollbar-track {
-  background: #f3f4f6; /* gray-100 */
+  background: transparent;
   border-radius: 9999px;
 }
 @layer utilities {

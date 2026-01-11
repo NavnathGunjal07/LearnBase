@@ -26,27 +26,27 @@ export const QuizCard = ({
     if (!isSubmitted) {
       // Hover and selection state before submission
       return selectedIndex === index
-        ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
-        : "border-gray-200 hover:border-blue-400 hover:bg-gray-50";
+        ? "border-[var(--accent)] bg-orange-50 dark:bg-orange-900/20 ring-1 ring-[var(--accent)]"
+        : "border-[var(--border-default)] hover:border-[var(--accent)] hover:bg-[var(--bg-input)]";
     }
 
     // Post-submission states
     if (index === correctIndex) {
-      return "border-green-500 bg-green-50 ring-1 ring-green-500";
+      return "border-green-500 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-500";
     }
 
     if (selectedIndex === index && selectedIndex !== correctIndex) {
-      return "border-red-500 bg-red-50 ring-1 ring-red-500";
+      return "border-red-500 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-500";
     }
 
-    return "border-gray-200 opacity-60";
+    return "border-[var(--border-default)] opacity-60";
   };
 
   const getIconStyles = (index: number) => {
     if (!isSubmitted) {
       return selectedIndex === index
-        ? "border-blue-600 bg-blue-600 text-white"
-        : "border-gray-300 text-gray-400";
+        ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+        : "border-[var(--border-default)] text-[var(--fg-muted)]";
     }
 
     if (index === correctIndex) {
@@ -57,21 +57,21 @@ export const QuizCard = ({
       return "border-red-500 bg-red-500 text-white";
     }
 
-    return "border-gray-300 text-gray-300";
+    return "border-[var(--border-default)] text-[var(--fg-muted)]";
   };
 
   return (
     <div className="quiz-card-container my-4 w-full">
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
         <div className="flex items-start gap-4 mb-4">
-          <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+          <div className="flex-shrink-0 w-8 h-8 bg-orange-50 dark:bg-orange-900/20 text-[var(--accent)] rounded-lg flex items-center justify-center">
             <span className="text-lg">🎯</span>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-1">
+            <h3 className="text-sm font-bold text-[var(--accent)] uppercase tracking-wide mb-1">
               Quick Quiz
             </h3>
-            <p className="text-gray-900 font-medium text-base leading-relaxed">
+            <p className="text-[var(--fg-default)] font-medium text-base leading-relaxed">
               {question}
             </p>
           </div>
@@ -110,12 +110,12 @@ export const QuizCard = ({
               <span
                 className={`text-sm ${
                   isSubmitted && index === correctIndex
-                    ? "font-medium text-green-800"
+                    ? "font-medium text-green-700 dark:text-green-400"
                     : isSubmitted &&
                       selectedIndex === index &&
                       index !== correctIndex
-                    ? "text-red-800"
-                    : "text-gray-700"
+                    ? "text-red-700 dark:text-red-400"
+                    : "text-[var(--fg-default)]"
                 }`}
               >
                 {option}
@@ -132,8 +132,8 @@ export const QuizCard = ({
               mt-5 w-full py-2.5 rounded-lg font-medium text-sm transition-all duration-200
               ${
                 selectedIndex !== null
-                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  ? "bg-[var(--accent)] text-white hover:opacity-90 shadow-sm hover:shadow"
+                  : "bg-[var(--bg-input)] text-[var(--fg-muted)] cursor-not-allowed"
               }
             `}
           >
@@ -145,8 +145,8 @@ export const QuizCard = ({
           <div
             className={`mt-4 text-center text-sm font-medium ${
               selectedIndex === correctIndex
-                ? "text-green-600"
-                : "text-gray-600"
+                ? "text-green-600 dark:text-green-400"
+                : "text-[var(--fg-muted)]"
             }`}
           >
             {selectedIndex === correctIndex ? (
@@ -154,7 +154,7 @@ export const QuizCard = ({
             ) : (
               <span>
                 👀 The correct answer is:{" "}
-                <span className="text-green-600 font-semibold">
+                <span className="text-green-600 dark:text-green-400 font-semibold">
                   {options[correctIndex]}
                 </span>
               </span>

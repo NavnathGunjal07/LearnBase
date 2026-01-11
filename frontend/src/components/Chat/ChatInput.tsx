@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, Check, X, Play } from "lucide-react";
+import { ChevronDown, Check, X } from "lucide-react";
 import { APP_NAME } from "@/utils/constants";
-import ChatCodeEditor from "./ChatCodeEditor";
 import { useToast } from "@/components/ui/use-toast";
 
 interface ChatInputProps {
@@ -30,7 +29,6 @@ export default function ChatInput({
   inputType = "text",
   options = [],
   suggestions = [],
-  language = "javascript",
   visualizerData,
   visualizerSuggestions = [],
   onVisualizerClick,
@@ -161,11 +159,11 @@ export default function ChatInput({
               selectedOptions.map((option) => (
                 <span
                   key={option}
-                  className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                  className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex items-center gap-1"
                 >
                   {option}
                   <X
-                    className="w-3 h-3 cursor-pointer hover:text-blue-600"
+                    className="w-3 h-3 cursor-pointer hover:text-[var(--accent)]"
                     onClick={(e) => removeOption(option, e)}
                   />
                 </span>
@@ -187,7 +185,7 @@ export default function ChatInput({
                 type="text"
                 autoFocus
                 placeholder="Search..."
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -202,14 +200,14 @@ export default function ChatInput({
                   key={option}
                   className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
                     selectedOptions.includes(option)
-                      ? "bg-blue-50 text-blue-700"
+                      ? "bg-orange-50 text-[var(--accent)]"
                       : "hover:bg-gray-50 text-gray-700"
                   }`}
                   onClick={() => toggleOption(option)}
                 >
                   <span>{option}</span>
                   {selectedOptions.includes(option) && (
-                    <Check className="w-4 h-4 text-blue-600" />
+                    <Check className="w-4 h-4 text-[var(--accent)]" />
                   )}
                 </div>
               ))}
@@ -228,7 +226,7 @@ export default function ChatInput({
           disabled={selectedOptions.length === 0}
           className={`absolute right-2 bottom-2 top-2 px-4 rounded-lg text-sm font-medium transition-colors ${
             selectedOptions.length > 0
-              ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
+              ? "bg-[var(--accent)] text-white hover:opacity-90 focus:ring-2 focus:ring-[var(--accent)]"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"
           }`}
           style={{
@@ -245,38 +243,6 @@ export default function ChatInput({
     );
   }
 
-  if (inputType === "code") {
-    return (
-      <div className="flex flex-col gap-2 w-full relative">
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
-            <span className="text-xs font-medium text-gray-500 uppercase">
-              {language} Editor
-            </span>
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim()}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                input.trim()
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <Play className="w-3 h-3" />
-              Run Code
-            </button>
-          </div>
-          <ChatCodeEditor
-            value={input}
-            onChange={setInput}
-            language={language}
-            className="border-0 rounded-none h-[150px] sm:h-[200px]"
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-2 w-full relative">
       {validationError && (
@@ -288,7 +254,7 @@ export default function ChatInput({
       {isGeneratingVisualizer && (
         <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-full shadow-sm">
-            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
             <span>Generating visualization...</span>
           </div>
         </div>
@@ -328,7 +294,7 @@ export default function ChatInput({
             <button
               key={index}
               onClick={() => handleSuggestionClick(suggestion)}
-              className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-medium rounded-full hover:bg-blue-100 transition-colors border border-blue-100 cursor-pointer"
+              className="px-3 py-1.5 bg-orange-50 text-[var(--accent)] text-xs font-medium rounded-full hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer"
             >
               {suggestion}
             </button>
@@ -338,7 +304,7 @@ export default function ChatInput({
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white border border-gray-200 rounded-xl shadow-sm w-full"
+        className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl shadow-sm w-full"
       >
         {!hideModeSwitcher && (
           <button
@@ -362,7 +328,7 @@ export default function ChatInput({
         )}
         <input
           type={inputType}
-          className="flex-1 bg-transparent text-gray-900 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md"
+          className="flex-1 bg-transparent text-[var(--fg-default)] px-3 py-2 text-sm placeholder:text-[var(--fg-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent rounded-md"
           placeholder={
             placeholder ||
             (mode === "visualizer"
@@ -380,7 +346,7 @@ export default function ChatInput({
           disabled={!input.trim()}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             input.trim()
-              ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
+              ? "bg-[var(--accent)] text-white hover:opacity-90 focus:ring-2 focus:ring-[var(--accent)]"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"
           }`}
         >

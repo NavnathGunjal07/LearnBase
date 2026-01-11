@@ -54,26 +54,26 @@ export const CodingWorkspace = ({
 
   return (
     <div
-      className={`bg-white flex flex-col animate-fade-in transition-all duration-300 ${
+      className={`bg-[var(--bg-default)] flex flex-col animate-fade-in transition-all duration-300 ${
         viewMode === "fullscreen"
           ? "fixed inset-0 z-[100]"
-          : "relative w-full h-full border-l"
+          : "relative w-full h-full border-l border-[var(--border-default)]"
       }`}
     >
       {/* Header */}
-      <div className="h-14 border-b flex items-center justify-between px-4 bg-gray-50 flex-shrink-0">
+      <div className="h-14 border-b border-[var(--border-default)] flex items-center justify-between px-4 bg-[var(--bg-elevated)] flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-1.5 rounded-lg">
-            <Terminal className="w-4 h-4 text-white" />
+          <div className="bg-orange-50 dark:bg-orange-900/20 text-[var(--accent)] p-1.5 rounded-lg">
+            <Terminal className="w-4 h-4" />
           </div>
-          <h2 className="font-semibold text-gray-800 line-clamp-1">
+          <h2 className="font-semibold text-[var(--fg-default)] line-clamp-1">
             {challenge.title || "Coding Challenge"}
           </h2>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onToggleViewMode}
-            className="p-2 hover:bg-gray-200 rounded-md transition-colors text-gray-600"
+            className="p-2 hover:bg-[var(--bg-input)] rounded-md transition-colors text-[var(--fg-muted)]"
             title={
               viewMode === "split"
                 ? "Maximize (Full Screen)"
@@ -89,7 +89,7 @@ export const CodingWorkspace = ({
 
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-200 rounded-md transition-colors text-gray-500"
+            className="p-2 hover:bg-[var(--bg-input)] rounded-md transition-colors text-[var(--fg-muted)]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -101,12 +101,12 @@ export const CodingWorkspace = ({
         <div
           className={`${
             isLeftPanelCollapsed ? "w-0" : "w-[40%]"
-          } flex flex-col bg-gray-50 border-r transition-all duration-300 relative`}
+          } flex flex-col bg-[var(--bg-default)] border-r border-[var(--border-default)] transition-all duration-300 relative`}
         >
           {/* Collapse Toggle Button */}
           <button
             onClick={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-1 shadow-md hover:bg-gray-50 text-gray-500"
+            className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-full p-1 shadow-md hover:bg-[var(--bg-input)] text-[var(--fg-muted)]"
             title={isLeftPanelCollapsed ? "Expand Panel" : "Collapse Panel"}
           >
             {isLeftPanelCollapsed ? (
@@ -123,13 +123,13 @@ export const CodingWorkspace = ({
                 : "opacity-100 visible"
             } transition-opacity duration-200`}
           >
-            <div className="flex border-b bg-white">
+            <div className="flex border-b border-[var(--border-default)] bg-[var(--bg-elevated)]">
               <button
                 onClick={() => setActiveTab("problem")}
                 className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
                   activeTab === "problem"
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-[var(--accent)] text-[var(--accent)]"
+                    : "border-transparent text-[var(--fg-muted)] hover:text-[var(--fg-default)]"
                 }`}
               >
                 <FileText className="w-4 h-4" />
@@ -139,8 +139,8 @@ export const CodingWorkspace = ({
                 onClick={() => setActiveTab("console")}
                 className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
                   activeTab === "console"
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-[var(--accent)] text-[var(--accent)]"
+                    : "border-transparent text-[var(--fg-muted)] hover:text-[var(--fg-default)]"
                 }`}
               >
                 <Terminal className="w-4 h-4" />
@@ -150,32 +150,32 @@ export const CodingWorkspace = ({
 
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               {activeTab === "problem" ? (
-                <div className="prose prose-sm max-w-none">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <h3 className="text-lg font-bold text-[var(--fg-default)] mb-2">
                     {challenge.title}
                   </h3>
-                  <div className="text-gray-700 leading-relaxed mb-6 whitespace-pre-wrap">
+                  <div className="text-[var(--fg-default)] leading-relaxed mb-6 whitespace-pre-wrap">
                     {challenge.description}
                   </div>
 
-                  <h4 className="font-semibold text-gray-900 mb-3">
+                  <h4 className="font-semibold text-[var(--fg-default)] mb-3">
                     Test Cases:
                   </h4>
                   <div className="space-y-3">
                     {challenge.testCases?.map((tc: any, i: number) => (
                       <div
                         key={i}
-                        className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm text-xs font-mono"
+                        className="bg-[var(--bg-input)] p-3 rounded-lg border border-[var(--border-default)] shadow-sm text-xs font-mono"
                       >
-                        <div className="text-gray-500 mb-1">
+                        <div className="text-[var(--fg-muted)] mb-1">
                           Input:{" "}
-                          <span className="text-gray-900 select-all">
+                          <span className="text-[var(--fg-default)] select-all">
                             {tc.input}
                           </span>
                         </div>
-                        <div className="text-gray-500">
+                        <div className="text-[var(--fg-muted)]">
                           Expected:{" "}
-                          <span className="text-green-700 font-semibold select-all">
+                          <span className="text-green-600 dark:text-green-400 font-semibold select-all">
                             {tc.expected}
                           </span>
                         </div>
@@ -186,7 +186,7 @@ export const CodingWorkspace = ({
               ) : (
                 <div className="space-y-4">
                   {!lastExecutionResult ? (
-                    <div className="text-center text-gray-500 py-10 flex flex-col items-center gap-2">
+                    <div className="text-center text-[var(--fg-muted)] py-10 flex flex-col items-center gap-2">
                       <Terminal className="w-8 h-8 opacity-20" />
                       <span className="italic">
                         Run your code to see output
@@ -194,19 +194,19 @@ export const CodingWorkspace = ({
                     </div>
                   ) : (
                     <div className="font-mono text-sm">
-                      {/* Raw output display for now - can be enhanced to parse test results if OneCompiler returns them structured */}
-                      <div className="whitespace-pre-wrap text-gray-800">
+                      {/* Raw output display for now */}
+                      <div className="whitespace-pre-wrap text-[var(--fg-default)]">
                         {lastExecutionResult.stdout ||
                           lastExecutionResult.result?.output ||
                           "No output"}
                       </div>
                       {lastExecutionResult.stderr && (
-                        <div className="mt-2 text-red-600 whitespace-pre-wrap border-t pt-2">
+                        <div className="mt-2 text-red-600 dark:text-red-400 whitespace-pre-wrap border-t border-[var(--border-default)] pt-2">
                           {lastExecutionResult.stderr}
                         </div>
                       )}
                       {lastExecutionResult.exception && (
-                        <div className="mt-2 text-red-600 whitespace-pre-wrap border-t pt-2">
+                        <div className="mt-2 text-red-600 dark:text-red-400 whitespace-pre-wrap border-t border-[var(--border-default)] pt-2">
                           {lastExecutionResult.exception}
                         </div>
                       )}

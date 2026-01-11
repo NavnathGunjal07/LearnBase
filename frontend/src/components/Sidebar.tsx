@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
-  Palette,
   Settings,
   LogOut,
   User,
@@ -17,6 +16,8 @@ import { CircularProgress } from "./CircularProgress";
 import { LinearProgress } from "./LinearProgress";
 import { APP_NAME } from "../utils/constants";
 import Avatar from "./Chat/Avatar";
+
+import { ThemeToggle } from "./ThemeToggle";
 
 // Helper function to get icon for topic
 function getTopicIcon(topicName: string): string {
@@ -59,7 +60,6 @@ export default function Sidebar({
   const { logout, user } = useAuth();
   const learning = useLearning();
   const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const { sendTopicSelection, lastProgressUpdate } = chatHook;
   const [, setSearchParams] = useSearchParams();
@@ -106,12 +106,12 @@ export default function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 bg-gray-100 border-r border-default text-[var(--fg-default)] transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:flex md:h-full md:flex-col
+        className={`fixed inset-y-0 left-0 z-40 bg-[var(--bg-elevated)] border-r border-[var(--border-default)] text-[var(--fg-default)] transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:flex md:h-full md:flex-col
         ${mobileIsOpen ? "translate-x-0" : "-translate-x-full"}
         ${collapsed ? "md:w-16" : "md:w-64 lg:w-72 xl:w-80"}
         w-64 flex flex-col h-full`}
       >
-        <div className="flex items-center justify-between p-3 border-b border-default">
+        <div className="flex items-center justify-between p-3 border-b border-[var(--border-default)]">
           <div
             className={`flex items-center transition ${
               collapsed ? "justify-center" : ""
@@ -202,8 +202,8 @@ export default function Sidebar({
                         collapsed ? "justify-center px-0" : "px-3"
                       } py-2 text-sm transition cursor-pointer ${
                         learning.state.selection.topicId === t.id
-                          ? "bg-blue-50 text-blue-900 ring-1 ring-blue-200"
-                          : "hover:bg-gray-200"
+                          ? "bg-[var(--bg-input)] text-[var(--accent)] ring-1 ring-[var(--border-default)]"
+                          : "hover:bg-[var(--bg-input)]"
                       }`}
                     >
                       <div className="flex items-center gap-3 w-full">
@@ -220,10 +220,10 @@ export default function Sidebar({
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-800 font-medium block">
+                            <span className="text-[var(--fg-default)] font-medium block">
                               {t.name}
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-[var(--fg-muted)]">
                               {Math.round(learning.topicProgressMap[t.id] ?? 0)}
                               %
                             </span>
@@ -266,15 +266,15 @@ export default function Sidebar({
                                     className={`w-full flex flex-col items-start rounded-md px-2 py-2 text-sm transition cursor-pointer ${
                                       learning.state.selection.subtopicId ===
                                       s.id
-                                        ? "bg-blue-100 ring-1 ring-blue-200"
-                                        : "hover:bg-gray-200"
+                                        ? "bg-[var(--bg-input)] ring-1 ring-[var(--border-default)]"
+                                        : "hover:bg-[var(--bg-input)]"
                                     }`}
                                   >
                                     <div className="flex items-center justify-between w-full mb-1">
-                                      <span className="text-gray-600">
+                                      <span className="text-[var(--fg-muted)] group-hover:text-[var(--fg-default)] transition-colors">
                                         {s.title}
                                       </span>
-                                      <span className="text-xs text-gray-400">
+                                      <span className="text-xs text-[var(--fg-muted)] opacity-70">
                                         {Math.round(s.progress)}%
                                       </span>
                                     </div>
@@ -315,33 +315,12 @@ export default function Sidebar({
               <button
                 key={label}
                 onClick={onClick}
-                className="p-2 rounded-full hover:bg-gray-200 transition cursor-pointer"
+                className="p-2 rounded-full hover:bg-[var(--bg-input)] transition cursor-pointer text-[var(--fg-muted)] hover:text-[var(--fg-default)]"
               >
                 <Icon className="w-5 h-5" />
-                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 rounded bg-[var(--bg-input)] text-xs text-[var(--fg-default)] opacity-0 group-hover:opacity-100 transition">
-                  {label}
-                </span>
               </button>
             ))}
-            {!collapsed && (
-              <button
-                aria-label="Toggle theme"
-                onClick={() => {
-                  const next = theme === "dark" ? "light" : "dark";
-                  setTheme(next);
-                  const root = document.documentElement;
-                  if (next === "light")
-                    root.setAttribute("data-theme", "light");
-                  else root.removeAttribute("data-theme");
-                }}
-                className="group relative p-2 rounded-md hover:bg-[color:var(--bg-input)/0.9] transition flex-none"
-              >
-                <Palette className="w-5 h-5" />
-                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 rounded bg-[var(--bg-input)] text-xs text-[var(--fg-default)] opacity-0 group-hover:opacity-100 transition">
-                  {theme === "dark" ? "Light theme" : "Dark theme"}
-                </span>
-              </button>
-            )}
+            {!collapsed && <ThemeToggle />}
           </div>
         </div>
       </aside>

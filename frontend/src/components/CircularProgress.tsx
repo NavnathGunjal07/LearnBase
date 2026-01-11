@@ -40,7 +40,7 @@ export function CircularProgress({
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
-          className="text-gray-200 dark:text-gray-700"
+          className="text-[var(--border-default)]"
         />
         {/* Progress circle */}
         <circle

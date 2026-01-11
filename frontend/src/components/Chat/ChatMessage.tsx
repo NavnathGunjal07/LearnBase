@@ -31,7 +31,7 @@ export default function ChatMessage({
   const AvatarWrapper = ({ children }: { children: React.ReactNode }) => (
     <div className="relative inline-block">
       {isLoading && (
-        <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-blue-500 border-r-purple-500 animate-spin z-10 pointer-events-none" />
+        <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[var(--accent)] border-r-purple-500 animate-spin z-10 pointer-events-none" />
       )}
       {children}
     </div>
@@ -150,24 +150,24 @@ export default function ChatMessage({
           <Avatar message="Quiz Time!" size="small" />
         </AvatarWrapper>
         <div className="w-[90%] max-w-[90%]">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+          <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl overflow-hidden shadow-sm transition-all duration-300">
             {/* Header / Summary View */}
             <div
               onClick={() => setIsExpanded(!isExpanded)}
-              className={`p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors ${
-                isExpanded ? "border-b border-gray-100" : ""
+              className={`p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--bg-input)] transition-colors ${
+                isExpanded ? "border-b border-[var(--border-default)]" : ""
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="bg-blue-100 text-blue-600 p-1.5 rounded-md">
+                <div className="bg-orange-50 dark:bg-orange-900/20 text-[var(--accent)] p-1.5 rounded-md">
                   <span className="text-lg leading-none">🎯</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">
+                  <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wide">
                     Quiz
                   </span>
-                  <span className="font-medium text-gray-800 text-sm line-clamp-1">
-                    {message.quiz.question}
+                  <span className="font-medium text-[var(--fg-default)] text-sm line-clamp-1">
+                    {!isExpanded ? message.quiz.question : "Interactive Quiz"}
                   </span>
                 </div>
               </div>
@@ -182,7 +182,7 @@ export default function ChatMessage({
 
             {/* Expanded Content */}
             {isExpanded && (
-              <div className="p-4 bg-gray-50/30">
+              <div className="p-4 bg-[var(--bg-input)]/50">
                 <QuizCard
                   question={message.quiz.question}
                   options={message.quiz.options}
@@ -207,7 +207,9 @@ export default function ChatMessage({
         } w-full opacity-60`}
       >
         {!isUser && (
-          <Avatar isTyping={true} size="small" isLoading={isLoading} />
+          <AvatarWrapper>
+            <Avatar isTyping={true} size="small" />
+          </AvatarWrapper>
         )}
         <div
           className={`max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 ${
@@ -226,15 +228,17 @@ export default function ChatMessage({
       } w-full animate-fade-in`}
     >
       {!isUser && (
-        <Avatar message={content} size="small" isLoading={isLoading} />
+        <AvatarWrapper>
+          <Avatar message={content} size="small" />
+        </AvatarWrapper>
       )}
       <div
         className={`${
           isUser ? "max-w-[90%] md:max-w-[75%]" : "w-[90%] max-w-[90%]"
         } px-4 py-2 rounded-xl ${
           isUser
-            ? "bg-white border border-gray-200 text-gray-800"
-            : "bg-gray-50 text-gray-900"
+            ? "bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--fg-default)]"
+            : "bg-[var(--bg-input)] text-[var(--fg-default)]"
         } shadow-sm`}
       >
         {isUser ? (
@@ -281,7 +285,7 @@ export default function ChatMessage({
                 a: ({ children, ...props }: any) => {
                   return (
                     <a
-                      className="text-blue-600 hover:text-blue-700 underline"
+                      className="text-[var(--accent)] hover:text-orange-700 underline"
                       target="_blank"
                       rel="noopener noreferrer"
                       {...props}

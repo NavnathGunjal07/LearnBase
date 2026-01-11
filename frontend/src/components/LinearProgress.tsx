@@ -22,13 +22,13 @@ export function LinearProgress({
     <div className={`w-full ${className}`}>
       <div className="flex items-center justify-between mb-1">
         {showLabel && (
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <span className="text-xs font-medium text-[var(--fg-muted)]">
             {Math.round(value)}%
           </span>
         )}
       </div>
       <div
-        className={`w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden`}
+        className={`w-full bg-[var(--bg-input)] rounded-full overflow-hidden`}
         style={{ height }}
       >
         <div

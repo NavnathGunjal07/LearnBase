@@ -6,6 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LearnBase AI</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+
+      // Initialize Theme from Env or LocalStorage
+      // Vite replaces %VITE_DEFAULT_THEME% at build/serve time
+      const envTheme = "%VITE_DEFAULT_THEME%"; 
+      const defaultToDark = envTheme === 'dark' || envTheme === '' || envTheme === '%VITE_DEFAULT_THEME%'; // Fallback to dark if not set
+
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && defaultToDark)) {
+        document.documentElement.classList.add('dark')
+        localStorage.setItem('theme', 'dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

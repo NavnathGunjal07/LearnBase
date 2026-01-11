@@ -20,7 +20,7 @@ export const OnboardingLayout: FC<OnboardingLayoutProps> = ({
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 transition-colors duration-500 overflow-hidden">
+    <div className="h-screen flex flex-col bg-[var(--bg-default)] transition-colors duration-500 overflow-hidden">
       {/* Header / Progress */}
       <div className="flex-shrink-0 w-full">
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8">
@@ -34,23 +34,23 @@ export const OnboardingLayout: FC<OnboardingLayoutProps> = ({
                   key={step.id}
                   className={`flex items-center gap-2 transition-all duration-300 ${
                     isActive
-                      ? "text-blue-600 font-semibold"
+                      ? "text-[var(--accent)] font-semibold"
                       : isCompleted
-                      ? "text-gray-400"
-                      : "text-gray-300"
+                      ? "text-[var(--fg-muted)]"
+                      : "text-[var(--border-default)]"
                   }`}
                 >
                   <div
                     className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs border ${
                       isActive
-                        ? "border-blue-600 bg-blue-50"
+                        ? "border-[var(--accent)] bg-orange-50 dark:bg-orange-900/10 text-[var(--accent)]"
                         : isCompleted
-                        ? "border-green-500 bg-green-50 text-green-600"
-                        : "border-gray-200"
+                        ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                        : "border-[var(--border-default)] text-[var(--fg-muted)]"
                     }`}
                   >
                     {isCompleted ? (
-                      <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     ) : (
                       index + 1
                     )}

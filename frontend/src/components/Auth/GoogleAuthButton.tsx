@@ -9,7 +9,7 @@ export const GoogleAuthButton: FC<{ className?: string }> = ({ className }) => {
   return (
     <button
       onClick={handleGoogleLogin}
-      className={`flex items-center justify-center gap-3 w-full bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 font-medium py-3 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md ${className}`}
+      className={`flex items-center justify-center gap-3 w-full bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 border border-gray-300 dark:border-zinc-700 font-medium py-3 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md ${className}`}
     >
       <img
         src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"

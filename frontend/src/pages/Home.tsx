@@ -6,6 +6,7 @@ import { useChat } from "../hooks/useChat";
 import { useVisualizer } from "../hooks/useVisualizer";
 import ConceptVisualizer from "../components/Visualizer/ConceptVisualizer";
 import { CodingWorkspace } from "../components/CodingWorkspace/CodingWorkspace";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Home = () => {
   const {
@@ -65,7 +66,8 @@ const Home = () => {
                 >
                   <Menu className="w-5 h-5" />
                 </button>
-                <span className="ml-2 font-semibold">LearnBase</span>
+                <span className="ml-2 font-semibold flex-1">LearnBase</span>
+                <ThemeToggle />
               </div>
             )}
 

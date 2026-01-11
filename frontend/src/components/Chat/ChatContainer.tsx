@@ -14,6 +14,37 @@ interface ChatContainerProps {
   isAuthMode?: boolean;
 }
 
+const LoadingView = () => {
+  const [index, setIndex] = useState(0);
+  const texts = [
+    "Getting things ready...",
+    "Wait for a sec...",
+    "Setting up your space...",
+    "Almost done...",
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setIndex((i) => (i + 1) % texts.length),
+      2000
+    );
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden bg-[var(--bg-default)]">
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)] mx-auto mb-4"></div>
+          <p className="text-[var(--fg-muted)] text-lg animate-fade-in font-medium">
+            {texts[index]}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function ChatContainer({
   chatHook,
   isAuthMode = false,
@@ -196,20 +227,7 @@ export default function ChatContainer({
 
   // Show loading state while checking onboarding or last session
   if (isCheckingOnboarding || (isLoadingSession && !isOnboarding)) {
-    return (
-      <div className="flex flex-col flex-1 overflow-hidden bg-gray-50">
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">
-              {isCheckingOnboarding
-                ? "Checking onboarding status..."
-                : "Loading your learning session..."}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingView />;
   }
 
   // --- Onboarding / Auth View ---
@@ -278,7 +296,7 @@ export default function ChatContainer({
                   // Let's assume useChat appends it or we just show the placeholder below.
                   <div className="flex justify-start items-start gap-3 w-full opacity-60">
                     <div className="relative inline-block">
-                      <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-blue-500 border-r-purple-500 animate-spin z-10 pointer-events-none" />
+                      <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[var(--accent)] border-r-purple-500 animate-spin z-10 pointer-events-none" />
                       <Avatar isTyping={true} size="small" />
                     </div>
                     <div className="max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 bg-gray-50">
@@ -289,8 +307,8 @@ export default function ChatContainer({
 
               {chatHook.generationStatus?.status === "loading" && (
                 <div className="flex justify-center my-2 animate-fade-in">
-                  <div className="bg-blue-50 text-blue-600 text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-blue-100">
-                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="bg-orange-50 text-[var(--accent)] text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-orange-100">
+                    <div className="w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
                     {chatHook.generationStatus.message ||
                       "Generating content..."}
                   </div>
@@ -328,23 +346,22 @@ export default function ChatContainer({
 
   // --- Main Chat View ---
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-gray-50">
+    <div className="flex flex-col flex-1 overflow-hidden bg-[var(--bg-default)]">
       {/* Connection Status */}
       {!isConnected && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-center">
-          <span className="text-xs text-yellow-800">
+        <div className="bg-yellow-50 dark:bg-yellow-900/10 border-b border-yellow-200 dark:border-yellow-900/20 px-4 py-2 text-center">
+          <span className="text-xs text-yellow-800 dark:text-yellow-400">
             🔄 Connecting to chat server...
           </span>
         </div>
       )}
 
       {/* Chat Messages or Topic Selector */}
-      {/* Chat Messages or Topic Selector */}
       <>
         <div
           ref={scrollViewportRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-12 pr-2 sm:pr-4 md:pr-6 lg:pr-8 bg-gray-50 scroll-smooth min-h-0"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-12 pr-2 sm:pr-4 md:pr-6 lg:pr-8 bg-[var(--bg-default)] scroll-smooth min-h-0"
         >
           <div className="w-full max-w-3xl md:max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
             {messages.map((msg, i) => (
@@ -372,10 +389,10 @@ export default function ChatContainer({
               messages[messages.length - 1].sender === "user" && (
                 <div className="flex justify-start items-start gap-3 w-full opacity-60">
                   <div className="relative inline-block">
-                    <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-blue-500 border-r-purple-500 animate-spin z-10 pointer-events-none" />
+                    <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[var(--accent)] border-r-purple-500 animate-spin z-10 pointer-events-none" />
                     <Avatar isTyping={true} size="small" />
                   </div>
-                  <div className="max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 bg-gray-50">
+                  <div className="max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-[var(--fg-muted)] bg-[var(--bg-input)]">
                     Thinking...
                   </div>
                 </div>
@@ -383,8 +400,8 @@ export default function ChatContainer({
 
             {chatHook.generationStatus?.status === "loading" && (
               <div className="flex justify-center my-2 animate-fade-in">
-                <div className="bg-blue-50 text-blue-600 text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-blue-100">
-                  <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="bg-orange-50 dark:bg-orange-900/10 text-[var(--accent)] text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-orange-100 dark:border-orange-900/20">
+                  <div className="w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
                   {chatHook.generationStatus.message ||
                     (chatHook.generationStatus.type === "quiz"
                       ? "Generating Quiz..."
@@ -399,7 +416,7 @@ export default function ChatContainer({
           </div>
         </div>
         {(isAuthMode || isOnboarding || !hasCompletedOnboarding || true) && ( // Always show input
-          <div className="w-full bg-gray-50 border-t border-gray-100">
+          <div className="w-full bg-[var(--bg-default)] border-t border-[var(--border-default)]">
             <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <ChatInput
                 onSend={sendMessage}
