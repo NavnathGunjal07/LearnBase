@@ -19,6 +19,7 @@ export interface AuthenticatedWebSocket extends WebSocket {
   isAuthenticated?: boolean;
   hasCompletedOnboarding?: boolean; // Added this
   onboardingMessages?: Array<{ role: "user" | "assistant"; content: string }>;
+  progressInterval?: NodeJS.Timeout;
 }
 
 /**

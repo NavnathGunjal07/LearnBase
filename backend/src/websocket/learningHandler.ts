@@ -917,6 +917,73 @@ async function handleProgressUpdate(
   }
 }
 
+// Periodic progress check
+export async function checkProgress(ws: AuthenticatedWebSocket) {
+  if (!ws.currentSessionId || !ws.userId) return;
+
+  try {
+    const session = await prisma.chatSession.findUnique({
+      where: { id: ws.currentSessionId },
+      include: {
+        userTopic: { include: { masterTopic: true } },
+        subtopic: true,
+      },
+    });
+
+    if (!session || !session.userTopicId || !session.subtopicId) return;
+
+    // Get current subtopic progress
+    const progressRecord = await prisma.progress.findUnique({
+      where: {
+        userId_userTopicId_subtopicId: {
+          userId: ws.userId,
+          userTopicId: session.userTopicId,
+          subtopicId: session.subtopicId,
+        },
+      },
+    });
+
+    const currentSubtopicProgress = progressRecord?.completedPercent || 0;
+
+    // Calculate weighted topic progress (Fresh calc)
+    const userTopicId = session.userTopicId;
+    const subtopics = await prisma.subtopic.findMany({
+      where: { masterTopicId: session.userTopic.masterTopicId },
+      select: { id: true, weightage: true },
+    });
+
+    const allProgress = await prisma.progress.findMany({
+      where: { userTopicId },
+    });
+
+    let totalWeightedScore = 0;
+    let totalMaxWeight = 0;
+
+    for (const subtopic of subtopics) {
+      const p = allProgress.find((ap) => ap.subtopicId === subtopic.id);
+      const score = p ? p.completedPercent : 0;
+      totalWeightedScore += score * subtopic.weightage;
+      totalMaxWeight += subtopic.weightage;
+    }
+
+    const weightedProgress =
+      totalMaxWeight > 0 ? totalWeightedScore / totalMaxWeight : 0;
+
+    // Send update
+    ws.send(
+      JSON.stringify({
+        type: "progress_updated",
+        topicId: userTopicId,
+        subtopicId: session.subtopicId,
+        progress: currentSubtopicProgress,
+        topicProgress: weightedProgress,
+      })
+    );
+  } catch (error) {
+    console.error("Error in checkProgress:", error);
+  }
+}
+
 async function generateVisualizer(
   ws: AuthenticatedWebSocket,
   description: string

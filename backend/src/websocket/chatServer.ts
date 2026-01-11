@@ -7,7 +7,11 @@ import {
   handleOnboardingFlow,
   AuthenticatedWebSocket,
 } from "./onboardingHandler";
-import { handleLearningFlow, initLearningSession } from "./learningHandler";
+import {
+  handleLearningFlow,
+  initLearningSession,
+  checkProgress,
+} from "./learningHandler";
 import { handleWebSocketError } from "../utils/errorHandler";
 
 export function setupWebSocketServer(server: Server) {
@@ -68,6 +72,11 @@ export function setupWebSocketServer(server: Server) {
             ws.isAuthenticated = true;
             ws.hasCompletedOnboarding = user.hasCompletedOnboarding;
             ws.userEmail = user.email;
+
+            // Start periodic progress checks (every 30s)
+            ws.progressInterval = setInterval(() => {
+              checkProgress(ws);
+            }, 30000);
 
             wsLogger.info("WebSocket authenticated with token", {
               userId: ws.userId,

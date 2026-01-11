@@ -66,7 +66,11 @@ export default function Sidebar({
 
   // Listen for progress updates from chat
   useEffect(() => {
-    if (lastProgressUpdate || chatHook.lastTopicUpdate) {
+    if (lastProgressUpdate) {
+      learning.handleRealtimeUpdate(lastProgressUpdate);
+    }
+    // Only refresh full list if structure changed (new topic)
+    if (chatHook.lastTopicUpdate) {
       learning.refreshTopics();
     }
   }, [lastProgressUpdate, chatHook.lastTopicUpdate]);

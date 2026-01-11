@@ -9,12 +9,6 @@ import type {
 import { useToast } from "@/components/ui/use-toast";
 import { topicService } from "@/api";
 
-function calculateTopicProgress(topic: Topic): number {
-  if (topic.subtopics.length === 0) return 0;
-  const sum = topic.subtopics.reduce((acc, s) => acc + (s.progress ?? 0), 0);
-  return Math.round(sum / topic.subtopics.length);
-}
-
 export function useLearning() {
   const [state, setState] = useState<LearningState>({
     topics: [],
@@ -82,13 +76,49 @@ export function useLearning() {
     }
   };
 
+  // Use the progress from the topic object directly (which comes from backend)
   const topicProgressMap = useMemo(() => {
     const map: Record<string, number> = {};
     state.topics.forEach((t) => {
-      map[t.id] = calculateTopicProgress(t);
+      map[t.id] = t.progress;
     });
     return map;
   }, [state.topics]);
+
+  const handleRealtimeUpdate = useCallback(
+    (payload: {
+      topicId: number;
+      subtopicId: number;
+      progress: number;
+      topicProgress: number;
+    }) => {
+      setState((prev) => {
+        return {
+          ...prev,
+          topics: prev.topics.map((t) => {
+            if (t.id === payload.topicId.toString()) {
+              return {
+                ...t,
+                progress: payload.topicProgress,
+                subtopics: t.subtopics.map((s) => {
+                  if (s.id === payload.subtopicId.toString()) {
+                    return {
+                      ...s,
+                      progress: payload.progress,
+                      completed: payload.progress >= 100,
+                    };
+                  }
+                  return s;
+                }),
+              };
+            }
+            return t;
+          }),
+        };
+      });
+    },
+    []
+  );
 
   const selectedTopic: Topic | null = useMemo(
     () => state.topics.find((t) => t.id === state.selection.topicId) ?? null,
@@ -204,5 +234,6 @@ export function useLearning() {
     closeTopicModal,
     onTopicCreated: handleTopicCreated,
     refreshTopics: fetchTopics,
+    handleRealtimeUpdate,
   };
 }
