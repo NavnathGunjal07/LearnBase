@@ -600,196 +600,223 @@ async function generateAIResponse(
       onDelta: (content) => {
         ws.send(JSON.stringify({ type: "delta", content }));
       },
-      // No onJson needed here as LEARNING_PROMPT doesn't output JSON anymore
     });
-
-    // Do NOT send done here, wait for metadata step to finish
-    // ws.send(JSON.stringify({ type: "done" }));
 
     // Save assistant message
     await prisma.chatMessage.create({
       data: {
         chatId: sessionId,
-        userId: ws.userId, // Track which user this assistant message is for
+        userId: ws.userId,
         role: "assistant",
         content: fullResponse,
         messageType: "text",
       },
     });
 
-    // Step 2: Generate Metadata (Suggestions & Progress)
-    // Notify frontend that we are generating interactive content
-    ws.send(
-      JSON.stringify({
-        type: "activity_status",
-        status: "generating_content",
-      })
-    );
+    // Step 2: Classify Intent
+    ws.send(JSON.stringify({ type: "activity_status", status: "analyzing" }));
 
-    // Create a new context for the metadata prompt
-    const { METADATA_PROMPT } = await import("../prompts/metadata");
+    const { CLASSIFIER_PROMPT } = await import("../prompts/classifier");
 
-    const metadataMessages = [
-      {
-        role: "system",
-        content: METADATA_PROMPT,
-      },
+    // Construct intent classification prompt
+    const classificationMessages = [
+      { role: "system", content: CLASSIFIER_PROMPT },
       {
         role: "user",
-        content: `
-        Current Progress: ${currentProgress}%
-        Weightage: ${weightage}%
-
-        LATEST ASSISTANT RESPONSE:
-        "${fullResponse}"
-
-        Generate the JSON metadata now.
-        `,
+        content: `LATEST ASSISTANT RESPONSE:\n"${fullResponse}"\n\nClassify the intent now.`,
       },
     ];
 
-    // We can use streamChatCompletion but just ignore onDelta and capture onJson
+    let intent = {
+      needsQuiz: false,
+      needsCoding: false,
+      needsProgress: false,
+      needsSuggestions: true,
+    };
+
     await streamChatCompletion({
-      messages: metadataMessages,
-      onJson: async (data) => {
-        if (data.progress_update && userTopicId && subtopicId) {
-          await handleProgressUpdate(
-            ws,
-            userTopicId,
-            subtopicId,
-            data.progress_update
-          );
-        }
-        console.log(data);
-
-        // Handle quiz questions
-        if (data.quiz && data.quiz.question && data.quiz.options) {
-          // Save quiz to database
-          await prisma.chatMessage.create({
-            data: {
-              chatId: sessionId,
-              userId: ws.userId,
-              role: "assistant",
-              content: `Quiz: ${data.quiz.question}`,
-              messageType: "quiz",
-              metadata: {
-                question: data.quiz.question,
-                options: data.quiz.options,
-                correctIndex: data.quiz.correctIndex,
-              },
-            },
-          });
-
-          ws.send(
-            JSON.stringify({
-              type: "quiz",
-              quiz: {
-                question: data.quiz.question,
-                options: data.quiz.options,
-                correctIndex: data.quiz.correctIndex,
-              },
-            })
-          );
-        }
-
-        if (data.coding_challenge) {
-          let exerciseId: number | undefined;
-
-          // Perist the challenge as an Exercise in DB if subtopic context exists
-          if (subtopicId) {
-            try {
-              const exercise = await prisma.exercise.create({
-                data: {
-                  subtopicId: subtopicId,
-                  title: data.coding_challenge.title,
-                  prompt: data.coding_challenge.description, // prompt field stores description
-                  starterCode: data.coding_challenge.starterCode,
-                  difficulty: "intermediate",
-                  aiGenerated: true,
-                  testCases: {
-                    create:
-                      data.coding_challenge.testCases?.map((tc: any) => ({
-                        input: tc.input,
-                        expectedOutput: tc.expected,
-                        visible: true,
-                      })) || [],
-                  },
-                },
-              });
-              exerciseId = exercise.id;
-            } catch (err) {
-              console.error("Failed to persist exercise:", err);
-            }
-          }
-
-          const challengePayload = {
-            ...data.coding_challenge,
-            id: exerciseId,
-          };
-
-          // Save coding challenge message to chat history
-          await prisma.chatMessage.create({
-            data: {
-              chatId: sessionId,
-              userId: ws.userId,
-              role: "assistant",
-              content: `Coding Challenge: ${data.coding_challenge.title}`,
-              messageType: "coding_challenge",
-              metadata: challengePayload,
-            },
-          });
-
-          ws.send(
-            JSON.stringify({
-              type: "coding_challenge",
-              challenge: challengePayload,
-            })
-          );
-        } else if (data.code_request) {
-          ws.send(
-            JSON.stringify({
-              type: "code_request",
-              language: data.code_request.language,
-            })
-          );
-        }
-
-        // Only send suggestions if no quiz is present
-        if (data.suggestions && Array.isArray(data.suggestions) && !data.quiz) {
-          ws.send(
-            JSON.stringify({
-              type: "suggestions",
-              suggestions: data.suggestions,
-            })
-          );
-        }
-
-        if (
-          data.visualizer_suggestions &&
-          Array.isArray(data.visualizer_suggestions)
-        ) {
-          ws.send(
-            JSON.stringify({
-              type: "visualizer_suggestions",
-              suggestions: data.visualizer_suggestions.slice(0, 3), // Ensure max 3
-            })
-          );
-        }
-        // Step 3: Generate Visualizer (if requested)
-        if (data.visualizer_request && data.visualizer_request.description) {
-          await generateVisualizer(ws, data.visualizer_request.description);
-        }
+      messages: classificationMessages,
+      onJson: (data) => {
+        intent = { ...intent, ...data };
       },
     });
-    ws.send(
-      JSON.stringify({
-        type: "activity_status",
-        status: "idle",
-      })
-    );
+
+    // Enforce mutual exclusivity (Safety check)
+    if (intent.needsQuiz && intent.needsCoding) {
+      // Prioritize coding if both are present, or just pick one. Let's prioritize Quiz as it's usually a quick check before code.
+      // Actually, user said "only 1 will be there".
+      intent.needsCoding = false;
+    }
+
+    console.log("🧠 Context Classification:", intent);
+
+    // Step 3: Conditional Generation
+    const { QUIZ_PROMPT, CODING_PROMPT, SUGGESTIONS_PROMPT, PROGRESS_PROMPT } =
+      await import("../prompts/generators");
+
+    // A. Progress Update
+    if (intent.needsProgress && userTopicId && subtopicId) {
+      ws.send(
+        JSON.stringify({ type: "activity_status", status: "updating_progress" })
+      );
+      const progressMessages = [
+        { role: "system", content: PROGRESS_PROMPT },
+        {
+          role: "user",
+          content: `Current Progress: ${currentProgress}%\nWeightage: ${weightage}%\nContext: User demonstrated understanding.`,
+        },
+      ];
+      await streamChatCompletion({
+        messages: progressMessages,
+        onJson: async (data) => {
+          if (data.progress_update) {
+            await handleProgressUpdate(
+              ws,
+              userTopicId,
+              subtopicId,
+              data.progress_update
+            );
+          }
+        },
+      });
+    }
+
+    // B. Quiz Generation
+    if (intent.needsQuiz) {
+      ws.send(
+        JSON.stringify({ type: "activity_status", status: "generating_quiz" })
+      );
+      const quizMessages = [
+        { role: "system", content: QUIZ_PROMPT },
+        {
+          role: "user",
+          content: `Generate a quiz based on: "${fullResponse}"`,
+        },
+      ];
+      await streamChatCompletion({
+        messages: quizMessages,
+        onJson: async (data) => {
+          if (data.quiz) {
+            await prisma.chatMessage.create({
+              data: {
+                chatId: sessionId,
+                userId: ws.userId,
+                role: "assistant",
+                content: `Quiz: ${data.quiz.question}`,
+                messageType: "quiz",
+                metadata: data.quiz,
+              },
+            });
+            ws.send(JSON.stringify({ type: "quiz", quiz: data.quiz }));
+          }
+        },
+      });
+    }
+
+    // C. Coding Challenge
+    if (intent.needsCoding) {
+      ws.send(
+        JSON.stringify({ type: "activity_status", status: "generating_code" })
+      );
+      const codingMessages = [
+        { role: "system", content: CODING_PROMPT },
+        {
+          role: "user",
+          content: `Generate a coding challenge based on: "${fullResponse}"`,
+        },
+      ];
+      await streamChatCompletion({
+        messages: codingMessages,
+        onJson: async (data) => {
+          if (data.coding_challenge) {
+            let exerciseId: number | undefined;
+            if (subtopicId) {
+              // Persist exercise code (similar to before)
+              try {
+                const exercise = await prisma.exercise.create({
+                  data: {
+                    subtopicId: subtopicId,
+                    title: data.coding_challenge.title,
+                    prompt: data.coding_challenge.description,
+                    starterCode: data.coding_challenge.starterCode,
+                    difficulty: "intermediate",
+                    aiGenerated: true,
+                    testCases: {
+                      create:
+                        data.coding_challenge.testCases?.map((tc: any) => ({
+                          input: tc.input,
+                          expectedOutput: tc.expected,
+                          visible: true,
+                        })) || [],
+                    },
+                  },
+                });
+                exerciseId = exercise.id;
+              } catch (e) {
+                console.error("Failed to create exercise", e);
+              }
+            }
+
+            const challengePayload = {
+              ...data.coding_challenge,
+              id: exerciseId,
+            };
+
+            await prisma.chatMessage.create({
+              data: {
+                chatId: sessionId,
+                userId: ws.userId,
+                role: "assistant",
+                content: `Coding Challenge: ${data.coding_challenge.title}`,
+                messageType: "coding_challenge",
+                metadata: challengePayload,
+              },
+            });
+            ws.send(
+              JSON.stringify({
+                type: "coding_challenge",
+                challenge: challengePayload,
+              })
+            );
+          }
+        },
+      });
+    }
+
+    // D. Suggestions (Only if no quiz and no coding)
+    if (intent.needsSuggestions && !intent.needsQuiz && !intent.needsCoding) {
+      ws.send(
+        JSON.stringify({
+          type: "activity_status",
+          status: "generating_suggestions",
+        })
+      );
+      const suggestionMessages = [
+        { role: "system", content: SUGGESTIONS_PROMPT },
+        {
+          role: "user",
+          content: `Generate suggestions based on: "${fullResponse}"`,
+        },
+      ];
+      await streamChatCompletion({
+        messages: suggestionMessages,
+        onJson: async (data) => {
+          if (data.suggestions) {
+            ws.send(
+              JSON.stringify({
+                type: "suggestions",
+                suggestions: data.suggestions,
+              })
+            );
+          }
+        },
+      });
+    }
+
+    ws.send(JSON.stringify({ type: "activity_status", status: "idle" }));
     ws.send(JSON.stringify({ type: "done" }));
   } catch (error) {
-    console.error("GROQ API error:", error);
+    console.error("AI Generation Error:", error);
     ws.send(
       JSON.stringify({
         type: "error",
