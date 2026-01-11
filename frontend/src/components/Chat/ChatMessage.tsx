@@ -109,7 +109,9 @@ export default function ChatMessage({
                 </div>
                 <div>
                   <div className="font-semibold text-gray-800">
-                    {isSuccess ? "Solution Accepted" : "Solution Failed"}
+                    {isSuccess
+                      ? "🎉🌈 Excellent! You got it right! 🚀"
+                      : "Solution Failed"}
                   </div>
                   <div className="text-xs text-gray-500">
                     Passed: {message.codingSubmission.passedCount} /{" "}

@@ -198,13 +198,84 @@ async function handleCodeExecution(ws: AuthenticatedWebSocket, message: any) {
         );
 
         if (result.passedCount === result.totalCount && result.totalCount > 0) {
+          const successMsg = "🎉🌈 Excellent! You got it right! 🚀";
+
           ws.send(
             JSON.stringify({
               type: "message",
               sender: "assistant",
-              content: "🎉 All test cases passed! Great job! 🚀",
+              content: successMsg,
             })
           );
+
+          if (ws.currentSessionId && ws.userId) {
+            // Save success message to DB
+            await prisma.chatMessage.create({
+              data: {
+                chatId: ws.currentSessionId,
+                userId: ws.userId,
+                role: "assistant",
+                content: successMsg,
+                messageType: "text",
+              },
+            });
+
+            // Fetch Session Details for Context
+            const session = await prisma.chatSession.findUnique({
+              where: { id: ws.currentSessionId },
+              include: {
+                userTopic: { include: { masterTopic: true } },
+                subtopic: true,
+              },
+            });
+
+            if (session) {
+              // Fetch history
+              const history = await prisma.chatMessage.findMany({
+                where: { chatId: ws.currentSessionId },
+                orderBy: { createdAt: "asc" },
+                take: 20,
+              });
+
+              const currentProgress = session.subtopicId
+                ? (
+                    await prisma.progress.findUnique({
+                      where: {
+                        userId_userTopicId_subtopicId: {
+                          userId: ws.userId,
+                          userTopicId: session.userTopicId,
+                          subtopicId: session.subtopicId,
+                        },
+                      },
+                    })
+                  )?.completedPercent || 0
+                : 0;
+
+              const weightage = session.subtopic?.weightage || 10;
+              const topicName = session.userTopic.masterTopic.name;
+              const subtopicName = session.subtopic?.title || "General";
+
+              const systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}\nCurrent Progress: ${currentProgress}%\nProgress Weightage per Step: ${weightage}%\n\nINSTRUCTION: The user just completed a coding challenge SUCCESSFULLY. The last message in history is your congratulations. NOW, continue the lesson. Briefly bridge from the challenge to the next concept. Do not ask "What would you like to do next?". Just teach the next step.`;
+
+              const messages = [
+                { role: "system", content: systemPromptContext },
+                ...history.map((m: any) => ({
+                  role: m.role as "user" | "assistant" | "system",
+                  content: m.content,
+                })),
+              ];
+
+              await generateAIResponse(
+                ws,
+                messages,
+                ws.currentSessionId,
+                session.userTopicId,
+                session.subtopicId || undefined,
+                currentProgress,
+                weightage
+              );
+            }
+          }
         }
 
         // Save submission to DB
@@ -331,6 +402,17 @@ async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
       ? "🎉🌈 *Excellent!* You got it right! 🚀"
       : "🤔🐢 *Not quite, young coder.* Let's review that concept again! 💡";
 
+    // Save encouragement to DB so it appears in history for context
+    await prisma.chatMessage.create({
+      data: {
+        chatId: sessionId,
+        userId: ws.userId,
+        role: "assistant",
+        content: encouragement,
+        messageType: "text",
+      },
+    });
+
     ws.send(
       JSON.stringify({
         type: "message",
@@ -338,6 +420,54 @@ async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
         sender: "assistant",
       })
     );
+
+    // If correct, continue the lesson automatically
+    if (isCorrect) {
+      // Fetch history for context
+      const history = await prisma.chatMessage.findMany({
+        where: { chatId: sessionId },
+        orderBy: { createdAt: "asc" },
+        take: 20,
+      });
+
+      const currentProgress = session.subtopicId
+        ? (
+            await prisma.progress.findUnique({
+              where: {
+                userId_userTopicId_subtopicId: {
+                  userId: ws.userId!,
+                  userTopicId: session.userTopicId,
+                  subtopicId: session.subtopicId,
+                },
+              },
+            })
+          )?.completedPercent || 0
+        : 0;
+
+      const weightage = session.subtopic?.weightage || 10;
+      const topicName = session.userTopic.masterTopic.name;
+      const subtopicName = session.subtopic?.title || "General";
+
+      const systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}\nCurrent Progress: ${currentProgress}%\nProgress Weightage per Step: ${weightage}%\n\nINSTRUCTION: The user just answered a quiz question CORRECTLY. The last message in history is your congratulations. NOW, continue the lesson. Briefly bridge from the quiz topic to the next concept. Do not ask "What would you like to do next?". Just teach the next step.`;
+
+      const messages = [
+        { role: "system", content: systemPromptContext },
+        ...history.map((m: any) => ({
+          role: m.role as "user" | "assistant" | "system",
+          content: m.content,
+        })),
+      ];
+
+      await generateAIResponse(
+        ws,
+        messages,
+        sessionId,
+        session.userTopicId,
+        session.subtopicId || undefined,
+        currentProgress,
+        weightage
+      );
+    }
 
     ws.send(JSON.stringify({ type: "done" }));
   } catch (error) {

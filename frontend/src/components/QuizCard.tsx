@@ -150,7 +150,7 @@ export const QuizCard = ({
             }`}
           >
             {selectedIndex === correctIndex ? (
-              <span>🎉 Correct! Well done!</span>
+              <span>🎉🌈 Excellent! You got it right! 🚀</span>
             ) : (
               <span>
                 👀 The correct answer is:{" "}
