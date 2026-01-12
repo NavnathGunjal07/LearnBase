@@ -10,6 +10,8 @@ import {
   Zap,
   Coffee,
   Heart,
+  Menu,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -19,6 +21,7 @@ export default function LandingPage() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isDark, setIsDark] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Redirect to home if user is authenticated
   useEffect(() => {
@@ -77,32 +80,80 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-2 md:gap-6">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-[var(--bg-input)] transition-colors text-[var(--fg-muted)] hover:text-[var(--fg-default)]"
-              aria-label="Toggle Dark Mode"
-            >
-              {isDark ? (
-                <Sun className="w-5 h-5" />
-              ) : (
-                <Moon className="w-5 h-5" />
-              )}
-            </button>
-            <Link to="/auth" className="hidden md:block">
-              <Button
-                variant="ghost"
-                className="font-medium text-[var(--fg-muted)] hover:text-[var(--fg-default)] hover:bg-[var(--bg-input)]"
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-6">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-[var(--bg-input)] transition-colors text-[var(--fg-muted)] hover:text-[var(--fg-default)]"
+                aria-label="Toggle Dark Mode"
               >
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/auth">
-              <Button className="bg-[var(--fg-default)] text-[var(--bg-default)] hover:opacity-90 transition-opacity rounded-full px-4 md:px-6 h-9 md:h-10 text-sm md:text-base">
-                Get Started
-              </Button>
-            </Link>
+                {isDark ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
+              </button>
+              <Link to="/auth">
+                <Button
+                  variant="ghost"
+                  className="font-medium text-[var(--fg-muted)] hover:text-[var(--fg-default)] hover:bg-[var(--bg-input)]"
+                >
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/auth">
+                <Button className="bg-[var(--fg-default)] text-[var(--bg-default)] hover:opacity-90 transition-opacity rounded-full px-6 h-10">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-[var(--bg-input)] transition-colors text-[var(--fg-muted)] hover:text-[var(--fg-default)]"
+              >
+                {isDark ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
+              </button>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-md hover:bg-[var(--bg-input)] transition-colors text-[var(--fg-default)]"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-[var(--border-default)] bg-[var(--bg-default)] px-4 py-4 shadow-lg animate-in slide-in-from-top-2">
+            <div className="flex flex-col gap-4">
+              <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-lg font-medium text-[var(--fg-muted)] hover:text-[var(--fg-default)] hover:bg-[var(--bg-input)] h-12"
+                >
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full bg-[var(--fg-default)] text-[var(--bg-default)] hover:opacity-90 transition-opacity rounded-lg h-12 text-lg">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       <main className="pt-32 pb-20">

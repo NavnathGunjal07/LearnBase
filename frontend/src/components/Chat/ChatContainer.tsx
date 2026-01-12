@@ -240,12 +240,12 @@ export default function ChatContainer({
           <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
             {/* Google Auth Button (Only in Auth Step) - Fixed at top */}
             {onboardingStep === "auth" && (
-              <div className="flex-shrink-0 pt-10 sm:pt-12 pb-4 flex flex-col items-center justify-center space-y-4">
-                <p className="text-gray-600 font-medium text-lg">
+              <div className="flex-shrink-0 pt-10 sm:pt-12 pb-4 flex flex-col items-center justify-center space-y-4 w-full">
+                <p className="text-gray-600 font-medium text-lg text-center">
                   Please log in to continue
                 </p>
-                <div className="w-full max-w-sm">
-                  <GoogleAuthButton />
+                <div className="w-full max-w-sm flex justify-center">
+                  <GoogleAuthButton className="w-full" />
                 </div>
               </div>
             )}
@@ -417,7 +417,7 @@ export default function ChatContainer({
         </div>
         {(isAuthMode || isOnboarding || !hasCompletedOnboarding || true) && ( // Always show input
           <div className="w-full bg-[var(--bg-default)] border-t border-[var(--border-default)]">
-            <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-2 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <ChatInput
                 onSend={sendMessage}
                 placeholder={isAuthMode ? "Type here..." : undefined}

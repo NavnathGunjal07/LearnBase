@@ -59,14 +59,14 @@ const Home = () => {
           >
             {/* Mobile Header (Only show when sidebar is accessible/coding is closed) */}
             {!isCodingOpen && (
-              <div className="md:hidden flex items-center p-3 border-b border-default bg-[var(--bg-default)] shrink-0">
+              <div className="md:hidden flex items-center p-3 border-b border-default bg-[var(--bg-default)] shrink-0 sticky top-0 z-20">
                 <button
                   onClick={() => setMobileMenuOpen(true)}
                   className="p-2 -ml-2 rounded-md hover:bg-[color:var(--bg-input)] transition"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
-                <span className="ml-2 font-semibold flex-1">LearnBase</span>
+                <span className="ml-2 font-semibold flex-1">LearnBaseAI</span>
                 <ThemeToggle />
               </div>
             )}
