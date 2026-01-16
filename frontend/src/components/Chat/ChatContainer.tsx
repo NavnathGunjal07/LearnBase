@@ -373,6 +373,8 @@ export default function ChatContainer({
                   (chatHook.generationStatus?.status === "loading" || isTyping)
                 }
                 onQuizAnswer={chatHook.submitQuizAnswer}
+                onQuizNext={chatHook.sendQuizNext}
+                onQuizSkip={chatHook.sendQuizSkip}
                 onOpenCodingChallenge={(challenge) =>
                   chatHook.setCodingWorkspace({
                     isOpen: true,

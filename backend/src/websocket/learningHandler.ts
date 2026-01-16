@@ -13,6 +13,12 @@ export interface AuthenticatedWebSocket extends WebSocket {
   currentTopicId?: number;
   currentSubtopicId?: number;
   isAuthenticated?: boolean;
+  quizState?: {
+    questions: any[];
+    currentIndex: number;
+    wrongCount: number;
+    active: boolean;
+  };
 }
 
 interface ProgressUpdate {
@@ -80,6 +86,10 @@ export async function handleLearningFlow(
       await handleVisualizerCheck(ws);
     } else if (type === "new_chat") {
       await initLearningSession(ws);
+    } else if (type === "quiz_next") {
+      await handleQuizNext(ws);
+    } else if (type === "quiz_skip") {
+      await handleQuizSkip(ws);
     }
   } catch (error) {
     console.error("Error in learning flow:", error);
@@ -343,133 +353,211 @@ async function handleCodeExecution(ws: AuthenticatedWebSocket, message: any) {
 
 async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
   try {
-    const { selectedIndex, correctIndex } = message;
+    const { selectedIndex } = message;
     const sessionId = ws.currentSessionId;
 
-    if (!sessionId) {
-      ws.send(JSON.stringify({ type: "error", content: "No active session" }));
+    if (!sessionId || !ws.quizState || !ws.quizState.active) {
+      // Just ignore if no session or quiz inactive
       return;
     }
 
-    const isCorrect = selectedIndex === correctIndex;
+    const currentQ = ws.quizState.questions[ws.quizState.currentIndex];
 
-    // Get session details for progress update
-    const session = await prisma.chatSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        userTopic: { include: { masterTopic: true } },
-        subtopic: true,
-      },
-    });
-
-    if (!session) {
-      ws.send(JSON.stringify({ type: "error", content: "Session not found" }));
+    // Validate we are answering the right question
+    if (!currentQ) {
+      ws.send(
+        JSON.stringify({ type: "error", content: "Quiz state sync error" })
+      );
       return;
     }
 
-    // Send result to user
-    ws.send(
-      JSON.stringify({
-        type: "quiz_result",
-        isCorrect,
-      })
-    );
+    const isCorrect = selectedIndex === currentQ.correctIndex;
+    const isSkipped = selectedIndex === -1; // -1 denotes skip
 
-    // Update progress if correct
-    if (isCorrect && session.userTopicId && session.subtopicId) {
-      const progressRecord = await prisma.progress.findUnique({
-        where: {
-          userId_userTopicId_subtopicId: {
-            userId: ws.userId!,
-            userTopicId: session.userTopicId,
-            subtopicId: session.subtopicId,
-          },
-        },
-      });
-
-      const currentProgress = progressRecord?.completedPercent || 0;
-      const weightage = session.subtopic?.weightage || 10;
-      const newProgress = Math.min(currentProgress + weightage, 100);
-
-      await handleProgressUpdate(ws, session.userTopicId, session.subtopicId, {
-        score: newProgress,
-        reasoning: "Answered quiz question correctly",
-      });
-    }
-
-    // Send AI encouragement message
-    const encouragement = isCorrect
-      ? "🎉🌈 *Excellent!* You got it right! 🚀"
-      : "🤔🐢 *Not quite, young coder.* Let's review that concept again! 💡";
-
-    // Save encouragement to DB so it appears in history for context
+    // Save Answer to DB
     await prisma.chatMessage.create({
       data: {
         chatId: sessionId,
         userId: ws.userId,
-        role: "assistant",
-        content: encouragement,
-        messageType: "text",
+        role: "user",
+        messageType: "quiz_answer",
+        content: isSkipped
+          ? "Skipped"
+          : `Answered: ${currentQ.options[selectedIndex]}`,
+        metadata: {
+          questionIndex: ws.quizState.currentIndex,
+          question: currentQ.question,
+          correctIndex: currentQ.correctIndex,
+          selectedIndex: selectedIndex,
+          isCorrect: isCorrect,
+          isSkipped: isSkipped,
+        },
       },
     });
 
+    // Update the quiz message in database to track user's answers
+    const quizMessage = await prisma.chatMessage.findFirst({
+      where: {
+        chatId: sessionId,
+        messageType: "quiz",
+        role: "assistant",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (quizMessage && quizMessage.metadata) {
+      const metadata = quizMessage.metadata as any;
+      if (!metadata.userAnswers) {
+        metadata.userAnswers = [];
+      }
+      metadata.userAnswers[ws.quizState.currentIndex] = {
+        selectedIndex,
+        isCorrect,
+        isSkipped,
+      };
+      metadata.currentIndex = ws.quizState.currentIndex;
+
+      await prisma.chatMessage.update({
+        where: { id: quizMessage.id },
+        data: { metadata },
+      });
+    }
+
+    // Update State
+    if (!isCorrect || isSkipped) {
+      ws.quizState.wrongCount++;
+    }
+
+    // Response Message
+    const feedback = isCorrect
+      ? "Correct! 🎉"
+      : isSkipped
+      ? `Skipped. The answer was ${currentQ.options[currentQ.correctIndex]}.`
+      : `Incorrect. The answer was ${currentQ.options[currentQ.correctIndex]}.`;
+
     ws.send(
       JSON.stringify({
-        type: "message",
-        content: encouragement,
-        sender: "assistant",
+        type: "quiz_ack",
+        questionIndex: ws.quizState.currentIndex,
+        isCorrect,
+        feedback,
+        correctIndex: currentQ.correctIndex,
       })
     );
 
-    // If correct, continue the lesson automatically
-    if (isCorrect) {
-      // Fetch history for context
-      const history = await prisma.chatMessage.findMany({
-        where: { chatId: sessionId },
-        orderBy: { createdAt: "asc" },
-        take: 20,
+    // Check Stop Condition
+    if (ws.quizState.wrongCount >= 2) {
+      ws.quizState.active = false;
+
+      // Update quiz status in database
+      if (quizMessage) {
+        const metadata = quizMessage.metadata as any;
+        metadata.status = "stopped";
+        await prisma.chatMessage.update({
+          where: { id: quizMessage.id },
+          data: { metadata },
+        });
+      }
+
+      // Stop Quiz
+      ws.send(
+        JSON.stringify({
+          type: "quiz_stop",
+          reason: "failed",
+          content:
+            "It seems we need to review some basics first. Let's start from the beginning.",
+        })
+      );
+
+      // Trigger Remedial Lesson
+      const session = await prisma.chatSession.findUnique({
+        where: { id: sessionId },
+        include: { userTopic: { include: { masterTopic: true } } },
       });
 
-      const currentProgress = session.subtopicId
-        ? (
-            await prisma.progress.findUnique({
-              where: {
-                userId_userTopicId_subtopicId: {
-                  userId: ws.userId!,
-                  userTopicId: session.userTopicId,
-                  subtopicId: session.subtopicId,
-                },
-              },
-            })
-          )?.completedPercent || 0
-        : 0;
+      if (session) {
+        const messages = [
+          {
+            role: "system",
+            content:
+              "User failed the initial assessment. Explain the basic concepts simply effectively teaching the first lesson.",
+          },
+          {
+            role: "user",
+            content: `I struggled with the quiz. Please teach me ${session.userTopic.masterTopic.name} from scratch.`,
+          },
+        ];
+        await generateAIResponse(
+          ws,
+          messages,
+          sessionId,
+          session.userTopicId,
+          session.subtopicId || undefined
+        );
+      }
+    } else if (ws.quizState.currentIndex < ws.quizState.questions.length - 1) {
+      // Move to next question
+      ws.quizState.currentIndex++;
 
-      const weightage = session.subtopic?.weightage || 10;
-      const topicName = session.userTopic.masterTopic.name;
-      const subtopicName = session.subtopic?.title || "General";
-
-      const systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}\nCurrent Progress: ${currentProgress}%\nProgress Weightage per Step: ${weightage}%\n\nINSTRUCTION: The user just answered a quiz question CORRECTLY. The last message in history is your congratulations. NOW, continue the lesson. Briefly bridge from the quiz topic to the next concept. Do not ask "What would you like to do next?". Just teach the next step.`;
-
-      const messages = [
-        { role: "system", content: systemPromptContext },
-        ...history.map((m: any) => ({
-          role: m.role as "user" | "assistant" | "system",
-          content: m.content,
-        })),
-      ];
-
-      await generateAIResponse(
-        ws,
-        messages,
-        sessionId,
-        session.userTopicId,
-        session.subtopicId || undefined,
-        currentProgress,
-        weightage
+      // Send acknowledgment that we're moving to next question
+      ws.send(
+        JSON.stringify({
+          type: "quiz_next",
+          nextIndex: ws.quizState.currentIndex,
+          total: ws.quizState.questions.length,
+        })
       );
-    }
+    } else {
+      // Quiz Completed Successfully
+      ws.quizState.active = false;
 
-    ws.send(JSON.stringify({ type: "done" }));
+      // Update quiz status in database
+      if (quizMessage) {
+        const metadata = quizMessage.metadata as any;
+        metadata.status = "completed";
+        metadata.correctAnswers =
+          ws.quizState.questions.length - ws.quizState.wrongCount;
+        await prisma.chatMessage.update({
+          where: { id: quizMessage.id },
+          data: { metadata },
+        });
+      }
+
+      ws.send(
+        JSON.stringify({
+          type: "quiz_complete",
+          totalQuestions: ws.quizState.questions.length,
+          correctAnswers:
+            ws.quizState.questions.length - ws.quizState.wrongCount,
+        })
+      );
+
+      // Just trigger standard "Continue Lesson"
+      const session = await prisma.chatSession.findUnique({
+        where: { id: sessionId },
+        include: { userTopic: { include: { masterTopic: true } } },
+      });
+
+      if (session) {
+        const messages = [
+          {
+            role: "system",
+            content:
+              "User passed the assessment. Start the lesson at an intermediate level.",
+          },
+          { role: "user", content: "I passed the quiz! Ready to learn." },
+        ];
+        await generateAIResponse(
+          ws,
+          messages,
+          sessionId,
+          session.userTopicId,
+          session.subtopicId || undefined
+        );
+      }
+    }
   } catch (error) {
     handleWebSocketError(error, ws, "handleQuizAnswer");
   }
@@ -552,7 +640,15 @@ async function handleUserMessage(ws: AuthenticatedWebSocket, message: any) {
     let systemPromptContext = `${LEARNING_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}\nCurrent Progress: ${currentProgress}%\nProgress Weightage per Step: ${subtopicWeightage}%`;
 
     if (isFirstReply) {
-      systemPromptContext += `\n\nUSER CONTEXT: The user has just stated their experience level: "${content}". Adapt your teaching style accordingly. Start by acknowledging their level and introducing the first concept.`;
+      systemPromptContext += `\n\nUSER CONTEXT: The user has just stated their experience level: "${content}". Adapt your teaching style accordingly. Start by acknowledging their level.`;
+
+      // Initialize Quiz State for 3 questions
+      ws.quizState = {
+        questions: [], // Will be populated by generation
+        currentIndex: 0,
+        wrongCount: 0,
+        active: true,
+      };
     } else {
       systemPromptContext += `\n\nINSTRUCTION: Continue teaching based on the conversation history. Assess the user's understanding from their last message. If they demonstrate understanding or complete a step, calculate the new progress (current + weightage, max 100) and include it in the hidden JSON block.`;
     }
@@ -641,6 +737,15 @@ async function generateAIResponse(
       },
     });
 
+    // Forced Quiz Logic for Active Quiz State
+    if (ws.quizState && ws.quizState.active) {
+      intent.needsQuiz = true;
+      intent.needsCoding = false;
+      intent.needsSuggestions = false;
+      intent.needsProgress = false; // Don't update progress during assessment
+      console.log("🔹 Enforcing Quiz Batch Generation");
+    }
+
     // Enforce mutual exclusivity (Safety check)
     if (intent.needsQuiz && intent.needsCoding) {
       // Prioritize coding if both are present, or just pick one. Let's prioritize Quiz as it's usually a quick check before code.
@@ -651,8 +756,9 @@ async function generateAIResponse(
     console.log("🧠 Context Classification:", intent);
 
     // Step 3: Conditional Generation
-    const { QUIZ_PROMPT, CODING_PROMPT, SUGGESTIONS_PROMPT, PROGRESS_PROMPT } =
-      await import("../prompts/generators");
+    const { CODING_PROMPT, SUGGESTIONS_PROMPT, PROGRESS_PROMPT } = await import(
+      "../prompts/generators"
+    );
 
     // A. Progress Update
     if (intent.needsProgress && userTopicId && subtopicId) {
@@ -686,28 +792,64 @@ async function generateAIResponse(
       ws.send(
         JSON.stringify({ type: "activity_status", status: "generating_quiz" })
       );
+
+      const { GENERATE_QUIZ_BATCH_PROMPT } = await import("../prompts/quiz");
+
       const quizMessages = [
-        { role: "system", content: QUIZ_PROMPT },
+        { role: "system", content: GENERATE_QUIZ_BATCH_PROMPT },
         {
           role: "user",
-          content: `Generate a quiz based on: "${fullResponse}"`,
+          content: `Generate a quiz batch based on: "${fullResponse}"`,
         },
       ];
       await streamChatCompletion({
         messages: quizMessages,
         onJson: async (data) => {
-          if (data.quiz) {
+          if (data.quiz_batch && Array.isArray(data.quiz_batch.questions)) {
+            // Store questions in state
+            if (ws.quizState) {
+              ws.quizState.questions = data.quiz_batch.questions;
+              ws.quizState.currentIndex = 0;
+            }
+
+            // Save ALL questions to database with complete metadata
             await prisma.chatMessage.create({
               data: {
                 chatId: sessionId,
                 userId: ws.userId,
                 role: "assistant",
-                content: `Quiz: ${data.quiz.question}`,
+                content: `Quiz: ${data.quiz_batch.topic || "Knowledge Check"}`,
                 messageType: "quiz",
-                metadata: data.quiz,
+                metadata: {
+                  topic: data.quiz_batch.topic,
+                  questions: data.quiz_batch.questions.map(
+                    (q: any, idx: number) => ({
+                      question: q.question,
+                      options: q.options,
+                      correctIndex: q.correctIndex,
+                      explanation: q.explanation,
+                      index: idx,
+                    })
+                  ),
+                  totalQuestions: data.quiz_batch.questions.length,
+                  currentIndex: 0,
+                  status: "active",
+                },
               },
             });
-            ws.send(JSON.stringify({ type: "quiz", quiz: data.quiz }));
+
+            // Send complete quiz batch to frontend
+            ws.send(
+              JSON.stringify({
+                type: "quiz",
+                quiz: {
+                  topic: data.quiz_batch.topic,
+                  questions: data.quiz_batch.questions,
+                  totalQuestions: data.quiz_batch.questions.length,
+                  currentIndex: 0,
+                },
+              })
+            );
           }
         },
       });
@@ -1263,4 +1405,105 @@ export async function handleVisualizerCheck(ws: AuthenticatedWebSocket) {
       })
     );
   }
+}
+
+// Deprecated
+export async function handleQuizNext(ws: AuthenticatedWebSocket) {
+  return;
+  /*
+  if (!ws.quizState || !ws.quizState.active) {
+    // If no active quiz state, just ignore or log
+    return;
+  }
+
+  ws.quizState.count++;
+
+  if (ws.quizState.count <= ws.quizState.target) {
+    // Generate next quiz
+    const session = await prisma.chatSession.findUnique({
+      where: { id: ws.currentSessionId },
+      include: {
+        userTopic: { include: { masterTopic: true } },
+        subtopic: true,
+      },
+    });
+
+    if (!session) return; // Should not happen
+
+    // Fetch history to maintain context
+    const history = await prisma.chatMessage.findMany({
+      where: { chatId: ws.currentSessionId },
+      orderBy: { createdAt: "asc" },
+      take: 20,
+    });
+
+    const topicName = session.userTopic.masterTopic.name;
+    const subtopicName = session.subtopic?.title || "General";
+    const contextPrompt = `${GENERATE_NEXT_QUIZ_PROMPT}\n\nCurrent Context:\nTopic: ${topicName}\nSubtopic: ${subtopicName}`;
+
+    const messages = [
+      { role: "system", content: contextPrompt },
+      ...history.map((m: any) => ({
+        role: m.role as "user" | "assistant" | "system",
+        content: m.content,
+      })),
+      { role: "user", content: "Proceed to next quiz question." },
+    ];
+
+    await generateAIResponse(
+      ws,
+      messages,
+      session.id,
+      session.userTopicId,
+      session.subtopicId || undefined,
+      0, // Progress doesn't update during assessment
+      0
+    );
+  } else {
+    // Quiz finished, start lesson
+    ws.quizState.active = false;
+
+    // Fetch session for context
+    const session = await prisma.chatSession.findUnique({
+      where: { id: ws.currentSessionId },
+      include: {
+        userTopic: { include: { masterTopic: true } },
+        subtopic: true,
+      },
+    });
+
+    if (!session) return;
+
+    // Fetch history for context
+    const history = await prisma.chatMessage.findMany({
+      where: { chatId: session.id },
+      orderBy: { createdAt: "asc" },
+      take: 20,
+    });
+
+    const messages = [
+      {
+        role: "system",
+        content:
+          FINISH_QUIZ_PROMPT +
+          `\n\nContext: Topic ${session.userTopic.masterTopic.name}`,
+      },
+      ...history.map((m: any) => ({ role: m.role as any, content: m.content })),
+    ];
+
+    await generateAIResponse(
+      ws,
+      messages,
+      session.id,
+      session.userTopicId,
+      session.subtopicId || undefined
+    );
+  }
+}
+
+*/
+}
+
+export async function handleQuizSkip(ws: AuthenticatedWebSocket) {
+  return;
 }

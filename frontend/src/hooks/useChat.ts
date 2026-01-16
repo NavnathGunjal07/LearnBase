@@ -259,19 +259,121 @@ export const useChat = (
             },
           }));
         } else if (data.type === "quiz") {
-          // Handle quiz card - add as a message
+          // Handle complete quiz batch - add as a new message
           setMessages((prev) => [
             ...prev,
             {
               sender: "assistant",
-              content: "Quiz Time!", // Fallback content
+              content: `Quiz: ${data.quiz.topic || "Knowledge Check"}`,
               messageType: "quiz",
-              quiz: data.quiz,
+              quiz: {
+                topic: data.quiz.topic,
+                questions: data.quiz.questions,
+                userAnswers: [],
+                currentIndex: 0,
+                status: "active",
+                totalQuestions:
+                  data.quiz.totalQuestions || data.quiz.questions.length,
+              },
               isComplete: true,
             },
           ]);
-        } else if (data.type === "quiz_result") {
-          // Quiz answer result received
+        } else if (data.type === "quiz_ack") {
+          // Update the quiz message with user's answer
+          setMessages((prev) => {
+            // Find last quiz message index (compatible with older TS versions)
+            let lastQuizIndex = -1;
+            for (let i = prev.length - 1; i >= 0; i--) {
+              if (prev[i].messageType === "quiz") {
+                lastQuizIndex = i;
+                break;
+              }
+            }
+            if (lastQuizIndex === -1) return prev;
+
+            const updated = [...prev];
+            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
+            const quiz = { ...quizMsg.quiz! };
+
+            if (!quiz.userAnswers) {
+              quiz.userAnswers = [];
+            }
+
+            quiz.userAnswers[data.questionIndex] = {
+              selectedIndex:
+                quiz.userAnswers[data.questionIndex]?.selectedIndex,
+              isCorrect: data.isCorrect,
+              isSkipped: false,
+            };
+
+            quizMsg.quiz = quiz;
+            updated[lastQuizIndex] = quizMsg;
+            return updated;
+          });
+        } else if (data.type === "quiz_next") {
+          // Update current question index
+          setMessages((prev) => {
+            // Find last quiz message index
+            let lastQuizIndex = -1;
+            for (let i = prev.length - 1; i >= 0; i--) {
+              if (prev[i].messageType === "quiz") {
+                lastQuizIndex = i;
+                break;
+              }
+            }
+            if (lastQuizIndex === -1) return prev;
+
+            const updated = [...prev];
+            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
+            const quiz = { ...quizMsg.quiz! };
+            quiz.currentIndex = data.nextIndex;
+            quizMsg.quiz = quiz;
+            updated[lastQuizIndex] = quizMsg;
+            return updated;
+          });
+        } else if (data.type === "quiz_complete") {
+          // Mark quiz as completed
+          setMessages((prev) => {
+            // Find last quiz message index
+            let lastQuizIndex = -1;
+            for (let i = prev.length - 1; i >= 0; i--) {
+              if (prev[i].messageType === "quiz") {
+                lastQuizIndex = i;
+                break;
+              }
+            }
+            if (lastQuizIndex === -1) return prev;
+
+            const updated = [...prev];
+            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
+            const quiz = { ...quizMsg.quiz! };
+            quiz.status = "completed";
+            quiz.correctAnswers = data.correctAnswers;
+            quizMsg.quiz = quiz;
+            updated[lastQuizIndex] = quizMsg;
+            return updated;
+          });
+        } else if (data.type === "quiz_stop") {
+          // Mark quiz as stopped
+          setMessages((prev) => {
+            // Find last quiz message index
+            let lastQuizIndex = -1;
+            for (let i = prev.length - 1; i >= 0; i--) {
+              if (prev[i].messageType === "quiz") {
+                lastQuizIndex = i;
+                break;
+              }
+            }
+            if (lastQuizIndex === -1) return prev;
+
+            const updated = [...prev];
+            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
+            const quiz = { ...quizMsg.quiz! };
+            quiz.status = "stopped";
+            quizMsg.quiz = quiz;
+            updated[lastQuizIndex] = quizMsg;
+            return updated;
+          });
         }
 
         if (data.type === "typing") {
@@ -620,14 +722,14 @@ export const useChat = (
     }
   };
 
-  const submitQuizAnswer = (selectedIndex: number, correctIndex: number) => {
+  const submitQuizAnswer = (selectedIndex: number, questionIndex: number) => {
     if (ws?.readyState !== WebSocket.OPEN) return;
 
     ws.send(
       JSON.stringify({
         type: "quiz_answer",
         selectedIndex,
-        correctIndex,
+        questionIndex,
       })
     );
   };
@@ -643,6 +745,18 @@ export const useChat = (
         challenge: codingWorkspace.challenge,
       })
     );
+  };
+
+  const sendQuizNext = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "quiz_next" }));
+    }
+  };
+
+  const sendQuizSkip = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "quiz_skip" }));
+    }
   };
 
   return {
@@ -668,7 +782,10 @@ export const useChat = (
     resetChat,
 
     submitQuizAnswer,
+
     submitCode,
+    sendQuizNext,
+    sendQuizSkip,
     codingWorkspace,
     setCodingWorkspace,
   };
