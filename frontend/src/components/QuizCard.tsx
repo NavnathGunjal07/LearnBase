@@ -10,83 +10,107 @@ interface Question {
 
 interface QuizCardProps {
   questions: Question[];
-  onAnswer: (questionIndex: number, selectedIndex: number) => void;
+  onAnswer: (
+    allAnswers: Array<{
+      questionIndex: number;
+      questionText: string;
+      selectedIndex: number;
+    }>
+  ) => void;
   userAnswers?: Array<{
     selectedIndex: number;
     isCorrect: boolean;
     isSkipped: boolean;
   }>;
-  currentIndex?: number;
-  status?: "active" | "completed" | "stopped";
-  totalQuestions?: number;
-  correctAnswers?: number;
 }
 
 export const QuizCard = ({
   questions,
-  onAnswer,
+  onAnswer, // For optional backend submission (not currently used with immediate feedback)
   userAnswers = [],
-  currentIndex = 0,
-  status = "active",
-  totalQuestions,
-  correctAnswers,
 }: QuizCardProps) => {
-  const [activeQuestionIndex, setActiveQuestionIndex] = useState(currentIndex);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>(
     new Array(questions.length).fill(null)
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Local state for immediate feedback
+  const [localAnswerFeedback, setLocalAnswerFeedback] = useState<
+    Array<{ selectedIndex: number; isCorrect: boolean; isSkipped: boolean }>
+  >([]);
 
-  // Sync with prop changes
-  useEffect(() => {
-    setActiveQuestionIndex(currentIndex);
-  }, [currentIndex]);
-
-  // Update selected answers from userAnswers prop
+  // Update selected answers from userAnswers prop (results from backend)
   useEffect(() => {
     if (userAnswers.length > 0) {
       const answers = questions.map((_, idx) =>
         userAnswers[idx] ? userAnswers[idx].selectedIndex : null
       );
       setSelectedAnswers(answers);
-      setIsSubmitting(false); // Reset when answer received
+      // Also populate local feedback from backend results
+      setLocalAnswerFeedback(userAnswers);
     }
   }, [userAnswers, questions]);
 
-  const currentQuestion = questions[activeQuestionIndex];
-  const userAnswer = userAnswers[activeQuestionIndex];
-
+  // Handle answer selection - show immediate feedback
   const handleSelectOption = (optionIndex: number) => {
-    if (userAnswer || isSubmitting) return; // Prevent if answered or submitting
+    if (selectedAnswers[activeQuestionIndex] !== null) return; // Already answered this question
 
     const newAnswers = [...selectedAnswers];
     newAnswers[activeQuestionIndex] = optionIndex;
     setSelectedAnswers(newAnswers);
+
+    // Create immediate feedback for this answer
+    const isCorrect = optionIndex === currentQuestion.correctIndex;
+    const newFeedback = [...localAnswerFeedback];
+    newFeedback[activeQuestionIndex] = {
+      selectedIndex: optionIndex,
+      isCorrect: isCorrect,
+      isSkipped: false,
+    };
+    setLocalAnswerFeedback(newFeedback);
   };
 
+  // Navigate between questions
+  const goToQuestion = (index: number) => {
+    if (index >= 0 && index < questions.length) {
+      setActiveQuestionIndex(index);
+    }
+  };
+
+  // Get current question and answer
+  const currentQuestion = questions[activeQuestionIndex];
+  // Check local feedback first (immediate), then submitted results
+  const userAnswer =
+    localAnswerFeedback[activeQuestionIndex] ||
+    userAnswers[activeQuestionIndex];
+
+  // Check if all questions have been answered
+  const allQuestionsAnswered = selectedAnswers.every(
+    (answer) => answer !== null
+  );
+  const isSubmitted = userAnswers.length > 0;
+
+  // Handle quiz submission
   const handleSubmit = () => {
-    const selected = selectedAnswers[activeQuestionIndex];
-    if (selected === null || isSubmitting) return;
-
-    setIsSubmitting(true);
-    onAnswer(activeQuestionIndex, selected);
-  };
-
-  const handleSkip = () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    onAnswer(activeQuestionIndex, -1); // -1 for skip
+    if (allQuestionsAnswered && !isSubmitted) {
+      // Create structured answer array with question mapping
+      const structuredAnswers = questions.map((q, idx) => ({
+        questionIndex: idx,
+        questionText: q.question,
+        selectedIndex: selectedAnswers[idx] ?? -1, // -1 for unanswered (should not happen due to allQuestionsAnswered check)
+      }));
+      onAnswer(structuredAnswers);
+    }
   };
 
   const getOptionStyles = (idx: number) => {
     if (!userAnswer) {
-      // Not yet answered
+      // Not yet submitted
       return selectedAnswers[activeQuestionIndex] === idx
         ? "border-[var(--accent)] bg-orange-50 dark:bg-orange-900/20 ring-1 ring-[var(--accent)]"
         : "border-[var(--border-default)] hover:border-[var(--accent)] hover:bg-[var(--bg-input)]";
     }
 
-    // Answered - show feedback
+    // Submitted - show feedback
     if (idx === currentQuestion.correctIndex) {
       return "border-green-500 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-500";
     }
@@ -95,47 +119,6 @@ export const QuizCard = ({
     }
     return "border-[var(--border-default)] opacity-60";
   };
-
-  if (status === "stopped") {
-    return (
-      <div className="quiz-card-container my-4 w-full">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">🛑</span>
-            <h3 className="text-lg font-bold text-red-700 dark:text-red-400">
-              Assessment Stopped
-            </h3>
-          </div>
-          <p className="text-[var(--fg-default)] mb-4">
-            You missed too many questions. Don't worry! We'll switch gears and
-            start with the basics.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "completed") {
-    return (
-      <div className="quiz-card-container my-4 w-full">
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">🎉</span>
-            <h3 className="text-lg font-bold text-green-700 dark:text-green-400">
-              Quiz Completed!
-            </h3>
-          </div>
-          <p className="text-[var(--fg-default)] mb-4">
-            You scored {correctAnswers} out of{" "}
-            {totalQuestions || questions.length} questions correct!
-          </p>
-          <div className="text-sm text-[var(--fg-muted)] italic">
-            Great job! Let's continue with the lesson.
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="quiz-card-container my-4 w-full">
@@ -165,14 +148,17 @@ export const QuizCard = ({
           {questions.map((_, idx) => (
             <div
               key={idx}
-              className={`flex-1 h-1 rounded-full transition-all ${
-                idx < activeQuestionIndex
-                  ? userAnswers[idx]?.isCorrect
-                    ? "bg-green-500"
-                    : "bg-red-500"
-                  : idx === activeQuestionIndex
-                  ? "bg-[var(--accent)]"
-                  : "bg-gray-200 dark:bg-gray-700"
+              onClick={() => goToQuestion(idx)}
+              className={`flex-1 h-1 rounded-full transition-all cursor-pointer hover:opacity-80 ${
+                localAnswerFeedback[idx]?.isCorrect ||
+                userAnswers[idx]?.isCorrect
+                  ? "bg-green-500"
+                  : (localAnswerFeedback[idx] || userAnswers[idx]) &&
+                      !localAnswerFeedback[idx]?.isCorrect
+                    ? "bg-red-500"
+                    : selectedAnswers[idx] !== null
+                      ? "bg-[var(--accent)]"
+                      : "bg-gray-200 dark:bg-gray-700"
               }`}
             />
           ))}
@@ -180,15 +166,18 @@ export const QuizCard = ({
 
         {/* Options */}
         <div className="space-y-3">
-          {currentQuestion.options.map((option, idx) => (
+          {currentQuestion.options.map((option: string, idx: number) => (
             <button
               key={idx}
-              onClick={() => !userAnswer && handleSelectOption(idx)}
-              disabled={!!userAnswer}
+              onClick={() =>
+                selectedAnswers[activeQuestionIndex] === null &&
+                handleSelectOption(idx)
+              }
+              disabled={selectedAnswers[activeQuestionIndex] !== null}
               className={`
                 w-full text-left px-4 py-3 rounded-lg border transition-all duration-200 flex items-center gap-3
                 ${getOptionStyles(idx)}
-                ${userAnswer ? "cursor-default" : "cursor-pointer"}
+                ${selectedAnswers[activeQuestionIndex] !== null ? "cursor-default" : "cursor-pointer"}
               `}
             >
               <div
@@ -196,18 +185,18 @@ export const QuizCard = ({
                   userAnswer && idx === currentQuestion.correctIndex
                     ? "border-green-500 bg-green-500 text-white"
                     : userAnswer && idx === userAnswer.selectedIndex
-                    ? "border-red-500 bg-red-500 text-white"
-                    : selectedAnswers[activeQuestionIndex] === idx
-                    ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                    : "border-[var(--border-default)] text-[var(--fg-muted)]"
+                      ? "border-red-500 bg-red-500 text-white"
+                      : selectedAnswers[activeQuestionIndex] === idx
+                        ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                        : "border-[var(--border-default)] text-[var(--fg-muted)]"
                 }`}
               >
                 {userAnswer
                   ? idx === currentQuestion.correctIndex
                     ? "✓"
                     : idx === userAnswer.selectedIndex
-                    ? "✕"
-                    : ""
+                      ? "✕"
+                      : ""
                   : selectedAnswers[activeQuestionIndex] === idx && (
                       <div className="w-2 h-2 bg-white rounded-full" />
                     )}
@@ -217,46 +206,53 @@ export const QuizCard = ({
           ))}
         </div>
 
-        {/* Actions / Feedback */}
-        {!userAnswer && (
-          <div className="mt-5 grid grid-cols-2 gap-3">
+        {/* Navigation - Always visible */}
+        <div className="mt-5 flex gap-3">
+          {/* Previous/Next Navigation */}
+          <button
+            onClick={() => goToQuestion(activeQuestionIndex - 1)}
+            disabled={activeQuestionIndex === 0}
+            className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 border border-[var(--border-default)] ${
+              activeQuestionIndex === 0
+                ? "text-[var(--fg-muted)] opacity-50 cursor-not-allowed"
+                : "text-[var(--fg-default)] hover:bg-[var(--bg-input)]"
+            }`}
+          >
+            ← Previous
+          </button>
+
+          {activeQuestionIndex < questions.length - 1 && (
             <button
-              onClick={handleSkip}
-              disabled={isSubmitting}
-              className={`py-2.5 rounded-lg font-medium text-sm transition-all duration-200 border border-[var(--border-default)] ${
-                isSubmitting
-                  ? "text-[var(--fg-muted)] opacity-50 cursor-not-allowed"
-                  : "text-[var(--fg-muted)] hover:bg-[var(--bg-input)]"
-              }`}
+              onClick={() => goToQuestion(activeQuestionIndex + 1)}
+              className="flex-1 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 border border-[var(--border-default)] text-[var(--fg-default)] hover:bg-[var(--bg-input)]"
             >
-              {isSubmitting ? "Submitting..." : "Skip"}
+              Next →
             </button>
+          )}
+        </div>
+
+        {/* Submit Button - Show when all questions answered */}
+        {allQuestionsAnswered && !isSubmitted && (
+          <div className="mt-4">
             <button
               onClick={handleSubmit}
-              disabled={
-                selectedAnswers[activeQuestionIndex] === null || isSubmitting
-              }
-              className={`
-                py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2
-                ${
-                  selectedAnswers[activeQuestionIndex] !== null && !isSubmitting
-                    ? "bg-[var(--accent)] text-white hover:opacity-90 shadow-sm hover:shadow"
-                    : "bg-[var(--bg-input)] text-[var(--fg-muted)] cursor-not-allowed"
-                }
-              `}
+              className="w-full py-3 rounded-lg font-medium text-sm transition-all duration-200 bg-[var(--accent)] text-white hover:opacity-90 shadow-md hover:shadow-lg"
             >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Submitting...
-                </>
-              ) : (
-                "Submit Answer"
-              )}
+              Submit Quiz & Continue Learning
             </button>
           </div>
         )}
 
+        {/* Completion Message - Show when submitted */}
+        {isSubmitted && (
+          <div className="mt-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <p className="text-sm text-green-700 dark:text-green-300 text-center font-medium">
+              ✅ Quiz completed! Continue reading below to learn more.
+            </p>
+          </div>
+        )}
+
+        {/* Results Display - Shows immediately when answered */}
         {userAnswer && (
           <div className="mt-4 flex flex-col gap-3 animate-fade-in">
             <div
@@ -269,21 +265,16 @@ export const QuizCard = ({
               {userAnswer.isCorrect
                 ? "Correct! 🎉"
                 : userAnswer.isSkipped
-                ? `Skipped. The answer was ${
-                    currentQuestion.options[currentQuestion.correctIndex]
-                  }.`
-                : `Incorrect. The answer was ${
-                    currentQuestion.options[currentQuestion.correctIndex]
-                  }.`}
+                  ? `Skipped. The answer was ${
+                      currentQuestion.options[currentQuestion.correctIndex]
+                    }.`
+                  : `Incorrect. The answer was ${
+                      currentQuestion.options[currentQuestion.correctIndex]
+                    }.`}
             </div>
             {currentQuestion.explanation && (
               <div className="text-xs text-[var(--fg-muted)] bg-[var(--bg-input)] p-3 rounded-lg">
                 <strong>Explanation:</strong> {currentQuestion.explanation}
-              </div>
-            )}
-            {activeQuestionIndex < questions.length - 1 && (
-              <div className="text-center text-xs text-[var(--fg-muted)] italic">
-                Moving to next question...
               </div>
             )}
           </div>

@@ -270,7 +270,6 @@ export const useChat = (
                 topic: data.quiz.topic,
                 questions: data.quiz.questions,
                 userAnswers: [],
-                currentIndex: 0,
                 status: "active",
                 totalQuestions:
                   data.quiz.totalQuestions || data.quiz.questions.length,
@@ -278,40 +277,8 @@ export const useChat = (
               isComplete: true,
             },
           ]);
-        } else if (data.type === "quiz_ack") {
-          // Update the quiz message with user's answer
-          setMessages((prev) => {
-            // Find last quiz message index (compatible with older TS versions)
-            let lastQuizIndex = -1;
-            for (let i = prev.length - 1; i >= 0; i--) {
-              if (prev[i].messageType === "quiz") {
-                lastQuizIndex = i;
-                break;
-              }
-            }
-            if (lastQuizIndex === -1) return prev;
-
-            const updated = [...prev];
-            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
-            const quiz = { ...quizMsg.quiz! };
-
-            if (!quiz.userAnswers) {
-              quiz.userAnswers = [];
-            }
-
-            quiz.userAnswers[data.questionIndex] = {
-              selectedIndex:
-                quiz.userAnswers[data.questionIndex]?.selectedIndex,
-              isCorrect: data.isCorrect,
-              isSkipped: false,
-            };
-
-            quizMsg.quiz = quiz;
-            updated[lastQuizIndex] = quizMsg;
-            return updated;
-          });
-        } else if (data.type === "quiz_next") {
-          // Update current question index
+        } else if (data.type === "quiz_results") {
+          // Handle batch quiz results from backend
           setMessages((prev) => {
             // Find last quiz message index
             let lastQuizIndex = -1;
@@ -326,50 +293,11 @@ export const useChat = (
             const updated = [...prev];
             const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
             const quiz = { ...quizMsg.quiz! };
-            quiz.currentIndex = data.nextIndex;
-            quizMsg.quiz = quiz;
-            updated[lastQuizIndex] = quizMsg;
-            return updated;
-          });
-        } else if (data.type === "quiz_complete") {
-          // Mark quiz as completed
-          setMessages((prev) => {
-            // Find last quiz message index
-            let lastQuizIndex = -1;
-            for (let i = prev.length - 1; i >= 0; i--) {
-              if (prev[i].messageType === "quiz") {
-                lastQuizIndex = i;
-                break;
-              }
-            }
-            if (lastQuizIndex === -1) return prev;
 
-            const updated = [...prev];
-            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
-            const quiz = { ...quizMsg.quiz! };
-            quiz.status = "completed";
+            quiz.userAnswers = data.results; // Array of {selectedIndex, isCorrect, isSkipped}
+            quiz.status = data.status; // "completed" or "stopped"
             quiz.correctAnswers = data.correctAnswers;
-            quizMsg.quiz = quiz;
-            updated[lastQuizIndex] = quizMsg;
-            return updated;
-          });
-        } else if (data.type === "quiz_stop") {
-          // Mark quiz as stopped
-          setMessages((prev) => {
-            // Find last quiz message index
-            let lastQuizIndex = -1;
-            for (let i = prev.length - 1; i >= 0; i--) {
-              if (prev[i].messageType === "quiz") {
-                lastQuizIndex = i;
-                break;
-              }
-            }
-            if (lastQuizIndex === -1) return prev;
 
-            const updated = [...prev];
-            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
-            const quiz = { ...quizMsg.quiz! };
-            quiz.status = "stopped";
             quizMsg.quiz = quiz;
             updated[lastQuizIndex] = quizMsg;
             return updated;
@@ -722,14 +650,19 @@ export const useChat = (
     }
   };
 
-  const submitQuizAnswer = (selectedIndex: number, questionIndex: number) => {
+  const submitQuizAnswer = (
+    allAnswers: Array<{
+      questionIndex: number;
+      questionText: string;
+      selectedIndex: number;
+    }>
+  ) => {
     if (ws?.readyState !== WebSocket.OPEN) return;
 
     ws.send(
       JSON.stringify({
-        type: "quiz_answer",
-        selectedIndex,
-        questionIndex,
+        type: "quiz_submit_all",
+        answers: allAnswers,
       })
     );
   };
@@ -780,9 +713,7 @@ export const useChat = (
     checkVisualizerAvailability,
     generationStatus,
     resetChat,
-
     submitQuizAnswer,
-
     submitCode,
     sendQuizNext,
     sendQuizSkip,

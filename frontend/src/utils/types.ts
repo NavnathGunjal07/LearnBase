@@ -19,7 +19,7 @@ export interface ChatMessageType {
       isCorrect: boolean;
       isSkipped: boolean;
     }>;
-    currentIndex: number;
+    currentIndex?: number; // Optional now - not used in batch submission
     status: "active" | "completed" | "stopped";
     totalQuestions: number;
     correctAnswers?: number;

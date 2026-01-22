@@ -19,7 +19,13 @@ import { useTTS } from "../../hooks/useTTS";
 
 interface ChatMessageProps {
   message: ChatMessageType;
-  onQuizAnswer?: (selectedIndex: number, questionIndex: number) => void;
+  onQuizAnswer?: (
+    allAnswers: Array<{
+      questionIndex: number;
+      questionText: string;
+      selectedIndex: number;
+    }>
+  ) => void;
   onOpenCodingChallenge?: (challenge: any) => void;
   isLoading?: boolean;
 }
@@ -208,10 +214,7 @@ export default function ChatMessage({
     const quizData = message.quiz;
     const questions = quizData.questions || [];
     const userAnswers = quizData.userAnswers || [];
-    const currentIndex = quizData.currentIndex || 0;
     const status = quizData.status || "active";
-    const totalQuestions = quizData.totalQuestions || questions.length;
-    const correctAnswers = quizData.correctAnswers;
 
     return (
       <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
@@ -237,8 +240,8 @@ export default function ChatMessage({
                     {status === "completed"
                       ? "- Completed"
                       : status === "stopped"
-                      ? "- Stopped"
-                      : ""}
+                        ? "- Stopped"
+                        : ""}
                   </span>
                   <span className="font-medium text-[var(--fg-default)] text-sm line-clamp-1">
                     {!isExpanded
@@ -263,14 +266,8 @@ export default function ChatMessage({
               <div className="p-4 bg-[var(--bg-input)]/50">
                 <QuizCard
                   questions={questions}
-                  onAnswer={(questionIndex, selectedIndex) =>
-                    onQuizAnswer?.(selectedIndex, questionIndex)
-                  }
+                  onAnswer={(allAnswers) => onQuizAnswer?.(allAnswers)}
                   userAnswers={userAnswers}
-                  currentIndex={currentIndex}
-                  status={status}
-                  totalQuestions={totalQuestions}
-                  correctAnswers={correctAnswers}
                 />
               </div>
             )}

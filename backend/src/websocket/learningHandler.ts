@@ -18,6 +18,11 @@ export interface AuthenticatedWebSocket extends WebSocket {
     currentIndex: number;
     wrongCount: number;
     active: boolean;
+    userAnswers?: Array<{
+      selectedIndex: number;
+      isCorrect: boolean;
+      isSkipped: boolean;
+    }>;
   };
 }
 
@@ -80,6 +85,8 @@ export async function handleLearningFlow(
       }
     } else if (type === "quiz_answer") {
       await handleQuizAnswer(ws, message);
+    } else if (type === "quiz_submit_all") {
+      await handleQuizSubmitAll(ws, message);
     } else if (type === "code_execution") {
       await handleCodeExecution(ws, message);
     } else if (type === "visualizer_check") {
@@ -395,35 +402,15 @@ async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
       },
     });
 
-    // Update the quiz message in database to track user's answers
-    const quizMessage = await prisma.chatMessage.findFirst({
-      where: {
-        chatId: sessionId,
-        messageType: "quiz",
-        role: "assistant",
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    if (quizMessage && quizMessage.metadata) {
-      const metadata = quizMessage.metadata as any;
-      if (!metadata.userAnswers) {
-        metadata.userAnswers = [];
-      }
-      metadata.userAnswers[ws.quizState.currentIndex] = {
-        selectedIndex,
-        isCorrect,
-        isSkipped,
-      };
-      metadata.currentIndex = ws.quizState.currentIndex;
-
-      await prisma.chatMessage.update({
-        where: { id: quizMessage.id },
-        data: { metadata },
-      });
+    // Store answer in quiz state (don't update DB yet, wait for completion)
+    if (!ws.quizState.userAnswers) {
+      ws.quizState.userAnswers = [];
     }
+    ws.quizState.userAnswers[ws.quizState.currentIndex] = {
+      selectedIndex,
+      isCorrect,
+      isSkipped,
+    };
 
     // Update State
     if (!isCorrect || isSkipped) {
@@ -434,70 +421,23 @@ async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
     const feedback = isCorrect
       ? "Correct! 🎉"
       : isSkipped
-      ? `Skipped. The answer was ${currentQ.options[currentQ.correctIndex]}.`
-      : `Incorrect. The answer was ${currentQ.options[currentQ.correctIndex]}.`;
+        ? `Skipped. The answer was ${currentQ.options[currentQ.correctIndex]}.`
+        : `Incorrect. The answer was ${currentQ.options[currentQ.correctIndex]}.`;
 
     ws.send(
       JSON.stringify({
         type: "quiz_ack",
         questionIndex: ws.quizState.currentIndex,
+        selectedIndex: selectedIndex,
         isCorrect,
+        isSkipped,
         feedback,
         correctIndex: currentQ.correctIndex,
       })
     );
 
-    // Check Stop Condition
-    if (ws.quizState.wrongCount >= 2) {
-      ws.quizState.active = false;
-
-      // Update quiz status in database
-      if (quizMessage) {
-        const metadata = quizMessage.metadata as any;
-        metadata.status = "stopped";
-        await prisma.chatMessage.update({
-          where: { id: quizMessage.id },
-          data: { metadata },
-        });
-      }
-
-      // Stop Quiz
-      ws.send(
-        JSON.stringify({
-          type: "quiz_stop",
-          reason: "failed",
-          content:
-            "It seems we need to review some basics first. Let's start from the beginning.",
-        })
-      );
-
-      // Trigger Remedial Lesson
-      const session = await prisma.chatSession.findUnique({
-        where: { id: sessionId },
-        include: { userTopic: { include: { masterTopic: true } } },
-      });
-
-      if (session) {
-        const messages = [
-          {
-            role: "system",
-            content:
-              "User failed the initial assessment. Explain the basic concepts simply effectively teaching the first lesson.",
-          },
-          {
-            role: "user",
-            content: `I struggled with the quiz. Please teach me ${session.userTopic.masterTopic.name} from scratch.`,
-          },
-        ];
-        await generateAIResponse(
-          ws,
-          messages,
-          sessionId,
-          session.userTopicId,
-          session.subtopicId || undefined
-        );
-      }
-    } else if (ws.quizState.currentIndex < ws.quizState.questions.length - 1) {
+    // No longer stop quiz on wrong answers - continue to next question or completion
+    if (ws.quizState.currentIndex < ws.quizState.questions.length - 1) {
       // Move to next question
       ws.quizState.currentIndex++;
 
@@ -510,15 +450,31 @@ async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
         })
       );
     } else {
-      // Quiz Completed Successfully
+      // All questions answered!
       ws.quizState.active = false;
 
-      // Update quiz status in database
+      // Calculate correct answers
+      const correctAnswers =
+        ws.quizState.questions.length - ws.quizState.wrongCount;
+
+      // NOW update quiz message in database with all collected answers
+      const quizMessage = await prisma.chatMessage.findFirst({
+        where: {
+          chatId: sessionId,
+          messageType: "quiz",
+          role: "assistant",
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
       if (quizMessage) {
         const metadata = quizMessage.metadata as any;
         metadata.status = "completed";
-        metadata.correctAnswers =
-          ws.quizState.questions.length - ws.quizState.wrongCount;
+        metadata.userAnswers = ws.quizState.userAnswers || [];
+        metadata.correctAnswers = correctAnswers;
+        metadata.currentIndex = ws.quizState.currentIndex;
         await prisma.chatMessage.update({
           where: { id: quizMessage.id },
           data: { metadata },
@@ -560,6 +516,206 @@ async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
     }
   } catch (error) {
     handleWebSocketError(error, ws, "handleQuizAnswer");
+  }
+}
+
+async function handleQuizSubmitAll(ws: AuthenticatedWebSocket, message: any) {
+  try {
+    console.log("📥 Quiz submit all received:", JSON.stringify(message));
+
+    const { answers } = message; // Array of {questionIndex, questionText, selectedIndex}
+    const sessionId = ws.currentSessionId;
+
+    // Validate answers array structure
+    if (!answers || !Array.isArray(answers)) {
+      console.error("❌ Invalid answers:", answers);
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          content: "Invalid quiz answers format",
+        })
+      );
+      return;
+    }
+
+    if (!sessionId || !ws.quizState || !ws.quizState.active) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          content: "No active quiz session",
+        })
+      );
+      return;
+    }
+
+    const questions = ws.quizState.questions;
+
+    // Validate answer count matches question count
+    if (answers.length !== questions.length) {
+      console.error(
+        `❌ Answer count mismatch: received ${answers.length}, expected ${questions.length}`
+      );
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          content: "Answer count does not match question count",
+        })
+      );
+      return;
+    }
+
+    const results = [];
+    let wrongCount = 0;
+    let correctCount = 0;
+
+    // Evaluate each answer
+    for (let i = 0; i < answers.length; i++) {
+      const answer = answers[i];
+
+      // Validate answer structure
+      if (
+        typeof answer.questionIndex !== "number" ||
+        typeof answer.selectedIndex !== "number"
+      ) {
+        console.error(`❌ Invalid answer structure at index ${i}:`, answer);
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            content: `Invalid answer structure for question ${i + 1}`,
+          })
+        );
+        return;
+      }
+
+      const questionIndex = answer.questionIndex;
+      const selectedIndex = answer.selectedIndex;
+
+      // Validate question index
+      if (questionIndex !== i) {
+        console.error(
+          `❌ Question index mismatch: answer ${i} has questionIndex ${questionIndex}`
+        );
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            content: "Question indices are out of order",
+          })
+        );
+        return;
+      }
+
+      const question = questions[questionIndex];
+      if (!question) {
+        console.error(`❌ Question not found at index ${questionIndex}`);
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            content: `Question not found for index ${questionIndex}`,
+          })
+        );
+        return;
+      }
+
+      const isSkipped = selectedIndex === -1;
+      const isCorrect = !isSkipped && selectedIndex === question.correctIndex;
+
+      results.push({
+        selectedIndex,
+        isCorrect,
+        isSkipped,
+      });
+
+      if (!isCorrect || isSkipped) {
+        wrongCount++;
+      } else {
+        correctCount++;
+      }
+
+      // Save individual answer to DB for tracking
+      await prisma.chatMessage.create({
+        data: {
+          chatId: sessionId,
+          userId: ws.userId,
+          role: "user",
+          messageType: "quiz_answer",
+          content: isSkipped
+            ? "Skipped"
+            : `Answered: ${question.options[selectedIndex]}`,
+          metadata: {
+            questionIndex: questionIndex,
+            question: answer.questionText, // Use submitted question text for verification
+            questionFromState: question.question, // Store actual question for comparison
+            correctIndex: question.correctIndex,
+            selectedIndex,
+            isCorrect,
+            isSkipped,
+          },
+        },
+      });
+    }
+
+    // Update quiz message with complete results (always completed, no stop status)
+    const quizMessage = await prisma.chatMessage.findFirst({
+      where: {
+        chatId: sessionId,
+        messageType: "quiz",
+        role: "assistant",
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (quizMessage) {
+      const metadata = quizMessage.metadata as any;
+      metadata.status = "completed";
+      metadata.userAnswers = results;
+      metadata.correctAnswers = correctCount;
+
+      await prisma.chatMessage.update({
+        where: { id: quizMessage.id },
+        data: { metadata },
+      });
+    }
+
+    // Send all results back to frontend in one message
+    ws.send(
+      JSON.stringify({
+        type: "quiz_results",
+        results,
+        status: "completed",
+        correctAnswers: correctCount,
+        totalQuestions: questions.length,
+      })
+    );
+
+    ws.quizState.active = false;
+
+    // Continue with normal lesson regardless of performance
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+      include: { userTopic: { include: { masterTopic: true } } },
+    });
+
+    if (session) {
+      const messages = [
+        {
+          role: "system",
+          content:
+            correctCount >= questions.length / 2
+              ? "User passed quiz. Continue intermediate lesson."
+              : "User struggled with quiz but continue teaching. Adjust difficulty as needed.",
+        },
+        { role: "user", content: "Ready to continue learning!" },
+      ];
+      await generateAIResponse(
+        ws,
+        messages,
+        sessionId,
+        session.userTopicId,
+        session.subtopicId || undefined
+      );
+    }
+  } catch (error) {
+    handleWebSocketError(error, ws, "handleQuizSubmitAll");
   }
 }
 
@@ -756,9 +912,8 @@ async function generateAIResponse(
     console.log("🧠 Context Classification:", intent);
 
     // Step 3: Conditional Generation
-    const { CODING_PROMPT, SUGGESTIONS_PROMPT, PROGRESS_PROMPT } = await import(
-      "../prompts/generators"
-    );
+    const { CODING_PROMPT, SUGGESTIONS_PROMPT, PROGRESS_PROMPT } =
+      await import("../prompts/generators");
 
     // A. Progress Update
     if (intent.needsProgress && userTopicId && subtopicId) {
@@ -1209,9 +1364,8 @@ async function handleTopicGeneration(
 
     // 1. Analyze request and generate topic structure
     const { streamChatCompletion } = await import("../utils/ai");
-    const { TOPIC_GENERATION_PROMPT } = await import(
-      "../prompts/topicGeneration"
-    );
+    const { TOPIC_GENERATION_PROMPT } =
+      await import("../prompts/topicGeneration");
 
     const prompt = TOPIC_GENERATION_PROMPT.replace("{{user_content}}", content);
 
@@ -1363,9 +1517,8 @@ export async function handleVisualizerCheck(ws: AuthenticatedWebSocket) {
     // Reverse to chronological order for AI
     const recentMessages = history.reverse();
 
-    const { VISUALIZER_CHECK_PROMPT } = await import(
-      "../prompts/visualizerCheck"
-    );
+    const { VISUALIZER_CHECK_PROMPT } =
+      await import("../prompts/visualizerCheck");
 
     const messages = [
       { role: "system", content: VISUALIZER_CHECK_PROMPT },
