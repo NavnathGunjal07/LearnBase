@@ -9,7 +9,7 @@ const router = Router();
 // MASTER TOPICS (Public/Catalog)
 // ============================================================================
 
-// Get all available  topics (for selection)
+// Get all available topics (for selection)
 router.get("/", async (req: Request, res: Response) => {
   try {
     const masterTopics = await prisma.masterTopic.findMany({
@@ -27,7 +27,61 @@ router.get("/", async (req: Request, res: Response) => {
 
     return res.json(masterTopics);
   } catch (error) {
-    console.error("Get  topics error:", error);
+    console.error("Get topics error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get popular topics (sorted by enrollment count)
+router.get("/popular", async (req: Request, res: Response) => {
+  try {
+    // Group user topics by masterTopicId and count them
+    const popularTopics = await prisma.userTopic.groupBy({
+      by: ["masterTopicId"],
+      _count: {
+        masterTopicId: true,
+      },
+      orderBy: {
+        _count: {
+          masterTopicId: "desc",
+        },
+      },
+      take: 6,
+    });
+
+    // Fetch details for these topics
+    const topicDetails = await prisma.masterTopic.findMany({
+      where: {
+        id: {
+          in: popularTopics.map((pt) => pt.masterTopicId),
+        },
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        iconUrl: true,
+        category: true,
+      },
+    });
+
+    // Merge count with details
+    const result = popularTopics
+      .map((pt) => {
+        const details = topicDetails.find((t) => t.id === pt.masterTopicId);
+        if (!details) return null;
+        return {
+          ...details,
+          learnerCount: pt._count.masterTopicId,
+        };
+      })
+      .filter(Boolean); // Remove nulls (in case a topic was deactivated)
+
+    return res.json(result);
+  } catch (error) {
+    console.error("Get popular topics error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -127,11 +181,16 @@ router.post(
   authenticateToken,
   async (req: Request, res: Response) => {
     try {
-      const { topicId } = req.body;
+      const { topicId: rawTopicId } = req.body;
       const user = (req as AuthRequest).user;
 
-      if (!topicId) {
+      if (!rawTopicId) {
         return res.status(400).json({ error: "Topic ID is required" });
+      }
+
+      const topicId = parseInt(rawTopicId);
+      if (isNaN(topicId)) {
+        return res.status(400).json({ error: "Invalid Topic ID" });
       }
 
       if (!user?.userId) {

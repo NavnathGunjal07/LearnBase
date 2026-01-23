@@ -3,11 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
 import Avatar from "./Avatar";
-import { onboardingService } from "@/api";
+import { onboardingService, topicService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { OnboardingLayout } from "../Onboarding/OnboardingLayout";
 import { GoogleAuthButton } from "../Auth/GoogleAuthButton";
 import { GoogleOneTap } from "../Auth/GoogleOneTap";
+import { PopularTopics } from "../PopularTopics";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -64,6 +65,7 @@ export default function ChatContainer({
   const hasLoadedSession = useRef(false);
   const hasCheckedOnboarding = useRef(false);
   const { user } = useAuth();
+  const [hasUserTopics, setHasUserTopics] = useState(true); // Default to true to hide initially
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -159,6 +161,22 @@ export default function ChatContainer({
       return () => clearTimeout(timer);
     }
   }, [isAuthMode, user, chatHook.isConnected, chatHook.startOnboarding]);
+
+  // Check if user has any enrolled topics
+  useEffect(() => {
+    if (isAuthMode || !user) return;
+
+    const checkUserTopics = async () => {
+      try {
+        const topics = await topicService.getUserTopics();
+        setHasUserTopics(topics.length > 0);
+      } catch (error) {
+        console.error("Failed to check user topics:", error);
+      }
+    };
+
+    checkUserTopics();
+  }, [isAuthMode, user]);
 
   // Handle URL params and session loading
   useEffect(() => {
@@ -364,6 +382,34 @@ export default function ChatContainer({
           className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-12 pr-2 sm:pr-4 md:pr-6 lg:pr-8 bg-[var(--bg-default)] scroll-smooth min-h-0"
         >
           <div className="w-full max-w-3xl md:max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
+            {/* Popular Topics - Show when no user messages yet AND no enrolled topics */}
+            {!isOnboarding &&
+              hasCompletedOnboarding &&
+              !messages.some((m) => m.sender === "user") &&
+              !hasUserTopics && (
+                <div className="py-8 animate-fade-in">
+                  <PopularTopics
+                    onSelectTopic={async (topicId, topicName) => {
+                      try {
+                        await topicService.enrollInTopic(topicId.toString());
+                        // Update local state to hide popular topics immediately
+                        setHasUserTopics(true);
+                        await sendTopicSelection(topicName, "", topicId);
+                      } catch (error) {
+                        console.error(
+                          "Failed to enroll in popular topic:",
+                          error
+                        );
+                        // Still try to open the chat even if enrollment fails?
+                        // Or show error? For now, let's proceed to chat as fallback or just log.
+                        // Better to at least try opening the chat.
+                        await sendTopicSelection(topicName, "", topicId);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
             {messages.map((msg, i) => (
               <ChatMessage
                 key={i}

@@ -118,11 +118,35 @@ async function handleTopicSelected(ws: AuthenticatedWebSocket, message: any) {
       `📚 Topic selected: ${name} (${subtopicName}) for user ${ws.userId}`
     );
 
+    // Find UserTopic first (to link session correctly)
+    const userTopic = await prisma.userTopic.findUnique({
+      where: {
+        userId_masterTopicId: {
+          userId: ws.userId!,
+          masterTopicId: topicId,
+        },
+      },
+      include: { masterTopic: true },
+    });
+
+    if (!userTopic) {
+      console.error(
+        `❌ UserTopic not found for user ${ws.userId} and topic ${topicId}`
+      );
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          content: "You are not enrolled in this topic.",
+        })
+      );
+      return;
+    }
+
     // Create or find chat session
     const session = await prisma.chatSession.create({
       data: {
         userId: ws.userId!,
-        userTopicId: topicId, // Note: Frontend sends topicId which might be masterTopicId, need to ensure we have UserTopic
+        userTopicId: userTopic.id, // Use actual UserTopic ID
         subtopicId: subtopicId,
         title: `${name} - ${subtopicName}`,
         startedAt: new Date(),
