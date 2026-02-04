@@ -260,6 +260,12 @@ export default function Sidebar({
                                     key={s.id}
                                     onClick={() => {
                                       learning.selectSubtopic(t.id, s.id);
+                                      setSearchParams({
+                                        topic: t.name,
+                                        subtopic: s.title,
+                                        topicId: t.id,
+                                        subtopicId: s.id,
+                                      });
                                       sendTopicSelection(
                                         t.name,
                                         s.title,

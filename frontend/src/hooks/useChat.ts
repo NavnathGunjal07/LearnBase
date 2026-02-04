@@ -219,12 +219,6 @@ export const useChat = (
             }));
           }
         } else if (data.type === "code_request") {
-          setInputConfig((prev) => ({
-            ...prev,
-            inputType: "code",
-            language: data.language || "javascript",
-          }));
-        } else if (data.type === "code_request") {
           // Defer to coding workspace logic if challenge is present
           setInputConfig((prev) => ({
             ...prev,
