@@ -130,8 +130,14 @@ router.post(
       const { topicId } = req.body;
       const user = (req as AuthRequest).user;
 
-      if (!topicId) {
+      if (topicId === undefined || topicId === null || topicId === "") {
         return res.status(400).json({ error: "Topic ID is required" });
+      }
+
+      const parsedTopicId =
+        typeof topicId === "number" ? topicId : Number.parseInt(topicId, 10);
+      if (!Number.isInteger(parsedTopicId) || parsedTopicId <= 0) {
+        return res.status(400).json({ error: "Invalid topic ID" });
       }
 
       if (!user?.userId) {
@@ -140,7 +146,7 @@ router.post(
 
       // Check if  topic exists
       const Topic = await prisma.masterTopic.findUnique({
-        where: { id: topicId },
+        where: { id: parsedTopicId },
         include: {
           subtopics: {
             orderBy: { orderIndex: "asc" },
@@ -157,7 +163,7 @@ router.post(
         where: {
           userId_masterTopicId: {
             userId: user?.userId,
-            masterTopicId: topicId,
+            masterTopicId: parsedTopicId,
           },
         },
       });
@@ -172,7 +178,7 @@ router.post(
       const userTopic = await prisma.userTopic.create({
         data: {
           userId: user?.userId,
-          masterTopicId: topicId,
+          masterTopicId: parsedTopicId,
         },
         include: {
           masterTopic: {
