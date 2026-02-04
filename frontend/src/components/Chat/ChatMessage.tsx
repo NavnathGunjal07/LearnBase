@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatMessageType } from "../../utils/types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -6,11 +6,26 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import Avatar from "./Avatar";
 import { QuizCard } from "../QuizCard";
-import { ChevronDown, ChevronRight, Play, Terminal } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Play,
+  Terminal,
+  Volume2,
+  VolumeX,
+  Pause,
+} from "lucide-react";
+import { useTTS } from "../../hooks/useTTS";
 
 interface ChatMessageProps {
   message: ChatMessageType;
-  onQuizAnswer?: (selectedIndex: number, correctIndex: number) => void;
+  onQuizAnswer?: (
+    allAnswers: Array<{
+      questionIndex: number;
+      questionText: string;
+      selectedIndex: number;
+    }>
+  ) => void;
   onOpenCodingChallenge?: (challenge: any) => void;
   isLoading?: boolean;
 }
@@ -24,9 +39,58 @@ export default function ChatMessage({
   const isUser = message.sender === "user";
   const rawContent = message.content?.trim() || "";
   const [isExpanded, setIsExpanded] = useState(false);
+  const {
+    speak,
+    stop,
+    isSpeaking,
+    isPaused,
+    pause,
+    resume,
+    settings,
+    currentText,
+  } = useTTS();
 
   // Convert literal \n to actual newlines for proper rendering
   const content = rawContent.replace(/\\n/g, "\n");
+
+  // Auto-play for assistant messages if enabled
+  useEffect(() => {
+    if (
+      !isUser &&
+      content &&
+      settings.autoPlay &&
+      settings.enabled &&
+      message.isComplete
+    ) {
+      speak(content);
+    }
+  }, [
+    isUser,
+    content,
+    settings.autoPlay,
+    settings.enabled,
+    message.isComplete,
+    speak,
+  ]);
+
+  const handleVoiceToggle = () => {
+    if (isSpeaking && currentText === content) {
+      if (isPaused) {
+        resume();
+      } else {
+        pause();
+      }
+    } else {
+      speak(content);
+    }
+  };
+
+  const handleVoiceStop = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    stop();
+  };
+
+  const isThisMessageSpeaking = isSpeaking && currentText === content;
 
   const AvatarWrapper = ({ children }: { children: React.ReactNode }) => (
     <div className="relative inline-block">
@@ -146,6 +210,12 @@ export default function ChatMessage({
 
   // Check for quiz
   if (message.messageType === "quiz" && message.quiz) {
+    // Extract quiz data from message
+    const quizData = message.quiz;
+    const questions = quizData.questions || [];
+    const userAnswers = quizData.userAnswers || [];
+    const status = quizData.status || "active";
+
     return (
       <div className="flex justify-start items-end gap-3 w-full animate-fade-in">
         <AvatarWrapper>
@@ -166,10 +236,19 @@ export default function ChatMessage({
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wide">
-                    Quiz
+                    Quiz{" "}
+                    {status === "completed"
+                      ? "- Completed"
+                      : status === "stopped"
+                        ? "- Stopped"
+                        : ""}
                   </span>
                   <span className="font-medium text-[var(--fg-default)] text-sm line-clamp-1">
-                    {!isExpanded ? message.quiz.question : "Interactive Quiz"}
+                    {!isExpanded
+                      ? `${quizData.topic || "Knowledge Check"} - ${
+                          questions.length
+                        } Questions`
+                      : "Interactive Quiz"}
                   </span>
                 </div>
               </div>
@@ -186,12 +265,9 @@ export default function ChatMessage({
             {isExpanded && (
               <div className="p-4 bg-[var(--bg-input)]/50">
                 <QuizCard
-                  question={message.quiz.question}
-                  options={message.quiz.options}
-                  correctIndex={message.quiz.correctIndex}
-                  onAnswer={(selectedIndex) =>
-                    onQuizAnswer?.(selectedIndex, message.quiz!.correctIndex)
-                  }
+                  questions={questions}
+                  onAnswer={(allAnswers) => onQuizAnswer?.(allAnswers)}
+                  userAnswers={userAnswers}
                 />
               </div>
             )}
@@ -241,8 +317,46 @@ export default function ChatMessage({
           isUser
             ? "bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--fg-default)]"
             : "bg-[var(--bg-input)] text-[var(--fg-default)]"
-        } shadow-sm`}
+        } shadow-sm relative group`}
       >
+        {!isUser && settings.enabled && content && (
+          <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleVoiceToggle}
+              className={`p-1.5 rounded-full shadow-md transition-all ${
+                isThisMessageSpeaking
+                  ? "bg-[var(--accent)] text-white"
+                  : "bg-white hover:bg-gray-100 text-gray-700"
+              }`}
+              title={
+                isThisMessageSpeaking
+                  ? isPaused
+                    ? "Resume"
+                    : "Pause"
+                  : "Play audio"
+              }
+            >
+              {isThisMessageSpeaking ? (
+                isPaused ? (
+                  <Play size={14} />
+                ) : (
+                  <Pause size={14} />
+                )
+              ) : (
+                <Volume2 size={14} />
+              )}
+            </button>
+            {isThisMessageSpeaking && (
+              <button
+                onClick={handleVoiceStop}
+                className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md transition-all"
+                title="Stop audio"
+              >
+                <VolumeX size={14} />
+              </button>
+            )}
+          </div>
+        )}
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
             {content}

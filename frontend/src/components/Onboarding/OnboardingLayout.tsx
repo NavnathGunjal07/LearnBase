@@ -20,11 +20,11 @@ export const OnboardingLayout: FC<OnboardingLayoutProps> = ({
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--bg-default)] transition-colors duration-500 overflow-hidden">
+    <div className="h-full flex flex-col bg-[var(--bg-default)] transition-colors duration-500 overflow-hidden">
       {/* Header / Progress */}
       <div className="flex-shrink-0 w-full">
-        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8">
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
+        <div className="w-full max-w-4xl mx-auto px-2 sm:px-6 md:px-8 lg:px-12 py-4 sm:py-8">
+          <div className="flex items-center justify-between gap-1 sm:gap-4">
             {steps.map((step, index) => {
               const isActive = index === currentStepIndex;
               const isCompleted = index < currentStepIndex;
@@ -41,7 +41,7 @@ export const OnboardingLayout: FC<OnboardingLayoutProps> = ({
                   }`}
                 >
                   <div
-                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs border ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs border shrink-0 ${
                       isActive
                         ? "border-[var(--accent)] bg-orange-50 dark:bg-orange-900/10 text-[var(--accent)]"
                         : isCompleted
@@ -55,7 +55,9 @@ export const OnboardingLayout: FC<OnboardingLayoutProps> = ({
                       index + 1
                     )}
                   </div>
-                  <span className="hidden sm:inline text-sm">{step.label}</span>
+                  <span className="hidden sm:inline text-sm whitespace-nowrap">
+                    {step.label}
+                  </span>
                 </div>
               );
             })}

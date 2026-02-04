@@ -328,7 +328,7 @@ export default function ChatInput({
         )}
         <input
           type={inputType}
-          className="flex-1 bg-transparent text-[var(--fg-default)] px-3 py-2 text-sm placeholder:text-[var(--fg-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent rounded-md"
+          className="flex-1 bg-transparent text-[var(--fg-default)] px-2 sm:px-3 py-1.5 sm:py-2 text-sm placeholder:text-[var(--fg-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent rounded-md"
           placeholder={
             placeholder ||
             (mode === "visualizer"
@@ -344,7 +344,7 @@ export default function ChatInput({
         <button
           type="submit"
           disabled={!input.trim()}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-colors ${
             input.trim()
               ? "bg-[var(--accent)] text-white hover:opacity-90 focus:ring-2 focus:ring-[var(--accent)]"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"

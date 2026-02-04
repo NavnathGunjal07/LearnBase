@@ -1,32 +1,41 @@
 export interface ChatMessageType {
-  id?: string;
   sender: "user" | "assistant";
-  content: string;
-  timestamp?: string;
-  isComplete?: boolean; // For streaming messages
-  messageType?:
-    | "text"
-    | "quiz"
-    | "code"
-    | "coding_challenge"
-    | "coding_submission";
+  content?: string;
+  metadata?: any;
+  messageType?: string;
+  isComplete?: boolean;
+  isError?: boolean;
   quiz?: {
-    question: string;
-    options: string[];
-    correctIndex: number;
-    userAnswer?: number;
+    topic?: string;
+    questions: Array<{
+      question: string;
+      options: string[];
+      correctIndex: number;
+      explanation?: string;
+      index: number;
+    }>;
+    userAnswers?: Array<{
+      selectedIndex: number;
+      isCorrect: boolean;
+      isSkipped: boolean;
+    }>;
+    currentIndex?: number; // Optional now - not used in batch submission
+    status: "active" | "completed" | "stopped";
+    totalQuestions: number;
+    correctAnswers?: number;
   };
   codingChallenge?: {
+    id?: number;
     title: string;
     description: string;
-    starterCode: string;
-    language: string;
-    testCases: any[];
+    starterCode?: string;
+    testCases?: any[];
+    language?: string;
   };
   codingSubmission?: {
     code: string;
     language: string;
-    status: "completed" | "failed" | "error";
+    status: string;
     passedCount: number;
     totalCount: number;
     exerciseId?: number;

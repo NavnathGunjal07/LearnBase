@@ -253,19 +253,49 @@ export const useChat = (
             },
           }));
         } else if (data.type === "quiz") {
-          // Handle quiz card - add as a message
+          // Handle complete quiz batch - add as a new message
           setMessages((prev) => [
             ...prev,
             {
               sender: "assistant",
-              content: "Quiz Time!", // Fallback content
+              content: `Quiz: ${data.quiz.topic || "Knowledge Check"}`,
               messageType: "quiz",
-              quiz: data.quiz,
+              quiz: {
+                topic: data.quiz.topic,
+                questions: data.quiz.questions,
+                userAnswers: [],
+                status: "active",
+                totalQuestions:
+                  data.quiz.totalQuestions || data.quiz.questions.length,
+              },
               isComplete: true,
             },
           ]);
-        } else if (data.type === "quiz_result") {
-          // Quiz answer result received
+        } else if (data.type === "quiz_results") {
+          // Handle batch quiz results from backend
+          setMessages((prev) => {
+            // Find last quiz message index
+            let lastQuizIndex = -1;
+            for (let i = prev.length - 1; i >= 0; i--) {
+              if (prev[i].messageType === "quiz") {
+                lastQuizIndex = i;
+                break;
+              }
+            }
+            if (lastQuizIndex === -1) return prev;
+
+            const updated = [...prev];
+            const quizMsg: ChatMessageType = { ...updated[lastQuizIndex] };
+            const quiz = { ...quizMsg.quiz! };
+
+            quiz.userAnswers = data.results; // Array of {selectedIndex, isCorrect, isSkipped}
+            quiz.status = data.status; // "completed" or "stopped"
+            quiz.correctAnswers = data.correctAnswers;
+
+            quizMsg.quiz = quiz;
+            updated[lastQuizIndex] = quizMsg;
+            return updated;
+          });
         }
 
         if (data.type === "typing") {
@@ -614,14 +644,19 @@ export const useChat = (
     }
   };
 
-  const submitQuizAnswer = (selectedIndex: number, correctIndex: number) => {
+  const submitQuizAnswer = (
+    allAnswers: Array<{
+      questionIndex: number;
+      questionText: string;
+      selectedIndex: number;
+    }>
+  ) => {
     if (ws?.readyState !== WebSocket.OPEN) return;
 
     ws.send(
       JSON.stringify({
-        type: "quiz_answer",
-        selectedIndex,
-        correctIndex,
+        type: "quiz_submit_all",
+        answers: allAnswers,
       })
     );
   };
@@ -637,6 +672,18 @@ export const useChat = (
         challenge: codingWorkspace.challenge,
       })
     );
+  };
+
+  const sendQuizNext = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "quiz_next" }));
+    }
+  };
+
+  const sendQuizSkip = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "quiz_skip" }));
+    }
   };
 
   return {
@@ -660,9 +707,10 @@ export const useChat = (
     checkVisualizerAvailability,
     generationStatus,
     resetChat,
-
     submitQuizAnswer,
     submitCode,
+    sendQuizNext,
+    sendQuizSkip,
     codingWorkspace,
     setCodingWorkspace,
   };

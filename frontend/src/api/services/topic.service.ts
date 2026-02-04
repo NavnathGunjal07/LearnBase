@@ -63,14 +63,14 @@ export const topicService = {
   async updateProgress(
     topicId: string,
     subtopicId: string,
-    progress: number,
+    progress: number
   ): Promise<void> {
     try {
       await axiosInstance.patch(
         `/subtopics/${topicId}/${subtopicId}/progress`,
         {
           completedPercent: progress,
-        },
+        }
       );
     } catch (error) {
       handleError(error, "Update Progress");
@@ -86,6 +86,19 @@ export const topicService = {
       await axiosInstance.delete(`/topics/${topicId}`);
     } catch (error) {
       handleError(error, "Unenroll from Topic");
+      throw error;
+    }
+  },
+
+  /**
+   * Get popular topics
+   */
+  async getPopularTopics(): Promise<any[]> {
+    try {
+      const response = await axiosInstance.get("/topics/popular");
+      return response.data;
+    } catch (error) {
+      handleError(error, "Get Popular Topics");
       throw error;
     }
   },

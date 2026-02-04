@@ -3,11 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
 import Avatar from "./Avatar";
-import { onboardingService } from "@/api";
+import { onboardingService, topicService } from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { OnboardingLayout } from "../Onboarding/OnboardingLayout";
 import { GoogleAuthButton } from "../Auth/GoogleAuthButton";
 import { GoogleOneTap } from "../Auth/GoogleOneTap";
+import { PopularTopics } from "../PopularTopics";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -65,6 +66,7 @@ export default function ChatContainer({
   const hasLoadedSession = useRef(false);
   const hasCheckedOnboarding = useRef(false);
   const { user } = useAuth();
+  const [hasUserTopics, setHasUserTopics] = useState(true); // Default to true to hide initially
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -161,6 +163,22 @@ export default function ChatContainer({
     }
   }, [isAuthMode, user, chatHook.isConnected, chatHook.startOnboarding]);
 
+  // Check if user has any enrolled topics
+  useEffect(() => {
+    if (isAuthMode || !user) return;
+
+    const checkUserTopics = async () => {
+      try {
+        const topics = await topicService.getUserTopics();
+        setHasUserTopics(topics.length > 0);
+      } catch (error) {
+        console.error("Failed to check user topics:", error);
+      }
+    };
+
+    checkUserTopics();
+  }, [isAuthMode, user]);
+
   // Handle URL params and session loading
   useEffect(() => {
     if (isAuthMode) return;
@@ -241,12 +259,12 @@ export default function ChatContainer({
           <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
             {/* Google Auth Button (Only in Auth Step) - Fixed at top */}
             {onboardingStep === "auth" && (
-              <div className="flex-shrink-0 pt-10 sm:pt-12 pb-4 flex flex-col items-center justify-center space-y-4">
-                <p className="text-gray-600 font-medium text-lg">
+              <div className="flex-shrink-0 pt-10 sm:pt-12 pb-4 flex flex-col items-center justify-center space-y-4 w-full">
+                <p className="text-gray-600 font-medium text-lg text-center">
                   Please log in to continue
                 </p>
-                <div className="w-full max-w-sm">
-                  <GoogleAuthButton />
+                <div className="w-full max-w-sm flex justify-center">
+                  <GoogleAuthButton className="w-full" />
                 </div>
               </div>
             )}
@@ -421,8 +439,8 @@ export default function ChatContainer({
                     (chatHook.generationStatus.type === "quiz"
                       ? "Generating Quiz..."
                       : chatHook.generationStatus.type === "coding_challenge"
-                      ? "Generating Coding Challenge..."
-                      : "Generating content...")}
+                        ? "Generating Coding Challenge..."
+                        : "Generating content...")}
                 </div>
               </div>
             )}
@@ -432,7 +450,7 @@ export default function ChatContainer({
         </div>
         {hasTopicSelection && (
           <div className="w-full bg-[var(--bg-default)] border-t border-[var(--border-default)]">
-            <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-2 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <ChatInput
                 onSend={sendMessage}
                 placeholder={isAuthMode ? "Type here..." : undefined}

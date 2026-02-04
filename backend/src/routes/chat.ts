@@ -79,6 +79,7 @@ router.get("/history", authenticateToken, async (req, res) => {
       content: msg.content,
       timestamp: msg.createdAt.toISOString(),
       messageType: msg.messageType,
+      isComplete: true, // All stored messages are complete
       quiz: msg.messageType === "quiz" ? msg.metadata : undefined,
       codingChallenge:
         msg.messageType === "coding_challenge" ? msg.metadata : undefined,
