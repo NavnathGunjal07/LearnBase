@@ -59,6 +59,7 @@ export default function ChatContainer({
     isOnboarding,
     hasCompletedOnboarding,
     onboardingStep,
+    currentTopicId,
   } = chatHook;
   const [isLoadingSession, setIsLoadingSession] = useState(!isAuthMode);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(!isAuthMode);
@@ -363,6 +364,8 @@ export default function ChatContainer({
   }
 
   // --- Main Chat View ---
+  const hasTopicSelection = currentTopicId !== null;
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-[var(--bg-default)]">
       {/* Connection Status */}
@@ -382,34 +385,18 @@ export default function ChatContainer({
           className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-12 pr-2 sm:pr-4 md:pr-6 lg:pr-8 bg-[var(--bg-default)] scroll-smooth min-h-0"
         >
           <div className="w-full max-w-3xl md:max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
-            {/* Popular Topics - Show when no user messages yet AND no enrolled topics */}
-            {!isOnboarding &&
-              hasCompletedOnboarding &&
-              !messages.some((m) => m.sender === "user") &&
-              !hasUserTopics && (
-                <div className="py-8 animate-fade-in">
-                  <PopularTopics
-                    onSelectTopic={async (topicId, topicName) => {
-                      try {
-                        await topicService.enrollInTopic(topicId.toString());
-                        // Update local state to hide popular topics immediately
-                        setHasUserTopics(true);
-                        await sendTopicSelection(topicName, "", topicId);
-                      } catch (error) {
-                        console.error(
-                          "Failed to enroll in popular topic:",
-                          error
-                        );
-                        // Still try to open the chat even if enrollment fails?
-                        // Or show error? For now, let's proceed to chat as fallback or just log.
-                        // Better to at least try opening the chat.
-                        await sendTopicSelection(topicName, "", topicId);
-                      }
-                    }}
-                  />
-                </div>
-              )}
-
+            {!hasTopicSelection && messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center text-center py-16 px-4 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-2xl">
+                <div className="text-4xl mb-4">🧭</div>
+                <h2 className="text-lg font-semibold text-[var(--fg-default)]">
+                  Choose a topic to get started
+                </h2>
+                <p className="text-sm text-[var(--fg-muted)] mt-2 max-w-md">
+                  Pick a topic and subtopic from the sidebar to begin your
+                  learning session.
+                </p>
+              </div>
+            )}
             {messages.map((msg, i) => (
               <ChatMessage
                 key={i}
@@ -461,7 +448,7 @@ export default function ChatContainer({
             <div ref={messagesEndRef} />
           </div>
         </div>
-        {(isAuthMode || isOnboarding || !hasCompletedOnboarding || true) && ( // Always show input
+        {hasTopicSelection && (
           <div className="w-full bg-[var(--bg-default)] border-t border-[var(--border-default)]">
             <div className="w-full max-w-3xl md:max-w-4xl mx-auto px-2 sm:px-6 md:px-8 lg:px-12 py-2 sm:py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <ChatInput
