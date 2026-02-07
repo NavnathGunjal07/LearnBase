@@ -27,13 +27,16 @@ const Home = () => {
 
   const isCodingOpen = chatHook.codingWorkspace.isOpen;
 
+  const { isOnboarding } = chatHook;
+  const shouldHideSidebar = isCodingOpen || isOnboarding;
+
   return (
     <div className="min-h-screen bg-[var(--bg-default)] text-[var(--fg-default)] overflow-hidden">
       <div className="flex h-dvh max-h-dvh">
-        {/* Sidebar - Automatically collapse/hide when coding workspace is active */}
+        {/* Sidebar - Automatically collapse/hide when coding workspace is active OR onboarding */}
         <div
           className={`flex-shrink-0 md:transition-all md:duration-300 md:ease-in-out ${
-            isCodingOpen
+            shouldHideSidebar
               ? "w-0 -ml-[250px] md:ml-0 md:w-0 overflow-hidden opacity-0"
               : "w-auto opacity-100"
           }`}
@@ -57,8 +60,8 @@ const Home = () => {
                 : "w-full"
             }`}
           >
-            {/* Mobile Header (Only show when sidebar is accessible/coding is closed) */}
-            {!isCodingOpen && (
+            {/* Mobile Header (Only show when sidebar is accessible/coding is closed AND not onboarding) */}
+            {!isCodingOpen && !isOnboarding && (
               <div className="md:hidden flex items-center p-3 border-b border-default bg-[var(--bg-default)] shrink-0 sticky top-0 z-20">
                 <button
                   onClick={() => setMobileMenuOpen(true)}
