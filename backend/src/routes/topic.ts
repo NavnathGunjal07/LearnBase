@@ -181,7 +181,7 @@ router.post(
   authenticateToken,
   async (req: Request, res: Response) => {
     try {
-      const { topicId: rawTopicId } = req.body;
+      const { topicId } = req.body;
       const user = (req as AuthRequest).user;
 
       if (topicId === undefined || topicId === null || topicId === "") {

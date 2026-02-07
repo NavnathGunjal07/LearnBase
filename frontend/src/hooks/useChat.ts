@@ -719,5 +719,6 @@ export const useChat = (
     sendQuizSkip,
     codingWorkspace,
     setCodingWorkspace,
+    refreshTopics: () => setLastTopicUpdate(Date.now()),
   };
 };

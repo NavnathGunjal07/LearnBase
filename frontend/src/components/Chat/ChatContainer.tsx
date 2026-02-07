@@ -9,6 +9,9 @@ import { OnboardingLayout } from "../Onboarding/OnboardingLayout";
 import { GoogleAuthButton } from "../Auth/GoogleAuthButton";
 import { GoogleOneTap } from "../Auth/GoogleOneTap";
 import { PopularTopics } from "../PopularTopics";
+import { ProgressiveSelector } from "../ProgressiveSelector";
+import { interestsTree } from "@/data/interestsData";
+import { goalsTree } from "@/data/goalsData";
 
 interface ChatContainerProps {
   chatHook: ReturnType<typeof import("../../hooks/useChat").useChat>;
@@ -248,6 +251,19 @@ export default function ChatContainer({
     return <LoadingView />;
   }
 
+  const handleInterestComplete = (pathIds: string[]) => {
+    // Convert path IDs to a readable string or send as structured data
+    // For now, let's join them.
+    // Ideally, the backend should parse this.
+    const selection = pathIds.join(" > ");
+    sendMessage(`I am interested in: ${selection}`);
+  };
+
+  const handleGoalComplete = (pathIds: string[]) => {
+    const selection = pathIds.join(" > ");
+    sendMessage(`My goal is: ${selection}`);
+  };
+
   // --- Onboarding / Auth View ---
   if (isAuthMode || isOnboarding) {
     return (
@@ -268,93 +284,114 @@ export default function ChatContainer({
               </div>
             )}
 
-            {/* Chat Messages (Scrollable) */}
-            <div
-              ref={scrollViewportRef}
-              onScroll={handleScroll}
-              className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 pr-2 min-h-0"
-            >
-              {messages.length === 0 && (
-                <div className="text-center text-gray-500 py-4">
-                  {isAuthMode ? "Connecting..." : "Starting conversation..."}
-                </div>
-              )}
-              {messages.map((msg, i) => (
-                <ChatMessage
-                  key={i}
-                  message={msg}
-                  isLoading={
-                    i === messages.length - 1 &&
-                    (chatHook.generationStatus?.status === "loading" ||
-                      isTyping)
-                  }
-                  onQuizAnswer={chatHook.submitQuizAnswer}
-                  onOpenCodingChallenge={(challenge) =>
-                    chatHook.setCodingWorkspace({
-                      isOpen: true,
-                      challenge,
-                      executionResult: null,
-                    })
-                  }
-                />
-              ))}
-              {/* Only show dots if there's no active message being streamed? Actually isTyping usually means thinking before stream. 
-                  But now we want the loader on the avatar. 
-                  If we have a "Thinking..." message (empty content) it will show there.
-                  If `isTyping` is true and no partial message, we might need a placeholder.
-              */}
-              {isTyping &&
-                messages.length > 0 &&
-                messages[messages.length - 1].sender === "user" && (
-                  // If last message was user, we typically wait for backend to send an empty assistant message or we show a placeholder.
-                  // The `useChat` hook usually appends an empty assistant message when stream starts.
-                  // If `isTyping` is true but no assistant message yet, we can show a placeholder.
-                  // However, let's rely on useChat appending the message.
-                  // If `useChat` DOES NOT append placeholder immediately, we'd need one here.
-                  // Let's assume useChat appends it or we just show the placeholder below.
-                  <div className="flex justify-start items-start gap-3 w-full opacity-60">
-                    <div className="relative inline-block">
-                      <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[var(--accent)] border-r-purple-500 animate-spin z-10 pointer-events-none" />
-                      <Avatar isTyping={true} size="small" />
-                    </div>
-                    <div className="max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 bg-gray-50">
-                      Thinking...
-                    </div>
-                  </div>
-                )}
-
-              {chatHook.generationStatus?.status === "loading" && (
-                <div className="flex justify-center my-2 animate-fade-in">
-                  <div className="bg-orange-50 text-[var(--accent)] text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-orange-100">
-                    <div className="w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-                    {chatHook.generationStatus.message ||
-                      "Generating content..."}
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input (Fixed at Bottom) */}
-            {onboardingStep !== "auth" && (
-              <div className="flex-shrink-0 py-4 sm:py-6">
-                <ChatInput
-                  onSend={sendMessage}
-                  placeholder="Type your answer..."
-                  inputType={chatHook.inputConfig?.inputType}
-                  options={chatHook.inputConfig?.options}
-                  suggestions={chatHook.inputConfig?.suggestions}
-                  language={chatHook.inputConfig?.language}
-                  visualizerData={chatHook.inputConfig?.visualizerData}
-                  onVisualizerClick={chatHook.triggerVisualizer}
-                  isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
-                  hideModeSwitcher={isOnboarding}
-                  visualizerSuggestions={
-                    chatHook.inputConfig?.visualizerSuggestions
-                  }
-                  generationStatus={chatHook.generationStatus}
+            {/* Content Switcher based on Step */}
+            {onboardingStep === "interests" ? (
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-y-auto">
+                <ProgressiveSelector
+                  data={interestsTree}
+                  onComplete={handleInterestComplete}
                 />
               </div>
+            ) : onboardingStep === "goals" ? (
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-y-auto">
+                <ProgressiveSelector
+                  data={goalsTree}
+                  onComplete={handleGoalComplete}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Chat Messages (Scrollable) */}
+                <div
+                  ref={scrollViewportRef}
+                  onScroll={handleScroll}
+                  className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 pr-2 min-h-0"
+                >
+                  {messages.length === 0 && (
+                    <div className="text-center text-gray-500 py-4">
+                      {isAuthMode
+                        ? "Connecting..."
+                        : "Starting conversation..."}
+                    </div>
+                  )}
+                  {messages.map((msg, i) => (
+                    <ChatMessage
+                      key={i}
+                      message={msg}
+                      isLoading={
+                        i === messages.length - 1 &&
+                        (chatHook.generationStatus?.status === "loading" ||
+                          isTyping)
+                      }
+                      onQuizAnswer={chatHook.submitQuizAnswer}
+                      onOpenCodingChallenge={(challenge) =>
+                        chatHook.setCodingWorkspace({
+                          isOpen: true,
+                          challenge,
+                          executionResult: null,
+                        })
+                      }
+                    />
+                  ))}
+                  {/* Only show dots if there's no active message being streamed? Actually isTyping usually means thinking before stream. 
+                        But now we want the loader on the avatar. 
+                        If we have a "Thinking..." message (empty content) it will show there.
+                        If `isTyping` is true and no partial message, we might need a placeholder.
+                    */}
+                  {isTyping &&
+                    messages.length > 0 &&
+                    messages[messages.length - 1].sender === "user" && (
+                      // If last message was user, we typically wait for backend to send an empty assistant message or we show a placeholder.
+                      // The `useChat` hook usually appends an empty assistant message when stream starts.
+                      // If `isTyping` is true but no assistant message yet, we can show a placeholder.
+                      // However, let's rely on useChat appending the message.
+                      // If `useChat` DOES NOT append placeholder immediately, we'd need one here.
+                      // Let's assume useChat appends it or we just show the placeholder below.
+                      <div className="flex justify-start items-start gap-3 w-full opacity-60">
+                        <div className="relative inline-block">
+                          <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[var(--accent)] border-r-purple-500 animate-spin z-10 pointer-events-none" />
+                          <Avatar isTyping={true} size="small" />
+                        </div>
+                        <div className="max-w-[90%] md:max-w-[75%] px-4 py-2 rounded-xl italic text-gray-400 bg-gray-50">
+                          Thinking...
+                        </div>
+                      </div>
+                    )}
+
+                  {chatHook.generationStatus?.status === "loading" && (
+                    <div className="flex justify-center my-2 animate-fade-in">
+                      <div className="bg-orange-50 text-[var(--accent)] text-xs py-1 px-3 rounded-full flex items-center gap-2 border border-orange-100">
+                        <div className="w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+                        {chatHook.generationStatus.message ||
+                          "Generating content..."}
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input (Fixed at Bottom) */}
+                {onboardingStep !== "auth" && (
+                  <div className="flex-shrink-0 py-4 sm:py-6">
+                    <ChatInput
+                      onSend={sendMessage}
+                      placeholder="Type your answer..."
+                      inputType={chatHook.inputConfig?.inputType}
+                      options={chatHook.inputConfig?.options}
+                      suggestions={chatHook.inputConfig?.suggestions}
+                      language={chatHook.inputConfig?.language}
+                      visualizerData={chatHook.inputConfig?.visualizerData}
+                      onVisualizerClick={chatHook.triggerVisualizer}
+                      isGeneratingVisualizer={chatHook.isGeneratingVisualizer}
+                      hideModeSwitcher={isOnboarding}
+                      visualizerSuggestions={
+                        chatHook.inputConfig?.visualizerSuggestions
+                      }
+                      generationStatus={chatHook.generationStatus}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -394,6 +431,8 @@ export default function ChatContainer({
                         await topicService.enrollInTopic(topicId.toString());
                         // Update local state to hide popular topics immediately
                         setHasUserTopics(true);
+                        // Notify sidebar to refresh topics
+                        chatHook.refreshTopics();
                         await sendTopicSelection(topicName, "", topicId);
                       } catch (error) {
                         console.error(
