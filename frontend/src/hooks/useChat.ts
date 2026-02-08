@@ -620,14 +620,13 @@ export const useChat = (
     }
   };
 
-  const submitQuizAnswer = (selectedIndex: number, correctIndex: number) => {
+  const submitQuizAnswer = (selectedIndex: number) => {
     if (ws?.readyState !== WebSocket.OPEN) return;
 
     ws.send(
       JSON.stringify({
         type: "quiz_answer",
         selectedIndex,
-        correctIndex,
       })
     );
   };

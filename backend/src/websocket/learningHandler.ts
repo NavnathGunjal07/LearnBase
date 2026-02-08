@@ -343,7 +343,7 @@ async function handleCodeExecution(ws: AuthenticatedWebSocket, message: any) {
 
 async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
   try {
-    const { selectedIndex, correctIndex } = message;
+    const { selectedIndex } = message;
     const sessionId = ws.currentSessionId;
 
     if (!sessionId) {
@@ -351,7 +351,61 @@ async function handleQuizAnswer(ws: AuthenticatedWebSocket, message: any) {
       return;
     }
 
-    const isCorrect = selectedIndex === correctIndex;
+    if (!Number.isInteger(selectedIndex)) {
+      ws.send(
+        JSON.stringify({ type: "error", content: "Invalid quiz answer." })
+      );
+      return;
+    }
+
+    const latestQuizMessage = await prisma.chatMessage.findFirst({
+      where: { chatId: sessionId, messageType: "quiz" },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!latestQuizMessage?.metadata) {
+      ws.send(
+        JSON.stringify({ type: "error", content: "No active quiz found." })
+      );
+      return;
+    }
+
+    const quizMetadata = latestQuizMessage.metadata as {
+      correctIndex?: number;
+      options?: string[];
+    };
+
+    if (
+      !Array.isArray(quizMetadata.options) ||
+      !Number.isInteger(quizMetadata.correctIndex)
+    ) {
+      ws.send(
+        JSON.stringify({ type: "error", content: "Invalid quiz metadata." })
+      );
+      return;
+    }
+
+    if (
+      selectedIndex < 0 ||
+      selectedIndex >= quizMetadata.options.length
+    ) {
+      ws.send(
+        JSON.stringify({ type: "error", content: "Invalid quiz answer." })
+      );
+      return;
+    }
+
+    if (
+      quizMetadata.correctIndex < 0 ||
+      quizMetadata.correctIndex >= quizMetadata.options.length
+    ) {
+      ws.send(
+        JSON.stringify({ type: "error", content: "Invalid quiz metadata." })
+      );
+      return;
+    }
+
+    const isCorrect = selectedIndex === quizMetadata.correctIndex;
 
     // Get session details for progress update
     const session = await prisma.chatSession.findUnique({

@@ -10,7 +10,7 @@ import { ChevronDown, ChevronRight, Play, Terminal } from "lucide-react";
 
 interface ChatMessageProps {
   message: ChatMessageType;
-  onQuizAnswer?: (selectedIndex: number, correctIndex: number) => void;
+  onQuizAnswer?: (selectedIndex: number) => void;
   onOpenCodingChallenge?: (challenge: any) => void;
   isLoading?: boolean;
 }
@@ -190,7 +190,7 @@ export default function ChatMessage({
                   options={message.quiz.options}
                   correctIndex={message.quiz.correctIndex}
                   onAnswer={(selectedIndex) =>
-                    onQuizAnswer?.(selectedIndex, message.quiz!.correctIndex)
+                    onQuizAnswer?.(selectedIndex)
                   }
                 />
               </div>
