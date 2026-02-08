@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { ChevronLeft, Check } from "lucide-react";
 import { InterestNode } from "../data/interestsData";
 
 interface ProgressiveSelectorProps {
@@ -93,7 +92,7 @@ const Card = ({
 }) => {
   // Animation variants
   const variants = {
-    hidden: (dir: "forward" | "backward") => ({
+    hidden: () => ({
       opacity: 0,
       scale: 0.96,
       // If moving forward, new items enter from standard. If backing, they emerge from center?
