@@ -14,6 +14,14 @@ import {
   Cpu,
   Activity,
   Zap,
+  Brain,
+  Cloud,
+  Shield,
+  Terminal,
+  Boxes,
+  GitBranch,
+  LineChart,
+  Layers,
 } from "lucide-react";
 import React from "react";
 
@@ -89,6 +97,72 @@ export const interestsTree: InterestNode[] = [
         label: "Data Science",
         icon: Database,
         description: "AI, ML, and Big Data",
+        children: [
+          {
+            id: "ml",
+            label: "Machine Learning",
+            icon: Brain,
+            description: "Models, training, and evaluation",
+          },
+          {
+            id: "data-eng",
+            label: "Data Engineering",
+            icon: Boxes,
+            description: "Pipelines, ETL, and warehousing",
+          },
+          {
+            id: "analytics",
+            label: "Analytics",
+            icon: LineChart,
+            description: "Dashboards and insights",
+          },
+        ],
+      },
+      {
+        id: "cloud-devops",
+        label: "Cloud & DevOps",
+        icon: Cloud,
+        description: "Infrastructure and deployment",
+        children: [
+          {
+            id: "cloud",
+            label: "Cloud Platforms",
+            icon: Cloud,
+            description: "AWS, GCP, Azure",
+          },
+          {
+            id: "devops",
+            label: "DevOps",
+            icon: GitBranch,
+            description: "CI/CD and automation",
+          },
+          {
+            id: "sre",
+            label: "Reliability",
+            icon: Activity,
+            description: "Monitoring and uptime",
+          },
+        ],
+      },
+      {
+        id: "cybersecurity",
+        label: "Cybersecurity",
+        icon: Shield,
+        description: "Security and privacy",
+        children: [
+          {
+            id: "appsec",
+            label: "App Security",
+            icon: Shield,
+            description: "Secure coding practices",
+          },
+          {
+            id: "network-sec",
+            label: "Network Security",
+            icon: Globe,
+            description: "Threat detection and defense",
+          },
+        ],
       },
     ],
   },
@@ -149,6 +223,18 @@ export const interestsTree: InterestNode[] = [
         label: "Automation",
         icon: Cpu,
         description: "Scripting and workflow automation",
+      },
+      {
+        id: "knowledge-mgmt",
+        label: "Knowledge Management",
+        icon: Layers,
+        description: "Notes, wikis, and documentation",
+      },
+      {
+        id: "learning-systems",
+        label: "Learning Systems",
+        icon: Terminal,
+        description: "Study plans and skill tracking",
       },
     ],
   },

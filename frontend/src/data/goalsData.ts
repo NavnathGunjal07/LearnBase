@@ -9,6 +9,16 @@ import {
   Award,
   Zap,
   Code,
+  Search,
+  RefreshCw,
+  Palette,
+  Rocket,
+  ClipboardCheck,
+  Lightbulb,
+  FileText,
+  CalendarCheck,
+  Compass,
+  Layers,
 } from "lucide-react";
 import { InterestNode } from "./interestsData";
 
@@ -23,6 +33,8 @@ export const goalsTree: InterestNode[] = [
       { id: "promotion", label: "Get Promoted", icon: TrendingUp },
       { id: "new-job", label: "Find a New Job", icon: Search },
       { id: "switch-career", label: "Switch Careers", icon: RefreshCw },
+      { id: "interview-prep", label: "Interview Prep", icon: ClipboardCheck },
+      { id: "portfolio", label: "Build Portfolio", icon: FileText },
     ],
   },
   {
@@ -34,6 +46,8 @@ export const goalsTree: InterestNode[] = [
       { id: "coding", label: "Coding", icon: Code },
       { id: "languages", label: "Languages", icon: Globe },
       { id: "soft-skills", label: "Soft Skills", icon: User },
+      { id: "project-based", label: "Project-Based Learning", icon: Rocket },
+      { id: "certs", label: "Earn Certifications", icon: Award },
     ],
   },
   {
@@ -44,6 +58,7 @@ export const goalsTree: InterestNode[] = [
     children: [
       { id: "better-grades", label: "Improve Grades", icon: Target },
       { id: "exam-prep", label: "Exam Prep", icon: Award },
+      { id: "research", label: "Research Skills", icon: Lightbulb },
     ],
   },
   {
@@ -54,9 +69,9 @@ export const goalsTree: InterestNode[] = [
     children: [
       { id: "productivity", label: "Boost Productivity", icon: Zap },
       { id: "creativity", label: "Enhance Creativity", icon: Palette },
+      { id: "habits", label: "Build Habits", icon: CalendarCheck },
+      { id: "direction", label: "Find Direction", icon: Compass },
+      { id: "knowledge-base", label: "Organize Knowledge", icon: Layers },
     ],
   },
 ];
-
-// Mock icons for simplicity where lucide might not have exact match in this short list
-import { Search, RefreshCw, Palette } from "lucide-react";
