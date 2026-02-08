@@ -7,6 +7,7 @@ import {
   Sparkles,
   Brain,
   Code2,
+  Cloud,
   Zap,
   Coffee,
   Heart,
@@ -156,20 +157,20 @@ export default function LandingPage() {
         )}
       </nav>
 
-      <main className="pt-32 pb-20">
+      <main className="pt-24 pb-16 sm:pt-32 sm:pb-20">
         {/* Hero Section */}
-        <section className="max-w-4xl mx-auto px-6 text-center mb-32">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-input)] text-[var(--accent)] text-xs font-medium tracking-wide mb-8 animate-fade-in">
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 text-center mb-20 sm:mb-32">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-input)] text-[var(--accent)] text-xs font-medium tracking-wide mb-6 sm:mb-8 animate-fade-in">
             <Sparkles className="w-3 h-3" />
             <span>Redefining how we learn code</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6 sm:mb-8 leading-[1.1]">
             The art of code, <br />
             <span className="text-[var(--fg-muted)] font-serif italic font-normal">
               without the chaos.
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-[var(--fg-muted)] max-w-2xl mx-auto mb-12 leading-relaxed font-light">
+          <p className="text-lg sm:text-xl md:text-2xl text-[var(--fg-muted)] max-w-2xl mx-auto mb-10 sm:mb-12 leading-relaxed font-light">
             Master programming at your own rhythm.{" "}
             <br className="hidden md:block" />
             No bootcamps. No deadlines. Just you and the craft.
@@ -178,7 +179,7 @@ export default function LandingPage() {
             <Link to="/auth">
               <Button
                 size="lg"
-                className="bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 rounded-full px-8 h-14 text-lg shadow-lg shadow-orange-500/20 transition-all hover:scale-105 hover:shadow-orange-500/30"
+                className="w-full sm:w-auto bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 rounded-full px-8 h-14 text-lg shadow-lg shadow-orange-500/20 transition-all hover:scale-105 hover:shadow-orange-500/30"
               >
                 Begin the Journey
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -188,12 +189,12 @@ export default function LandingPage() {
         </section>
 
         {/* Why Rushed Learning Fails */}
-        <section className="bg-[var(--bg-elevated)] py-24 mb-24 border-y border-[var(--border-default)]">
-          <div className="max-w-3xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold mb-6">
+        <section className="bg-[var(--bg-elevated)] py-16 sm:py-24 mb-16 sm:mb-24 border-y border-[var(--border-default)]">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">
               Why we struggle to learn.
             </h2>
-            <p className="text-lg text-[var(--fg-muted)] leading-loose">
+            <p className="text-base sm:text-lg text-[var(--fg-muted)] leading-relaxed sm:leading-loose">
               The modern world demands speed. We rush to build, skipping the
               understanding. We copy-paste, hoping it works. But true mastery
               needs{" "}
@@ -211,19 +212,19 @@ export default function LandingPage() {
         </section>
 
         {/* What is Vibe Learning */}
-        <section className="max-w-5xl mx-auto px-6 mb-32">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 mb-20 sm:mb-32">
+          <div className="grid md:grid-cols-2 gap-10 sm:gap-16 items-center">
             <div>
-              <h2 className="text-4xl font-bold mb-6">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4 sm:mb-6">
                 This is Vibe Learning.
               </h2>
-              <p className="text-lg text-[var(--fg-muted)] mb-6 leading-relaxed">
+              <p className="text-base sm:text-lg text-[var(--fg-muted)] mb-6 leading-relaxed">
                 It's coding with intention. It's understanding the "why" before
                 the "how". It's an environment where your curiosity leads the
                 way, not a curriculum.
               </p>
               <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-default)]">
+                <div className="flex items-start sm:items-center gap-4 p-4 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-default)]">
                   <div className="p-3 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
                     <Brain className="w-5 h-5" />
                   </div>
@@ -234,7 +235,7 @@ export default function LandingPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-default)]">
+                <div className="flex items-start sm:items-center gap-4 p-4 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-default)]">
                   <div className="p-3 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
                     <Zap className="w-5 h-5" />
                   </div>
@@ -249,8 +250,8 @@ export default function LandingPage() {
             </div>
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-tr from-orange-500/10 to-purple-500/10 rounded-full blur-3xl opacity-50" />
-              <div className="relative bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-3xl p-8 shadow-2xl skew-y-1">
-                <pre className="text-sm font-mono text-[var(--fg-muted)] overflow-hidden">
+              <div className="relative bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-3xl p-6 sm:p-8 shadow-2xl skew-y-1">
+                <pre className="text-xs sm:text-sm font-mono text-[var(--fg-muted)] overflow-hidden">
                   <code>
                     <span className="text-purple-500">const</span>{" "}
                     <span className="text-blue-500">mastery</span> ={" "}
@@ -285,17 +286,17 @@ export default function LandingPage() {
         </section>
 
         {/* 6-Step Flow */}
-        <section className="bg-[var(--bg-elevated)] py-24 mb-24 border-y border-[var(--border-default)]">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">
+        <section className="bg-[var(--bg-elevated)] py-16 sm:py-24 mb-16 sm:mb-24 border-y border-[var(--border-default)]">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="text-center mb-10 sm:mb-16">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">
                 The Natural Flow of Learning
               </h2>
-              <p className="text-[var(--fg-muted)]">
+              <p className="text-sm sm:text-base text-[var(--fg-muted)]">
                 How we guide you from confusion to clarity.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
               {[
                 {
                   step: "01",
@@ -330,13 +331,17 @@ export default function LandingPage() {
               ].map((item) => (
                 <div
                   key={item.step}
-                  className="p-8 rounded-2xl bg-[var(--bg-default)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-lg hover:shadow-orange-500/5 transition-all group"
+                  className="p-6 sm:p-8 rounded-2xl bg-[var(--bg-default)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:shadow-lg hover:shadow-orange-500/5 transition-all group"
                 >
                   <span className="text-4xl font-bold text-[var(--bg-input)] group-hover:text-[var(--accent)] transition-colors mb-4 block">
                     {item.step}
                   </span>
-                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                  <p className="text-[var(--fg-muted)]">{item.desc}</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm sm:text-base text-[var(--fg-muted)]">
+                    {item.desc}
+                  </p>
                 </div>
               ))}
             </div>
@@ -344,29 +349,31 @@ export default function LandingPage() {
         </section>
 
         {/* Audience */}
-        <section className="max-w-4xl mx-auto px-6 mb-32 text-center">
-          <h2 className="text-3xl font-bold mb-12">Who is this for?</h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-8 rounded-3xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20">
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 mb-20 sm:mb-32 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12">
+            Who is this for?
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
+            <div className="p-6 sm:p-8 rounded-3xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20">
               <div className="inline-flex p-3 rounded-full bg-green-100 text-green-600 mb-4">
                 <Coffee className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold mb-4 text-green-800 dark:text-green-400">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-green-800 dark:text-green-400">
                 For the Craftsmen
               </h3>
-              <p className="text-green-700/80 dark:text-green-300/70">
+              <p className="text-sm sm:text-base text-green-700/80 dark:text-green-300/70">
                 Those who want to understand code deeply. Who care about
                 quality, legibility, and the art of software.
               </p>
             </div>
-            <div className="p-8 rounded-3xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 opacity-75 grayscale hover:grayscale-0 transition-all">
+            <div className="p-6 sm:p-8 rounded-3xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 opacity-75 grayscale hover:grayscale-0 transition-all">
               <div className="inline-flex p-3 rounded-full bg-red-100 text-red-600 mb-4">
                 <Zap className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold mb-4 text-red-800 dark:text-red-400">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-red-800 dark:text-red-400">
                 Not for Rushers
               </h3>
-              <p className="text-red-700/80 dark:text-red-300/70">
+              <p className="text-sm sm:text-base text-red-700/80 dark:text-red-300/70">
                 If you're looking for "Become a Senior Dev in 2 Weeks" or quick
                 copy-paste hacks, this isn't for you.
               </p>
@@ -375,17 +382,19 @@ export default function LandingPage() {
         </section>
 
         {/* Final CTA */}
-        <section className="text-center py-20 px-6">
+        <section className="text-center py-16 sm:py-20 px-4 sm:px-6">
           <Heart className="w-12 h-12 text-[var(--accent)] mx-auto mb-6 animate-pulse" />
-          <h2 className="text-4xl font-bold mb-6">Ready to find your flow?</h2>
-          <p className="text-xl text-[var(--fg-muted)] mb-10 max-w-xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 sm:mb-6">
+            Ready to find your flow?
+          </h2>
+          <p className="text-base sm:text-xl text-[var(--fg-muted)] mb-8 sm:mb-10 max-w-xl mx-auto">
             Join a community of thoughtful developers building the future, one
             concept at a time.
           </p>
           <Link to="/auth">
             <Button
               size="lg"
-              className="bg-[var(--fg-default)] text-[var(--bg-default)] hover:opacity-90 rounded-full px-10 h-16 text-lg font-medium"
+              className="w-full sm:w-auto bg-[var(--fg-default)] text-[var(--bg-default)] hover:opacity-90 rounded-full px-10 h-16 text-lg font-medium"
             >
               Enter the Studio
             </Button>
@@ -397,6 +406,10 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-2 mb-4 opacity-50">
           <Code2 className="w-5 h-5" />
           <span className="font-medium">LearnBase</span>
+        </div>
+        <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[var(--fg-muted)] mb-2">
+          <Cloud className="w-4 h-4" />
+          <span>Powered by Gorq Cloud</span>
         </div>
         <p className="text-[var(--fg-muted)] text-sm">
           &copy; {new Date().getFullYear()} LearnBase. Crafted with intention.
