@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { ChevronLeft, Check } from "lucide-react";
 import { InterestNode } from "../data/interestsData";
 
 interface ProgressiveSelectorProps {
@@ -93,27 +92,30 @@ const Card = ({
 }) => {
   // Animation variants
   const variants = {
-    hidden: (dir: "forward" | "backward") => ({
+    hidden: () => ({
       opacity: 0,
-      scale: 0.9,
+      scale: 0.96,
       // If moving forward, new items enter from standard. If backing, they emerge from center?
       // Simple fade + scale is cleaner for "zoom" feel.
-      filter: "blur(10px)",
+      filter: "blur(6px)",
     }),
     visible: {
       opacity: 1,
       scale: 1,
       filter: "blur(0px)",
       transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
+        duration: 0.35,
+        ease: [0.22, 1, 0.36, 1],
       },
     },
     exit: (dir: "forward" | "backward") => ({
       opacity: 0,
-      scale: dir === "forward" ? 1.1 : 0.9, // Expand out when going forward, shrink when going back
-      filter: "blur(10px)",
+      scale: dir === "forward" ? 1.03 : 0.96, // Expand out when going forward, shrink when going back
+      filter: "blur(6px)",
+      transition: {
+        duration: 0.25,
+        ease: [0.4, 0, 0.2, 1],
+      },
     }),
   };
 
@@ -128,15 +130,13 @@ const Card = ({
       exit="exit"
       custom={direction}
       onClick={onClick}
-      className="group relative flex flex-col items-center justify-center p-6 gap-3 rounded-2xl bg-orange-50 dark:bg-orange-900/10 hover:bg-[var(--accent)] transition-all duration-300 aspect-square shadow-sm hover:shadow-md"
+      className="group relative flex items-center gap-3 rounded-xl border border-[var(--accent)]/25 bg-transparent px-5 py-4 transition-transform duration-300 ease-out hover:scale-[1.02]"
     >
-      <div className="p-3 rounded-full bg-white/50 dark:bg-black/20 group-hover:bg-white/20 transition-colors">
-        {Icon && (
-          <Icon className="w-8 h-8 text-[var(--accent)] group-hover:text-white transition-colors" />
-        )}
-      </div>
+      {Icon && (
+        <Icon className="w-7 h-7 text-[var(--accent)] transition-colors" />
+      )}
 
-      <h3 className="text-base font-semibold text-[var(--fg-default)] group-hover:text-white text-center leading-tight">
+      <h3 className="text-base font-semibold text-[var(--accent)] leading-tight whitespace-nowrap">
         {item.label}
       </h3>
     </motion.button>
