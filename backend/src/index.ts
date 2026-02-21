@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { createEnv, string, number, enumType } from "@navnathgunjal/envcheck";
 import http from "http";
 import apiRoutes from "./routes";
 import { NextFunction, urlencoded, json, Request, Response } from "express";
@@ -12,8 +13,26 @@ import passport from "./config/passport";
 // Load environment variables
 dotenv.config();
 
+export const env = createEnv({
+  DATABASE_URL: string(),
+  JWT_SECRET: string(),
+  JWT_EXPIRES_IN: string(),
+  PORT: number(),
+  NODE_ENV: enumType(["development", "production", "test"] as const),
+  OLLAMA_BASE_URL: string(),
+  OLLAMA_MODEL: string(),
+  GROQ_API_KEY: string(),
+  RAPID_API_KEY: string(),
+  OPENAI_API_KEY: string(),
+  CORS_ORIGIN: string(),
+  FRONTEND_URL: string(),
+  GOOGLE_CLIENT_ID: string(),
+  GOOGLE_CLIENT_SECRET: string(),
+  GOOGLE_CALLBACK_URL: string(),
+});
+
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = env.PORT || 8080;
 
 // Create HTTP server (needed for WebSocket)
 const server = http.createServer(app);
@@ -21,7 +40,7 @@ const server = http.createServer(app);
 // Middleware
 app.use(
   cors({
-    origin: process.env.CORS_ORIGINS?.split(",") || "*",
+    origin: env.CORS_ORIGIN?.split(",") || "*",
   })
 );
 app.use(json());
